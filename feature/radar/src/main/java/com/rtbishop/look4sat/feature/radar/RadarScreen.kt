@@ -173,6 +173,7 @@ private fun PagerCard(
                     RadarPage.Transceivers -> TransceiversPage(
                         transceivers = uiState.transceivers.transmitters,
                         selectedUuid = uiState.transceivers.selectedUuid,
+                        orbitalPos = uiState.orbitalPos,
                         radioControl = uiState.radioControl,
                         onAction = onAction
                     )
