@@ -62,7 +62,8 @@ data class RadarState(
     val moonPosition: CelestialComputer.MoonPosition? = null,
     val transceivers: TransceiverSubState = TransceiverSubState(),
     val radioControl: RadioControlSubState = RadioControlSubState(),
-    val sstv: SstvSubState = SstvSubState()
+    val sstv: SstvSubState = SstvSubState(),
+    val cw: CwSubState = CwSubState()
 )
 
 enum class SstvStatus { Idle, Recording }
@@ -75,6 +76,19 @@ data class SstvSubState(
     val supportedModes: List<String> = emptyList(),
     val currentFrame: SstvFrame? = null,
     val diagnosticsMetrics: SstvQualityMetrics? = null
+)
+
+// --- CW Decoder ---
+
+enum class CwStatus { Idle, Listening }
+
+data class CwSubState(
+    val status: CwStatus = CwStatus.Idle,
+    val hasPermission: Boolean = false,
+    val decodedText: String = "",
+    val cwToneFreq: Float = 700f,
+    val isExpanded: Boolean = false,
+    val signalStrength: Float = 0f
 )
 
 sealed interface RadarAction {
@@ -96,4 +110,12 @@ sealed interface RadarAction {
     data object SstvReset : RadarAction
     data class SstvSelectMode(val modeName: String) : RadarAction
     data class SstvPermissionResult(val granted: Boolean) : RadarAction
+
+    // CW actions
+    data object CwStartListening : RadarAction
+    data object CwStopListening : RadarAction
+    data object CwReset : RadarAction
+    data class CwSetToneFreq(val freq: Float) : RadarAction
+    data class CwToggleExpanded(val expanded: Boolean) : RadarAction
+    data class CwPermissionResult(val granted: Boolean) : RadarAction
 }

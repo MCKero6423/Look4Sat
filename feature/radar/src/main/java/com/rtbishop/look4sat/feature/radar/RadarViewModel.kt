@@ -34,6 +34,7 @@ import com.rtbishop.look4sat.core.domain.repository.ISensorsRepo
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import com.rtbishop.look4sat.core.domain.sstv.LineRecoveryStrategy
 import com.rtbishop.look4sat.core.domain.sstv.SstvDecoder
+import com.rtbishop.look4sat.core.domain.cw.CwDecoder
 import com.rtbishop.look4sat.core.domain.usecase.IAudioCapture
 import com.rtbishop.look4sat.core.domain.usecase.IAddToCalendar
 import com.rtbishop.look4sat.core.domain.usecase.ISaveImage
@@ -70,6 +71,8 @@ class RadarViewModel(
     private var transponders: List<SatRadio> = emptyList()
     private var sstvDecoder: SstvDecoder? = null
     private var sstvRecordingJob: Job? = null
+    private var cwDecoder: CwDecoder? = null
+    private var cwListeningJob: Job? = null
 
     // Celestial positions change slowly, recompute at most once per minute
     private var lastCelestialUpdateMs = 0L
@@ -272,6 +275,25 @@ class RadarViewModel(
                 sstvDecoder?.clearPixels()
                 _uiState.update { it.copy(sstv = it.sstv.copy(currentFrame = null)) }
             }
+
+            // CW actions
+            is RadarAction.CwPermissionResult -> {
+                _uiState.update { it.copy(cw = it.cw.copy(hasPermission = action.granted)) }
+                if (action.granted) initCwDecoder()
+            }
+            RadarAction.CwStartListening -> startCwListening()
+            RadarAction.CwStopListening -> stopCwListening()
+            RadarAction.CwReset -> {
+                cwDecoder?.resetDecoder()
+                _uiState.update { it.copy(cw = it.cw.copy(decodedText = "")) }
+            }
+            is RadarAction.CwSetToneFreq -> {
+                _uiState.update { it.copy(cw = it.cw.copy(cwToneFreq = action.freq)) }
+                cwDecoder = CwDecoder(sampleRate = audioCapture.sampleRate, cwToneFreq = action.freq)
+            }
+            is RadarAction.CwToggleExpanded -> {
+                _uiState.update { it.copy(cw = it.cw.copy(isExpanded = action.expanded)) }
+            }
         }
     }
 
@@ -390,6 +412,48 @@ class RadarViewModel(
         sstvRecordingJob?.cancel()
         sstvRecordingJob = null
         _uiState.update { it.copy(sstv = it.sstv.copy(status = SstvStatus.Idle)) }
+    }
+
+    private fun initCwDecoder() {
+        if (cwDecoder == null) {
+            cwDecoder = CwDecoder(
+                sampleRate = audioCapture.sampleRate,
+                cwToneFreq = _uiState.value.cw.cwToneFreq
+            )
+        }
+    }
+
+    private fun startCwListening() {
+        if (cwListeningJob?.isActive == true) return
+        // Stop SSTV if running (audio capture is shared)
+        stopSstvRecording()
+        initCwDecoder()
+        cwDecoder?.resetDecoder()
+        _uiState.update { it.copy(cw = it.cw.copy(status = CwStatus.Listening)) }
+        cwListeningJob = viewModelScope.launch {
+            // Collect decoded text flow
+            launch {
+                cwDecoder?.decodedTextFlow?.collect { text ->
+                    _uiState.update { it.copy(cw = it.cw.copy(decodedText = text)) }
+                }
+            }
+            // Collect signal strength
+            launch {
+                cwDecoder?.signalStrength?.collect { strength ->
+                    _uiState.update { it.copy(cw = it.cw.copy(signalStrength = strength)) }
+                }
+            }
+            // Capture audio and feed to decoder
+            audioCapture.audioFlow().collect { buffer ->
+                cwDecoder?.processBuffer(buffer)
+            }
+        }
+    }
+
+    private fun stopCwListening() {
+        cwListeningJob?.cancel()
+        cwListeningJob = null
+        _uiState.update { it.copy(cw = it.cw.copy(status = CwStatus.Idle)) }
     }
 
     companion object {

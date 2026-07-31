@@ -40,10 +40,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -80,6 +83,7 @@ fun TransceiversPage(
     transceivers: List<SatRadio>,
     selectedUuid: String?,
     orbitalPos: OrbitalPos?,
+    cw: CwSubState,
     radioControl: RadioControlSubState,
     onAction: (RadarAction) -> Unit,
     modifier: Modifier = Modifier
@@ -105,6 +109,7 @@ fun TransceiversPage(
                     radio = radio,
                     isExpanded = isExpanded,
                     orbitalPos = orbitalPos,
+                    cw = cw,
                     radioControl = radioControl,
                     onAction = onAction,
                     onToggle = { onAction(RadarAction.SelectTransmitter(radio.uuid)) }
@@ -142,6 +147,7 @@ private fun TransceiverItem(
     radio: SatRadio,
     isExpanded: Boolean,
     orbitalPos: OrbitalPos?,
+    cw: CwSubState,
     radioControl: RadioControlSubState,
     onAction: (RadarAction) -> Unit,
     onToggle: () -> Unit
@@ -237,6 +243,7 @@ private fun TransceiverItem(
             ExpandedRadioControl(
                 radio = radio,
                 orbitalPos = orbitalPos,
+                cw = cw,
                 radioControl = radioControl,
                 onAction = onAction
             )
@@ -308,6 +315,7 @@ private fun UnifiedFrequencyRow(
 private fun ExpandedRadioControl(
     radio: SatRadio,
     orbitalPos: OrbitalPos?,
+    cw: CwSubState,
     radioControl: RadioControlSubState,
     onAction: (RadarAction) -> Unit
 ) {
@@ -424,6 +432,15 @@ private fun ExpandedRadioControl(
             orbitalPos = orbitalPos,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // CW decoder panel (linear transponders only)
+        if (DopplerFrequencyCalculator.isLinearTransponder(radio)) {
+            CwDecoderPanel(
+                cw = cw,
+                onAction = onAction,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         // Control buttons
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -601,6 +618,113 @@ private fun DopplerFrequencyCalculator(
 }
 
 private enum class EditedField { TX, RX }
+
+@Composable
+private fun CwDecoderPanel(
+    cw: CwSubState,
+    onAction: (RadarAction) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // Header row: expand/collapse toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onAction(RadarAction.CwToggleExpanded(!cw.isExpanded)) },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.radar_cw_decoder),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Icon(
+                painter = painterResource(id = R.drawable.ic_arrow),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(if (cw.isExpanded) 270f else 90f)
+            )
+        }
+
+        AnimatedVisibility(visible = cw.isExpanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Control buttons row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (cw.status == CwStatus.Idle) {
+                        Button(
+                            onClick = { onAction(RadarAction.CwStartListening) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.radar_cw_start))
+                        }
+                    } else {
+                        Button(
+                            onClick = { onAction(RadarAction.CwStopListening) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.radar_cw_stop))
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { onAction(RadarAction.CwReset) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.radar_cw_reset))
+                    }
+                }
+
+                // Signal strength indicator
+                if (cw.status == CwStatus.Listening && cw.signalStrength > 0f) {
+                    val strengthPct = (cw.signalStrength * 100).toInt()
+                    Text(
+                        text = "Signal: $strengthPct%",
+                        fontSize = 12.sp,
+                        color = if (cw.signalStrength > 0.5f) Color(0xFF4CAF50)
+                        else if (cw.signalStrength > 0.2f) Color(0xFFFFC107)
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Decoded text output
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Decoded:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = cw.decodedText.ifEmpty { "Waiting for CW signal..." },
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun FrequencyText(frequency: Long?, modifier: Modifier = Modifier) {
