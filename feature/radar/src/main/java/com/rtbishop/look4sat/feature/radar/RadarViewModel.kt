@@ -425,6 +425,10 @@ class RadarViewModel(
 
     private fun startCwListening() {
         if (cwListeningJob?.isActive == true) return
+        if (!_uiState.value.cw.hasPermission) {
+            // Permission not yet granted — request it (launcher handles the result)
+            return
+        }
         // Stop SSTV if running (audio capture is shared)
         stopSstvRecording()
         initCwDecoder()

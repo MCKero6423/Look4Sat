@@ -86,6 +86,7 @@ fun TransceiversPage(
     cw: CwSubState,
     radioControl: RadioControlSubState,
     onAction: (RadarAction) -> Unit,
+    requestMicPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (transceivers.isEmpty()) {
@@ -112,6 +113,7 @@ fun TransceiversPage(
                     cw = cw,
                     radioControl = radioControl,
                     onAction = onAction,
+                    requestMicPermission = requestMicPermission,
                     onToggle = { onAction(RadarAction.SelectTransmitter(radio.uuid)) }
                 )
             }
@@ -150,6 +152,7 @@ private fun TransceiverItem(
     cw: CwSubState,
     radioControl: RadioControlSubState,
     onAction: (RadarAction) -> Unit,
+    requestMicPermission: () -> Unit,
     onToggle: () -> Unit
 ) {
     val bgColor = if (isExpanded) MaterialTheme.colorScheme.surfaceContainerHighest
@@ -245,7 +248,8 @@ private fun TransceiverItem(
                 orbitalPos = orbitalPos,
                 cw = cw,
                 radioControl = radioControl,
-                onAction = onAction
+                onAction = onAction,
+                requestMicPermission = requestMicPermission
             )
         }
 
@@ -317,7 +321,8 @@ private fun ExpandedRadioControl(
     orbitalPos: OrbitalPos?,
     cw: CwSubState,
     radioControl: RadioControlSubState,
-    onAction: (RadarAction) -> Unit
+    onAction: (RadarAction) -> Unit,
+    requestMicPermission: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -438,6 +443,7 @@ private fun ExpandedRadioControl(
             CwDecoderPanel(
                 cw = cw,
                 onAction = onAction,
+                requestMicPermission = requestMicPermission,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -623,6 +629,7 @@ private enum class EditedField { TX, RX }
 private fun CwDecoderPanel(
     cw: CwSubState,
     onAction: (RadarAction) -> Unit,
+    requestMicPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -662,7 +669,13 @@ private fun CwDecoderPanel(
                 ) {
                     if (cw.status == CwStatus.Idle) {
                         Button(
-                            onClick = { onAction(RadarAction.CwStartListening) },
+                            onClick = {
+                                if (!cw.hasPermission) {
+                                    requestMicPermission()
+                                } else {
+                                    onAction(RadarAction.CwStartListening)
+                                }
+                            },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(R.string.radar_cw_start))

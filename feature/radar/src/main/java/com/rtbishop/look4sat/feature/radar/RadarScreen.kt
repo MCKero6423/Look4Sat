@@ -89,10 +89,14 @@ fun RadarDestination(navigateUp: () -> Unit) {
     ) == PackageManager.PERMISSION_GRANTED
     LaunchedEffect(hasPermission) {
         viewModel.onAction(RadarAction.SstvPermissionResult(hasPermission))
+        viewModel.onAction(RadarAction.CwPermissionResult(hasPermission))
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> viewModel.onAction(RadarAction.SstvPermissionResult(granted)) }
+    ) { granted ->
+        viewModel.onAction(RadarAction.SstvPermissionResult(granted))
+        viewModel.onAction(RadarAction.CwPermissionResult(granted))
+    }
     RadarScreen(uiState, viewModel::onAction, navigateUp, requestMicPermission = {
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     })
@@ -176,7 +180,8 @@ private fun PagerCard(
                                     orbitalPos = uiState.orbitalPos,
                                     cw = uiState.cw,
                                     radioControl = uiState.radioControl,
-                                    onAction = onAction
+                                    onAction = onAction,
+                                    requestMicPermission = requestMicPermission
                                 )
                     RadarPage.Sstv -> SstvPage(
                         sstv = uiState.sstv,
