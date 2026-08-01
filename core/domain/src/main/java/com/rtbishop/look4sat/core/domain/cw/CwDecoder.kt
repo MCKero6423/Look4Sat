@@ -178,6 +178,25 @@ class CwDecoder(
                     goertzel.init(BASE_SAMPLE_RATE, pitch)
                 }
             }
+        } else {
+            // Continuous pitch tracking: re-check periodically to handle Doppler drift
+            pitchConfidenceCounter++
+            if (pitchConfidenceCounter >= PITCH_DETECT_INTERVAL * 5) {
+                pitchConfidenceCounter = 0
+                // Narrow scan: ±100 Hz around current pitch estimate
+                val narrowDetector = CwPitchDetector(
+                    BASE_SAMPLE_RATE,
+                    (pitchEstimate - 100f).coerceAtLeast(200f),
+                    (pitchEstimate + 100f).coerceAtMost(1200f),
+                    5f
+                )
+                val pitch = narrowDetector.findPitch(resampled)
+                if (pitch != null && kotlin.math.abs(pitch - pitchEstimate) > 20f) {
+                    pitchEstimate = pitch
+                    _estimatedPitch.value = pitch
+                    goertzel.init(BASE_SAMPLE_RATE, pitch)
+                }
+            }
         }
 
         // Push latest decoded text
