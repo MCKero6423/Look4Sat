@@ -30,19 +30,21 @@ import kotlinx.coroutines.flow.StateFlow
  *   4. Bayesian probability for symbol timing (Gaussian likelihood)
  *   5. Best channel selected for output
  *
- * Key advantages over v2 (ggmorse):
- * - Frequency-agnostic: monitors all 200-1200 Hz simultaneously
- * - Multi-channel: tracks up to 3 signals in parallel
- * - Bayesian: probability-based decisions, not hard thresholds
- * - Frequency drift tolerant: energy just moves between bins
+ * Timing analysis is performed per spectrogram column (hop).
+ * Each column represents hopSize/sampleRate seconds of audio.
  */
 class CwDecoder(
     val sampleRate: Int = 8000,
     cwToneFreq: Float = -1f // ignored in v3 (auto-detect via spectrogram)
 ) {
+    companion object {
+        private const val FFT_SIZE = 256
+        private const val HOP_SIZE = 64
+    }
+
     private val spectrogram = CwSpectrogram(
-        fftSize = 256,
-        hopSize = 64,
+        fftSize = FFT_SIZE,
+        hopSize = HOP_SIZE,
         sampleRate = sampleRate,
         minBin = 6,
         maxBin = 38,
@@ -51,18 +53,16 @@ class CwDecoder(
     private val channelTracker = CwChannelTracker(spectrogram, maxChannels = 3)
     private val bayesianDecoder = CwBayesianDecoder()
 
-    // Per-channel state
+    // Timing state per channel
     private data class ChannelTiming(
         var isSignal: Boolean = false,
-        var toneSamples: Int = 0,
-        var gapSamples: Int = 0
+        var toneTicks: Int = 0,
+        var gapTicks: Int = 0
     )
     private val timingStates = Array(3) { ChannelTiming() }
 
-    // Sample period in milliseconds (at 4 kHz effective rate for timing)
-    // The spectrogram processes at native sample rate, but timing analysis
-    // uses the spectrogram column rate: hopSize/sampleRate seconds per column
-    private val samplePeriodMs = 1000f * hopSize / sampleRate
+    // Time per spectrogram column in milliseconds
+    private val tickMs = 1000f * HOP_SIZE / sampleRate
 
     // Output flows
     private val _decodedTextFlow = MutableStateFlow("")
@@ -77,7 +77,6 @@ class CwDecoder(
     private val _estimatedSpeed = MutableStateFlow<Float?>(null)
     val estimatedSpeed: StateFlow<Float?> = _estimatedSpeed
 
-    // Frame counter for periodic updates
     private var frameCount = 0
 
     init {
@@ -86,53 +85,58 @@ class CwDecoder(
         }
     }
 
-    companion object {
-        private const val hopSize = 64
-    }
-
     fun processBuffer(buffer: FloatArray) {
-        // 1. Feed samples to spectrogram (generates FFT waterfall)
+        // 1. Feed samples to spectrogram
         spectrogram.addSamples(buffer)
 
-        // 2. Update channel tracker (find active frequency bins)
+        // 2. Get number of new columns generated
+        val newCols = spectrogram.getNewColumns()
+        if (newCols == 0) return
+
+        // 3. Update channel tracker (uses latest column for peak detection)
         val activeChannels = channelTracker.update()
 
-        // 3. For each active channel, extract timing
-        for ((idx, channel) in activeChannels.withIndex()) {
-            if (idx >= timingStates.size) break
-            val state = timingStates[idx]
-            val col = spectrogram.getCurrentColumn()
-            val energy = if (channel.bin in col.indices) col[channel.bin] else 0f
+        // 4. Process each new column for timing analysis
+        //    Columns are indexed 0..historyCols-1, where historyCols-1 is the newest
+        val baseIdx = (spectrogram.historyCols - newCols).coerceAtLeast(0)
+        for (colOffset in 0 until newCols) {
+            val col = spectrogram.getColumn(baseIdx + colOffset)
 
-            // Adaptive threshold: 30% above noise floor
-            val threshold = 0.3f + (energy - 0.3f) * 0.3f
+            for ((idx, channel) in activeChannels.withIndex()) {
+                if (idx >= timingStates.size) break
+                val state = timingStates[idx]
+                val energy = if (channel.bin in col.indices) col[channel.bin] else 0f
 
-            if (energy > threshold) {
-                if (!state.isSignal) {
-                    // Rising edge — process gap
-                    if (state.gapSamples > 0) {
-                        val gapMs = state.gapSamples * samplePeriodMs
-                        bayesianDecoder.processGap(gapMs)
+                // Adaptive threshold
+                val threshold = 0.3f + (energy - 0.3f) * 0.3f
+
+                if (energy > threshold) {
+                    if (!state.isSignal) {
+                        if (state.gapTicks > 0) {
+                            val gapMs = state.gapTicks * tickMs
+                            bayesianDecoder.processGap(gapMs)
+                        }
+                        state.gapTicks = 0
+                        state.isSignal = true
                     }
-                    state.gapSamples = 0
-                    state.isSignal = true
+                    state.toneTicks++
+                } else {
+                    if (state.isSignal) {
+                        if (state.toneTicks > 0) {
+                            val toneMs = state.toneTicks * tickMs
+                            bayesianDecoder.processTone(toneMs)
+                        }
+                        state.toneTicks = 0
+                        state.isSignal = false
+                    }
+                    state.gapTicks++
                 }
-                state.toneSamples++
-            } else {
-                if (state.isSignal) {
-                    // Falling edge — process tone
-                    val toneMs = state.toneSamples * samplePeriodMs
-                    bayesianDecoder.processTone(toneMs)
-                    state.toneSamples = 0
-                    state.isSignal = false
-                }
-                state.gapSamples++
             }
         }
 
-        // 4. Update outputs from best channel
+        // 5. Update outputs
         frameCount++
-        if (frameCount % 5 == 0) { // Every 5 frames
+        if (frameCount % 5 == 0) {
             val bestChannel = channelTracker.getBestChannel()
             if (bestChannel != null) {
                 _estimatedPitch.value = bestChannel.frequency
@@ -149,8 +153,8 @@ class CwDecoder(
         bayesianDecoder.reset()
         for (state in timingStates) {
             state.isSignal = false
-            state.toneSamples = 0
-            state.gapSamples = 0
+            state.toneTicks = 0
+            state.gapTicks = 0
         }
         frameCount = 0
         _decodedTextFlow.value = ""

@@ -32,7 +32,7 @@ internal class CwSpectrogram(
     private val sampleRate: Int = 4000,
     private val minBin: Int = 6,
     private val maxBin: Int = 38,
-    private val historyCols: Int = 40
+    val historyCols: Int = 40
 ) {
     private val fft = CwFFT(fftSize)
     val numBins: Int get() = maxBin - minBin + 1
@@ -52,6 +52,9 @@ internal class CwSpectrogram(
     private val binEnergy = FloatArray(numBins) { 1f }
     private val alpha = 0.95f
 
+    // Counter for new columns generated since last check
+    private var newColumnCount = 0
+
     /** Add audio samples, compute FFTs for each complete hop. */
     fun addSamples(samples: FloatArray) {
         var offset = 0
@@ -64,11 +67,19 @@ internal class CwSpectrogram(
 
             if (samplesBuffered >= fftSize) {
                 processFrame()
+                newColumnCount++
                 // Shift buffer: keep last (fftSize - hopSize) samples
                 System.arraycopy(buffer, hopSize, buffer, 0, fftSize - hopSize)
                 samplesBuffered = fftSize - hopSize
             }
         }
+    }
+
+    /** Get number of new columns generated since the last call to this method. */
+    fun getNewColumns(): Int {
+        val count = newColumnCount
+        newColumnCount = 0
+        return count
     }
 
     private fun processFrame() {
@@ -104,6 +115,13 @@ internal class CwSpectrogram(
     fun getCurrentColumn(): FloatArray {
         val prevCol = (currentCol - 1 + historyCols) % historyCols
         return spectrogram[prevCol].copyOf()
+    }
+
+    /** Get a column by index from the history (0 = oldest, historyCols-1 = newest). */
+    fun getColumn(index: Int): FloatArray {
+        val clamped = index.coerceIn(0, historyCols - 1)
+        val srcIdx = (currentCol - historyCols + clamped + historyCols) % historyCols
+        return spectrogram[srcIdx].copyOf()
     }
 
     /** Find the frequency bin with peak energy. Returns -1 if no significant signal. */
