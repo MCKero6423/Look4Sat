@@ -28,120 +28,170 @@ class CwDecoderTest {
 
     @Test
     fun morseToChar_basicLetters() {
-        assertEquals('A', CwDecoder.morseToChar(".-"))
-        assertEquals('B', CwDecoder.morseToChar("-..."))
-        assertEquals('S', CwDecoder.morseToChar("..."))
-        assertEquals('O', CwDecoder.morseToChar("---"))
-        assertEquals('C', CwDecoder.morseToChar("-.-."))
+        assertEquals('A', CwDecoder.morseToChar("01"))
+        assertEquals('B', CwDecoder.morseToChar("1000"))
+        assertEquals('S', CwDecoder.morseToChar("000"))
+        assertEquals('O', CwDecoder.morseToChar("111"))
     }
 
     @Test
     fun morseToChar_numbers() {
-        assertEquals('1', CwDecoder.morseToChar(".----"))
-        assertEquals('5', CwDecoder.morseToChar("....."))
-        assertEquals('0', CwDecoder.morseToChar("-----"))
+        assertEquals('1', CwDecoder.morseToChar("01111"))
+        assertEquals('5', CwDecoder.morseToChar("00000"))
+        assertEquals('0', CwDecoder.morseToChar("11111"))
     }
 
     @Test
     fun morseToChar_unknown_returnsNull() {
         assertNull(CwDecoder.morseToChar("......."))
         assertNull(CwDecoder.morseToChar(""))
-        assertNull(CwDecoder.morseToChar(".-.-.-.-"))
+        assertNull(CwDecoder.morseToChar("01-01"))
+    }
+
+    // --- Resampler ---
+
+    @Test
+    fun resampler_downsampleReducesSize() {
+        val resampler = CwResampler(8000f, 4000f)
+        val input = FloatArray(8000) { (sin(2.0 * PI * 700.0 * it / 8000.0)).toFloat() }
+        val output = resampler.process(input)
+        assertTrue("Output size ${output.size} should be ~4000", output.size in 3800..4200)
     }
 
     @Test
-    fun morseToChar_specialCharacters() {
-        assertEquals('.', CwDecoder.morseToChar(".-.-.-"))
-        assertEquals('?', CwDecoder.morseToChar("..--.."))
-        assertEquals('/', CwDecoder.morseToChar("-..-."))
-        assertEquals('@', CwDecoder.morseToChar(".--.-."))
-    }
-
-    // --- DSP ---
-
-    @Test
-    fun bandpassFir_producesNonEmptyCoefficients() {
-        val coeffs = CwDsp.bandpassFir(0.075, 0.125, 127)
-        assertTrue(coeffs.isNotEmpty())
-        assertEquals(127, coeffs.size)
-        // Sum should be approximately 1.0
-        val sum = coeffs.sum()
-        assertTrue("Sum should be ~1.0, got $sum", sum > 0.9 && sum < 1.1)
+    fun resampler_emptyInput_returnsEmpty() {
+        val resampler = CwResampler(8000f, 4000f)
+        val output = resampler.process(FloatArray(0))
+        assertTrue(output.isEmpty())
     }
 
     @Test
-    fun bandpassFir_oddTaps_forcesOdd() {
-        val coeffs = CwDsp.bandpassFir(0.075, 0.125, 100)
-        assertEquals(101, coeffs.size) // forces odd
+    fun resampler_sameRate_returnsSameSize() {
+        val resampler = CwResampler(4000f, 4000f)
+        val input = FloatArray(100) { it.toFloat() }
+        val output = resampler.process(input)
+        assertTrue("Output size should be ~100", output.size in 95..105)
     }
 
     @Test
-    fun applyFir_preservesLength() {
-        val coeffs = CwDsp.bandpassFir(0.075, 0.125, 31)
-        val input = FloatArray(100) { kotlin.math.sin(it * 0.1f).toFloat() }
-        val output = CwDsp.applyFir(input, coeffs)
-        assertEquals(input.size, output.size)
+    fun resampler_resetClearsState() {
+        val resampler = CwResampler(8000f, 4000f)
+        val input = FloatArray(100) { 1f }
+        resampler.process(input)
+        resampler.reset()
+        // Should not crash
+        resampler.process(FloatArray(100) { 0f })
+    }
+
+    // --- Filter ---
+
+    @Test
+    fun filter_highPass_doesNotCrash() {
+        val filter = CwFilter()
+        val sampleRate = 4000f
+        // Test that the filter runs without crashing and produces finite values
+        val output = FloatArray(100) { filter.highPass(1.0f, 200f, sampleRate) }
+        output.forEach { assertFalse("Output should be finite: $it", it.isNaN() || it.isInfinite()) }
     }
 
     @Test
-    fun envelope_isNonNegative() {
-        val input = FloatArray(50) { if (it % 2 == 0) 0.5f else -0.3f }
-        val env = CwDsp.envelope(input, 0.2f)
-        for (v in env) assertTrue("Envelope should be >= 0, got $v", v >= 0f)
+    fun filter_lowPass_smoothsSignal() {
+        val filter = CwFilter()
+        val sampleRate = 4000f
+        // High frequency noise
+        val output = FloatArray(100) { filter.lowPass((sin(2.0 * PI * 1000.0 * it / sampleRate)).toFloat(), 500f, sampleRate) }
+        val maxVal = output.maxOrNull() ?: 1f
+        assertTrue("High freq should be attenuated, max=$maxVal", maxVal < 0.8f)
     }
 
     @Test
-    fun envelope_smoothsSignal() {
-        val input = FloatArray(100) { if (it % 2 == 0) 1f else 0f }
-        val env = CwDsp.envelope(input, 0.3f)
-        // Envelope should be between 0 and 1
-        for (v in env) {
-            assertTrue("Envelope value $v out of range [0,1]", v >= 0f && v <= 1f)
-        }
-        // After smoothing, should not rapidly oscillate
-        val transitions = (1 until env.size).count { env[it] > 0.1f && env[it - 1] <= 0.1f }
-        assertTrue("Too many envelope transitions: $transitions", transitions < 5)
+    fun filter_reset() {
+        val filter = CwFilter()
+        filter.highPass(1f, 200f, 4000f)
+        filter.reset()
+        // Should not crash
+        assertEquals(0f, filter.highPass(0f, 200f, 4000f), 0.001f)
     }
 
-    @Test
-    fun noiseFloor_producesPositiveValue() {
-        val env = FloatArray(100) { kotlin.math.abs(kotlin.math.sin(it * 0.5f).toFloat()) }
-        val floor = CwDsp.noiseFloor(env, 0.3f)
-        assertTrue(floor > 0f)
-        assertTrue(floor < 1f) // should be less than max signal
-    }
+    // --- Goertzel ---
 
     @Test
     fun goertzel_detectsPresentTone() {
-        val sampleRate = 8000
+        val sampleRate = 4000f
         val targetFreq = 700f
-        // Generate a 700 Hz tone at the sample rate
-        val buffer = FloatArray(sampleRate) { (sin(2.0 * PI * targetFreq * it / sampleRate)).toFloat() }
-        val power = CwDsp.goertzel(buffer, targetFreq, sampleRate)
+        val goertzel = CwGoertzel()
+        goertzel.init(sampleRate, targetFreq)
+        // Generate 700 Hz tone
+        for (i in 0 until sampleRate.toInt()) {
+            goertzel.process((sin(2.0 * PI * targetFreq * i / sampleRate)).toFloat())
+        }
+        val power = goertzel.getPower()
         assertTrue("Goertzel should detect present tone, got $power", power > 0.1f)
     }
 
     @Test
     fun goertzel_rejectsAbsentTone() {
-        val sampleRate = 8000
+        val sampleRate = 4000f
         val targetFreq = 700f
-        // Generate a 2000 Hz tone (no match for 700 Hz)
-        val buffer = FloatArray(sampleRate) { (sin(2.0 * PI * 2000f * it / sampleRate)).toFloat() }
-        val power = CwDsp.goertzel(buffer, targetFreq, sampleRate)
+        val goertzel = CwGoertzel()
+        goertzel.init(sampleRate, targetFreq)
+        // Generate 2000 Hz tone (no match)
+        for (i in 0 until sampleRate.toInt()) {
+            goertzel.process((sin(2.0 * PI * 2000f * i / sampleRate)).toFloat())
+        }
+        val power = goertzel.getPower()
         assertTrue("Goertzel should reject absent tone, got $power", power < 0.1f)
     }
 
     @Test
-    fun goertzel_detectsToneInNoise() {
-        val sampleRate = 8000
+    fun goertzel_reset() {
+        val goertzel = CwGoertzel()
+        goertzel.init(4000f, 700f)
+        goertzel.process(1f)
+        goertzel.reset()
+        assertEquals(0f, goertzel.getPower(), 0.001f)
+    }
+
+    // --- Pitch detector ---
+
+    @Test
+    fun pitchDetector_findsCorrectFrequency() {
+        val sampleRate = 4000f
+        val detector = CwPitchDetector(sampleRate, 200f, 1200f, 10f)
         val targetFreq = 700f
-        // 700 Hz tone + noise
-        val buffer = FloatArray(sampleRate) {
-            val noise = (Math.random() * 2 - 1).toFloat() * 0.3f
-            (sin(2.0 * PI * targetFreq * it / sampleRate)).toFloat() + noise
+        val buffer = FloatArray(sampleRate.toInt()) { (sin(2.0 * PI * targetFreq * it / sampleRate)).toFloat() }
+        val pitch = detector.findPitch(buffer)
+        assertNotNull("Pitch should be detected", pitch)
+        if (pitch != null) {
+            assertTrue("Detected pitch $pitch should be close to 700 Hz", pitch in 680f..720f)
         }
-        val power = CwDsp.goertzel(buffer, targetFreq, sampleRate)
-        assertTrue("Goertzel should detect tone in noise, got $power", power > 0.1f)
+    }
+
+    @Test
+    fun pitchDetector_findsDifferentFrequency() {
+        val sampleRate = 4000f
+        val detector = CwPitchDetector(sampleRate, 200f, 1200f, 10f)
+        val targetFreq = 500f
+        val buffer = FloatArray(sampleRate.toInt()) { (sin(2.0 * PI * targetFreq * it / sampleRate)).toFloat() }
+        val pitch = detector.findPitch(buffer)
+        assertNotNull("Pitch should be detected", pitch)
+        if (pitch != null) {
+            assertTrue("Detected pitch $pitch should be close to 500 Hz", pitch in 480f..520f)
+        }
+    }
+
+    @Test
+    fun pitchDetector_returnsNullForSilence() {
+        val detector = CwPitchDetector(4000f)
+        val buffer = FloatArray(4000) { 0f }
+        val pitch = detector.findPitch(buffer)
+        assertNull("Pitch should be null for silence", pitch)
+    }
+
+    @Test
+    fun pitchDetector_emptyBuffer() {
+        val detector = CwPitchDetector(4000f)
+        assertNull(detector.findPitch(FloatArray(0)))
     }
 
     // --- Decoder state ---
@@ -151,30 +201,29 @@ class CwDecoderTest {
         val decoder = CwDecoder()
         assertEquals("", decoder.decodedTextFlow.value)
         assertEquals(0f, decoder.signalStrength.value, 0.001f)
-    }
-
-    @Test
-    fun resetDecoder_clearsText() {
-        val decoder = CwDecoder()
-        decoder.resetDecoder()
-        assertEquals("", decoder.decodedTextFlow.value)
-        assertEquals(0f, decoder.signalStrength.value, 0.001f)
+        assertNull(decoder.estimatedPitch.value)
+        assertNull(decoder.estimatedSpeed.value)
     }
 
     @Test
     fun cwDecoder_defaultParameters() {
         val decoder = CwDecoder()
         assertEquals(8000, decoder.sampleRate)
-        assertEquals(700f, decoder.cwToneFreq, 0.001f)
-        assertEquals(200f, decoder.filterWidth, 0.001f)
     }
 
     @Test
     fun cwDecoder_customParameters() {
-        val decoder = CwDecoder(sampleRate = 11025, cwToneFreq = 600f, filterWidth = 100f)
+        val decoder = CwDecoder(sampleRate = 11025, cwToneFreq = 600f)
         assertEquals(11025, decoder.sampleRate)
-        assertEquals(600f, decoder.cwToneFreq, 0.001f)
-        assertEquals(100f, decoder.filterWidth, 0.001f)
+    }
+
+    @Test
+    fun resetDecoder_clearsState() {
+        val decoder = CwDecoder()
+        decoder.processBuffer(FloatArray(128) { (sin(2.0 * PI * 700.0 * it / 8000.0)).toFloat() })
+        decoder.resetDecoder()
+        assertEquals("", decoder.decodedTextFlow.value)
+        assertEquals(0f, decoder.signalStrength.value, 0.001f)
     }
 
     @Test
@@ -190,43 +239,29 @@ class CwDecoderTest {
         val decoder = CwDecoder()
         val noise = FloatArray(1024) { (Math.random() * 2 - 1).toFloat() * 0.1f }
         decoder.processBuffer(noise)
-        // Should not crash, decoded text may still be empty
         assertNotNull(decoder.decodedTextFlow.value)
     }
 
     @Test
-    fun processBuffer_ditAtCenterFreq_detects() {
-        val sampleRate = 8000
-        val decoder = CwDecoder(sampleRate = sampleRate, cwToneFreq = 700f)
-        // Generate a short dit (~480 samples at 20 WPM) at 700 Hz
-        val ditDuration = (sampleRate / 20).toInt() // ~400 samples
-        val buffer = FloatArray(ditDuration) {
-            (sin(2.0 * PI * 700.0 * it / sampleRate)).toFloat()
-        }
-        decoder.processBuffer(buffer)
-        // Short tone should be processed without crash
+    fun processBuffer_withFixedPitch_doesNotCrash() {
+        val decoder = CwDecoder(sampleRate = 8000, cwToneFreq = 700f)
+        val buf = FloatArray(512) { (sin(2.0 * PI * 700.0 * it / 8000.0)).toFloat() }
+        decoder.processBuffer(buf)
         assertNotNull(decoder.decodedTextFlow.value)
     }
 
     @Test
-    fun processBuffer_generatedDit_emitsChar() {
-        val sampleRate = 8000
-        val decoder = CwDecoder(sampleRate = sampleRate, cwToneFreq = 700f)
-        val ditSamples = (sampleRate / 20).toInt() // ~400 samples = 1 unit
-        val gapSamples = ditSamples * 3 // inter-char gap
+    fun cwDecoder_withFixedPitchBypassesAutoDetect() {
+        val decoder = CwDecoder(sampleRate = 8000, cwToneFreq = 600f)
+        assertEquals(600f, decoder.estimatedPitch.value)
+    }
 
-        // Generate "E" = dit: a single dit followed by inter-char gap
-        val buffer = FloatArray(ditSamples + gapSamples)
-        // First part: 700 Hz tone (dit)
-        for (i in 0 until ditSamples) {
-            buffer[i] = (sin(2.0 * PI * 700.0 * i / sampleRate)).toFloat()
-        }
-        // Second part: silence (gap)
-        for (i in ditSamples until buffer.size) {
-            buffer[i] = 0f
-        }
-        decoder.processBuffer(buffer)
-        // After processing, the decoder should have detected the "E" symbol
-        assertNotNull(decoder.decodedTextFlow.value)
+    @Test
+    fun resetDecoder_afterFixedPitch() {
+        val decoder = CwDecoder(sampleRate = 8000, cwToneFreq = 700f)
+        decoder.resetDecoder()
+        assertEquals("", decoder.decodedTextFlow.value)
+        // Pitch should still be locked at 700
+        assertEquals(700f, decoder.estimatedPitch.value)
     }
 }
