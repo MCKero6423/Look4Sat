@@ -63,7 +63,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -133,6 +135,11 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
+    // Activity-scoped so the mutual query results survive navigation to Radar and back
+    val mutualViewModel: MutualViewModel = viewModel(
+        viewModelStoreOwner = context as ViewModelStoreOwner,
+        factory = MutualViewModel.factory(container)
+    )
 
     CompositionLocalProvider(
         LocalElevationThresholds provides ElevationThresholds(
@@ -205,9 +212,8 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                             MapDestination()
                         }
                         entry<Screen.Mutual> {
-                            val viewModel = MutualViewModel(container.satelliteRepo, container.settingsRepo)
                             MutualScreen(
-                                viewModel = viewModel,
+                                viewModel = mutualViewModel,
                                 navigateUp = navigateBack,
                                 navigateToRadar = { catNum, aosTime, pass ->
                                     pass?.let { container.setMutualPassData(it) }

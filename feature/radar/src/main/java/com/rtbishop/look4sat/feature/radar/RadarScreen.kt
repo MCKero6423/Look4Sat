@@ -32,10 +32,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -73,10 +71,8 @@ import com.rtbishop.look4sat.core.presentation.formatFrequency
 import com.rtbishop.look4sat.core.presentation.getDefaultPass
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import com.rtbishop.look4sat.core.presentation.layoutPadding
-import com.rtbishop.look4sat.feature.mutual.ElevationCurveChart
-import com.rtbishop.look4sat.feature.mutual.MutualRadarView
-import com.rtbishop.look4sat.feature.mutual.TrackSample
 import kotlinx.coroutines.launch
+import kotlin.math.PI
 
 private enum class RadarPage(val title: String) {
     Transceivers("Transceivers"),
@@ -121,6 +117,17 @@ private fun RadarScreen(
     val addToCalendar: () -> Unit = {
         uiState.currentPass?.let { onAction(RadarAction.AddToCalendar(it.name, it.aosTime, it.losTime)) }
     }
+    // Live station-B track overlay: samples up to "now" (recomposed each second tick)
+    val timeNow = System.currentTimeMillis()
+    val trackB = mutualData.trackSamples
+        .filter { it.time <= timeNow }
+        .map {
+            OrbitalPos(
+                azimuth = it.azimuthB * PI / 180.0,
+                elevation = it.elevationB * PI / 180.0,
+                time = it.time
+            )
+        }
     Column(
         modifier = Modifier
             .layoutPadding()
@@ -144,17 +151,11 @@ private fun RadarScreen(
             }
         }
         if (isVertical) {
-            RadarCard(uiState, Modifier.weight(1f))
-            if (mutualData.samples.isNotEmpty()) {
-                MutualElevationCard(mutualData, Modifier.weight(1f))
-            }
+            RadarCard(uiState, trackB, Modifier.weight(1f))
             PagerCard(uiState, onAction, requestMicPermission, Modifier.weight(1f))
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                RadarCard(uiState, Modifier.weight(1f))
-                if (mutualData.samples.isNotEmpty()) {
-                    MutualElevationCard(mutualData, Modifier.weight(1f))
-                }
+                RadarCard(uiState, trackB, Modifier.weight(1f))
                 PagerCard(uiState, onAction, requestMicPermission, Modifier.weight(1f))
             }
         }
@@ -210,7 +211,11 @@ private fun PagerCard(
 }
 
 @Composable
-private fun RadarCard(uiState: RadarState, modifier: Modifier = Modifier) {
+private fun RadarCard(
+    uiState: RadarState,
+    trackB: List<OrbitalPos> = emptyList(),
+    modifier: Modifier = Modifier
+) {
     val satellitePos = uiState.orbitalPos
     val shouldAnimateBorder = satellitePos?.aboveHorizon == true && satellitePos.eclipsed
     // Always call these composables unconditionally — conditional composable calls violate
@@ -243,6 +248,7 @@ private fun RadarCard(uiState: RadarState, modifier: Modifier = Modifier) {
                 RadarViewCompose(
                     item = position,
                     items = uiState.satTrack,
+                    trackB = trackB.takeIf { it.isNotEmpty() },
                     azimElev = uiState.orientationValues,
                     shouldShowSweep = uiState.shouldShowSweep,
                     shouldUseCompass = uiState.shouldUseCompass,
@@ -315,38 +321,6 @@ private fun RadarLabel(
         } else {
             Text(text = value, fontSize = 18.sp)
             Text(text = label, fontSize = 15.sp)
-        }
-    }
-}
-
-@Composable
-private fun MutualElevationCard(mutualData: MutualPassData, modifier: Modifier = Modifier) {
-    ElevatedCard(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-            if (mutualData.trackSamples.isNotEmpty()) {
-                MutualRadarView(
-                    trackSamples = mutualData.trackSamples.map {
-                        TrackSample(
-                            time = 0L,
-                            azimuthA = it.azimuthA,
-                            elevationA = it.elevationA,
-                            azimuthB = it.azimuthB,
-                            elevationB = it.elevationB
-                        )
-                    },
-                    labelA = mutualData.labelA,
-                    labelB = mutualData.labelB
-                )
-                Spacer(Modifier.height(4.dp))
-            }
-            if (mutualData.samples.isNotEmpty()) {
-                ElevationCurveChart(
-                    samples = mutualData.samples,
-                    startTime = mutualData.startTime,
-                    endTime = mutualData.endTime,
-                    maxElev = mutualData.maxElev
-                )
-            }
         }
     }
 }

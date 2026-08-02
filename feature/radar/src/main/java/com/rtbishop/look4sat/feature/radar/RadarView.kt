@@ -71,6 +71,8 @@ private const val SWEEP_DURATION_MS = 8_000
 fun RadarViewCompose(
     item: OrbitalPos,
     items: List<OrbitalPos>,
+    trackB: List<OrbitalPos>? = null,
+    trackBColor: Color = MaterialTheme.colorScheme.tertiary,
     azimElev: Pair<Float, Float>,
     shouldShowSweep: Boolean,
     shouldUseCompass: Boolean,
@@ -107,18 +109,23 @@ fun RadarViewCompose(
     var cachedSweepColor by remember { mutableStateOf(Color.Unspecified) }
     var trackPath by remember { mutableStateOf(Path()) }
     var trackEffect by remember { mutableStateOf(PathEffect.cornerPathEffect(0f)) }
+    // Station-B overlay track (dashed)
+    var cachedTrackBRef by remember { mutableStateOf<List<OrbitalPos>?>(null) }
+    var trackBPath by remember { mutableStateOf(Path()) }
     // ShaderBrush is cached to avoid allocating a new GPU shader object every frame
     var cachedSweepBrush by remember { mutableStateOf<ShaderBrush?>(null) }
 
     Canvas(modifier = modifier.aspectRatio(1f)) {
         val radius = size.minDimension / 2f * 0.95f
         // Rebuild track path and sweep brush when canvas size or track data changes
-        if (radius != cachedRadius || items !== cachedItemsRef) {
+        if (radius != cachedRadius || items !== cachedItemsRef || trackB !== cachedTrackBRef) {
             trackPath = createTrackPath(items, radius)
             trackEffect = createTrackEffect(trackPath)
+            trackBPath = trackB?.let { createTrackPath(it, radius) } ?: Path()
             cachedSweepBrush = makeSweepBrush(center, primaryColor)
             cachedRadius = radius
             cachedItemsRef = items
+            cachedTrackBRef = trackB
             cachedSweepColor = primaryColor
         } else if (primaryColor != cachedSweepColor) {
             // Rebuild brush on theme change without waiting for a size change
@@ -131,6 +138,19 @@ fun RadarViewCompose(
             drawElevationLabels(radius, primaryColor, measurer)
             translate(center.x, center.y) {
                 drawTrack(trackPath, trackEffect, aimColor, primaryColor)
+                // Station-B overlay: dashed track + current position dot
+                if (trackB != null && trackB.isNotEmpty() && !trackBPath.isEmpty) {
+                    drawPath(
+                        trackBPath, trackBColor,
+                        style = Stroke(STROKE_WIDTH, pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 12f)))
+                    )
+                    val lastB = trackB.last()
+                    if (lastB.elevation > 0) {
+                        val posB = sph2Cart(lastB.azimuth, lastB.elevation, radius.toDouble())
+                        drawCircle(trackBColor, 26f, posB, style = Stroke(2f))
+                        drawCircle(trackBColor, 12f, posB)
+                    }
+                }
                 if (item.elevation > 0) {
                     drawPosition(item, radius, animScale, primaryColor)
                 }

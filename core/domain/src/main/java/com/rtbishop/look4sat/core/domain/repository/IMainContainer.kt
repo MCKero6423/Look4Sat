@@ -56,6 +56,7 @@ data class MutualPassData(
 
 /** Minimal track sample for cross-module sharing (angles in degrees). */
 data class TrackSampleData(
+    val time: Long = 0L,
     val azimuthA: Double,
     val elevationA: Double,
     val azimuthB: Double,

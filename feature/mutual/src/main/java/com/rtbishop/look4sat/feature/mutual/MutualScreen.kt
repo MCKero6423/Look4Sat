@@ -329,6 +329,7 @@ private fun MutualContent(
                 samples = pass.elevationSamples,
                 trackSamples = pass.trackSamples.map {
                     TrackSampleData(
+                        time = it.time,
                         azimuthA = it.azimuthA,
                         elevationA = it.elevationA,
                         azimuthB = it.azimuthB,
