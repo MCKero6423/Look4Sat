@@ -259,10 +259,11 @@ class MutualViewModel(
             if (pass.orbitalObject.data.meanmo < 1e-8) continue
 
             val sat = pass.orbitalObject
-            // Use the pass AOS/LOS directly (same algorithm as Passes page — getLeoPass).
-            // No refineEdge needed; the pass list already has precise times.
-            val refinedAos = pass.aosTime
-            val refinedLos = pass.losTime
+            // Refine the AOS/LOS to the actual posA/posB (0° horizon).
+            // This ensures the elevation curve starts from ~0°.
+            val refinedAos = refineEdge(sat, posA, posB, pass.aosTime, 1_000L, goingUp = true)
+            val refinedLos = refineEdge(sat, posA, posB, pass.losTime, 1_000L, goingUp = false)
+            if (refinedLos <= refinedAos) continue
 
             val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
             val tracks = mutableListOf<TrackSample>()
