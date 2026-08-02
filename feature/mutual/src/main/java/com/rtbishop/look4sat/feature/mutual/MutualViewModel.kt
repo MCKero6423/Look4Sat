@@ -85,12 +85,21 @@ class MutualViewModel(
         val state = _uiState.value
 
         // Resolve positions from lat/lon or grid
-        val posA = resolvePosition(state.stationALat, state.stationALon, state.stationAGrid)
+        var posA = resolvePosition(state.stationALat, state.stationALon, state.stationAGrid)
         val posB = resolvePosition(state.stationBLat, state.stationBLon, state.stationBGrid)
 
         if (posA == null || posB == null) {
             _uiState.update { it.copy(errorMessage = "请输入有效的位置坐标或网格（4/6/8位）") }
             return
+        }
+
+        // When station A's grid matches the pre-filled grid (user hasn't changed it),
+        // use the exact station position from settings so the pass times and elevation
+        // curves are consistent with the main Passes page.
+        val stationPos = settingsRepo.stationPosition.value
+        val prefillGrid = latLonToGrid(stationPos.latitude, stationPos.longitude)
+        if (state.stationAGrid.trim().uppercase() == prefillGrid) {
+            posA = stationPos
         }
 
         val satellites = satelliteRepo.satellites.value
@@ -221,16 +230,6 @@ class MutualViewModel(
     ): List<MutualPass> {
         val endTime = time + hours * 60L * 60L * 1000L
         val sampleInterval = 5_000L
-
-        // Priority: reuse the main page's pass list (calculated by getLeoPass)
-        // so mutual pass times match the main page exactly.
-        val existingPasses = satelliteRepo.passes.value
-        val results = findMutualPassesFromList(existingPasses, satellites, posA, posB,
-            minElevADeg, minElevBDeg, time, endTime, sampleInterval)
-        if (results.isNotEmpty()) return results
-
-        // Fallback: if the main pass list is empty or the common window is too narrow,
-        // search independently (same algorithm as before, with 0° horizon boundary).
         return findMutualPassesFallback(satellites, posA, posB,
             minElevADeg, minElevBDeg, time, endTime, sampleInterval)
     }
