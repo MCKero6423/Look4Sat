@@ -230,6 +230,16 @@ class MutualViewModel(
     ): List<MutualPass> {
         val endTime = time + hours * 60L * 60L * 1000L
         val sampleInterval = 5_000L
+
+        // Use the main page's pass list for AOS/LOS times, then sample the curves
+        // using the actual positions. The passes list is already computed by getLeoPass
+        // and its AOS/LOS times match the Passes page exactly.
+        val existingPasses = satelliteRepo.passes.value
+        val results = findMutualPassesFromList(existingPasses, satellites, posA, posB,
+            minElevADeg, minElevBDeg, time, endTime, sampleInterval)
+        if (results.isNotEmpty()) return results
+
+        // Fallback: try the independent search.
         return findMutualPassesFallback(satellites, posA, posB,
             minElevADeg, minElevBDeg, time, endTime, sampleInterval)
     }
