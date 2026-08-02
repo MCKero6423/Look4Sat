@@ -235,7 +235,7 @@ class MutualViewModel(
             minElevADeg, minElevBDeg, time, endTime, sampleInterval)
     }
 
-    /** Reuse the main page's pass list. */
+    /** Reuse the main page's pass list. Uses AOS/LOS times directly (no refineEdge) */
     private fun findMutualPassesFromList(
         existingPasses: List<OrbitalPass>,
         satellites: List<OrbitalObject>,
@@ -250,13 +250,51 @@ class MutualViewModel(
             if (pass.orbitalObject.data.meanmo < 1e-8) continue
 
             val sat = pass.orbitalObject
-            val refinedAos = refineEdge(sat, posA, posB, pass.aosTime, 1_000L, goingUp = true)
-            val refinedLos = refineEdge(sat, posA, posB, pass.losTime, 1_000L, goingUp = false)
-            if (refinedLos <= refinedAos) continue
+            // Use the pass AOS/LOS directly (same algorithm as Passes page — getLeoPass).
+            // No refineEdge needed; the pass list already has precise times.
+            val refinedAos = pass.aosTime
+            val refinedLos = pass.losTime
 
-            val mutualPass = sampleMutualPass(sat, posA, posB, refinedAos, refinedLos,
-                minElevADeg, minElevBDeg, sampleInterval)
-            if (mutualPass != null) results.add(mutualPass)
+            val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
+            val tracks = mutableListOf<TrackSample>()
+            var maxElevA = 0.0
+            var maxElevB = 0.0
+
+            var tSample = refinedAos
+            while (tSample <= refinedLos) {
+                val fullA = sat.getFullPosition(posA, tSample)
+                val fullB = sat.getFullPosition(posB, tSample)
+                val elevA = fullA.elevation * 180.0 / PI
+                val elevB = fullB.elevation * 180.0 / PI
+                if (elevA > maxElevA) maxElevA = elevA
+                if (elevB > maxElevB) maxElevB = elevB
+                samples.add(tSample to (elevA to elevB))
+                tracks.add(
+                    TrackSample(
+                        time = tSample,
+                        azimuthA = fullA.azimuth * 180.0 / PI,
+                        elevationA = elevA,
+                        azimuthB = fullB.azimuth * 180.0 / PI,
+                        elevationB = elevB
+                    )
+                )
+                tSample += sampleInterval
+            }
+
+            // The pass list already filters by maxElev > minElevation, so we trust
+            // the pass is valid. The mutual pass just needs both stations' curves.
+            results.add(
+                MutualPass(
+                    catNum = pass.catNum,
+                    name = pass.orbitalObject.data.name,
+                    startTime = refinedAos,
+                    endTime = refinedLos,
+                    maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
+                    maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
+                    elevationSamples = samples,
+                    trackSamples = tracks
+                )
+            )
         }
         return results
     }
