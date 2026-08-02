@@ -61,10 +61,12 @@ class MutualViewModel(
     val uiState: StateFlow<MutualUiState> = _uiState.asStateFlow()
 
     init {
-        // Pre-fill station A with the user's current station position (as grid)
+        // Pre-fill station A with the user's current station position (as grid),
+        // and default min elevation to the same value used by the main radar passes
         val pos = settingsRepo.stationPosition.value
         val grid = latLonToGrid(pos.latitude, pos.longitude)
-        _uiState.update { it.copy(stationAGrid = grid) }
+        val minElev = settingsRepo.passesSettings.value.minElevation
+        _uiState.update { it.copy(stationAGrid = grid, stationAMinElev = minElev, stationBMinElev = minElev) }
     }
 
     fun onStationALat(value: String) = _uiState.update { it.copy(stationALat = value) }
@@ -107,7 +109,6 @@ class MutualViewModel(
             val results = withContext(Dispatchers.Default) {
                 findMutualPasses(satellites, posA, posB, minElevA, minElevB, time, hours)
             }
-
             _uiState.update {
                 it.copy(
                     mutualPasses = results.sortedBy { mp -> mp.startTime },
@@ -214,14 +215,14 @@ class MutualViewModel(
             var searchStart = time
             // Find ALL mutual passes for this satellite
             while (true) {
-                val t = findNextMutualPass(sat, posA, posB, minElevADeg, minElevBDeg, searchStart, endTime)
+                val t = findNextMutualPass(sat, posA, posB, searchStart, endTime)
                 if (t == null) break
                 val (aos, los) = t
 
-                // Refine AOS: finer search near the edge
-                val refinedAos = refineEdge(sat, posA, posB, minElevADeg, minElevBDeg, aos, step = 1_000L, goingUp = true)
+                // Refine AOS: finer search near the edge (0° horizon, like the main radar)
+                val refinedAos = refineEdge(sat, posA, posB, aos, step = 1_000L, goingUp = true)
                 // Refine LOS: finer search near the edge
-                val refinedLos = refineEdge(sat, posA, posB, minElevADeg, minElevBDeg, los, step = 1_000L, goingUp = false)
+                val refinedLos = refineEdge(sat, posA, posB, los, step = 1_000L, goingUp = false)
 
                 val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
                 val tracks = mutableListOf<TrackSample>()
@@ -249,7 +250,8 @@ class MutualViewModel(
                     tSample += sampleInterval
                 }
 
-                if (maxElevA > minElevADeg || maxElevB > minElevBDeg) {
+                // Both stations must reach their own min elevation for a usable mutual pass
+                if (maxElevA > minElevADeg && maxElevB > minElevBDeg) {
                     results.add(
                         MutualPass(
                             catNum = sat.data.catnum,
@@ -270,20 +272,19 @@ class MutualViewModel(
         return results
     }
 
-    /** Refine the AOS (goingUp=true) or LOS (goingUp=false) with fine steps. */
+    /** Refine the AOS (goingUp=true) or LOS (goingUp=false) to ~1s precision at the 0° horizon. */
     private fun refineEdge(
         sat: OrbitalObject, posA: GeoPos, posB: GeoPos,
-        minElevADeg: Double, minElevBDeg: Double,
         approxTime: Long, step: Long, goingUp: Boolean
     ): Long {
         if (goingUp) {
-            // AOS: walk backward from approxTime to find the last sample where both are below,
-            // then AOS is the next step after that.
+            // AOS: walk backward from approxTime to find the last sample where either is below
+            // the horizon, then AOS is the next step after that.
             var t = approxTime
             while (t > approxTime - 70_000L) {
                 val eA = elevationDeg(sat, posA, t)
                 val eB = elevationDeg(sat, posB, t)
-                if (eA > minElevADeg && eB > minElevBDeg) {
+                if (eA > 0.0 && eB > 0.0) {
                     t -= step
                 } else {
                     return t + step
@@ -291,13 +292,13 @@ class MutualViewModel(
             }
             return approxTime - 70_000L + step
         } else {
-            // LOS: walk forward from approxTime to find the first sample where either drops below,
-            // then LOS is the step before that.
+            // LOS: walk forward from approxTime to find the first sample where either drops
+            // below the horizon, then LOS is the step before that.
             var t = approxTime
             while (t < approxTime + 70_000L) {
                 val eA = elevationDeg(sat, posA, t)
                 val eB = elevationDeg(sat, posB, t)
-                if (eA > minElevADeg && eB > minElevBDeg) {
+                if (eA > 0.0 && eB > 0.0) {
                     t += step
                 } else {
                     return t - step
@@ -314,23 +315,31 @@ class MutualViewModel(
     private fun findNextMutualPass(
         sat: OrbitalObject,
         posA: GeoPos, posB: GeoPos,
-        minElevADeg: Double, minElevBDeg: Double,
         startTime: Long, endTime: Long
     ): Pair<Long, Long>? {
         var t = startTime
         val step = 60_000L
 
+        // Skip an in-progress mutual window at the search start (same as getLeoPass):
+        // walk forward until either station drops below the horizon, then keep searching.
+        if (elevationDeg(sat, posA, t) > 0.0 && elevationDeg(sat, posB, t) > 0.0) {
+            while (t < endTime) {
+                if (elevationDeg(sat, posA, t) <= 0.0 || elevationDeg(sat, posB, t) <= 0.0) break
+                t += step
+            }
+        }
+
         while (t < endTime) {
             val elevA = elevationDeg(sat, posA, t)
             val elevB = elevationDeg(sat, posB, t)
 
-            if (elevA > minElevADeg && elevB > minElevBDeg) {
+            if (elevA > 0.0 && elevB > 0.0) {
                 var aos = t
                 var rew = t
                 while (rew > startTime - 600_000L) {
                     val eA = elevationDeg(sat, posA, rew)
                     val eB = elevationDeg(sat, posB, rew)
-                    if (eA < minElevADeg || eB < minElevBDeg) {
+                    if (eA <= 0.0 || eB <= 0.0) {
                         aos = rew + step
                         break
                     }
@@ -342,7 +351,7 @@ class MutualViewModel(
                 while (fwd < endTime + 600_000L) {
                     val eA = elevationDeg(sat, posA, fwd)
                     val eB = elevationDeg(sat, posB, fwd)
-                    if (eA < minElevADeg || eB < minElevBDeg) {
+                    if (eA <= 0.0 || eB <= 0.0) {
                         los = fwd
                         break
                     }
