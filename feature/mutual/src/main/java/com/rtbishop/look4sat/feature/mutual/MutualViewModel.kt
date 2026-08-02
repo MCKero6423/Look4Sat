@@ -66,13 +66,12 @@ class MutualViewModel(
         // and default min elevation to the same value used by the main radar passes
         val pos = settingsRepo.stationPosition.value
         val grid = latLonToGrid(pos.latitude, pos.longitude)
-        val minElev = settingsRepo.passesSettings.value.minElevation
         _uiState.update { it.copy(
             stationAGrid = grid,
             stationALat = "%.4f".format(pos.latitude),
             stationALon = "%.4f".format(pos.longitude),
-            stationAMinElev = minElev,
-            stationBMinElev = minElev
+            stationAMinElev = 0.0,
+            stationBMinElev = 0.0
         ) }
     }
 

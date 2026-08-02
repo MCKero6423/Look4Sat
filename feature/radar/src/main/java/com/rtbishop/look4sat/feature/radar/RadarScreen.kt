@@ -184,7 +184,7 @@ private fun PagerCard(
     modifier: Modifier = Modifier
 ) {
     val pages = RadarPage.entries
-    val pagerState = rememberPagerState(initialPage = 1, pageCount = { pages.size })
+    val pagerState = rememberPagerState(pageCount = { pages.size })
     val coroutineScope = rememberCoroutineScope()
 
     ElevatedCard(modifier = modifier) {
