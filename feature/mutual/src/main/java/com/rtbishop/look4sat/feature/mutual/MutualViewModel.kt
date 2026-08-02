@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.rtbishop.look4sat.core.domain.predict.GeoPos
 import com.rtbishop.look4sat.core.domain.predict.OrbitalObject
+import com.rtbishop.look4sat.core.domain.predict.OrbitalPass
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
 import com.rtbishop.look4sat.core.domain.repository.ISatelliteRepo
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
@@ -206,67 +207,123 @@ class MutualViewModel(
         minElevADeg: Double, minElevBDeg: Double,
         time: Long, hours: Int
     ): List<MutualPass> {
-        val results = mutableListOf<MutualPass>()
         val endTime = time + hours * 60L * 60L * 1000L
-        val sampleInterval = 5_000L // 5 seconds between samples for smooth curves
+        val sampleInterval = 5_000L
 
-        // Reuse the main page's pass list (calculated by getLeoPass/getGeoPass)
-        // so the mutual pass times match the main page exactly.
+        // Priority: reuse the main page's pass list (calculated by getLeoPass)
+        // so mutual pass times match the main page exactly.
         val existingPasses = satelliteRepo.passes.value
+        val results = findMutualPassesFromList(existingPasses, satellites, posA, posB,
+            minElevADeg, minElevBDeg, time, endTime, sampleInterval)
+        if (results.isNotEmpty()) return results
+
+        // Fallback: if the main pass list is empty or the common window is too narrow,
+        // search independently (same algorithm as before, with 0° horizon boundary).
+        return findMutualPassesFallback(satellites, posA, posB,
+            minElevADeg, minElevBDeg, time, endTime, sampleInterval)
+    }
+
+    /** Reuse the main page's pass list. */
+    private fun findMutualPassesFromList(
+        existingPasses: List<OrbitalPass>,
+        satellites: List<OrbitalObject>,
+        posA: GeoPos, posB: GeoPos,
+        minElevADeg: Double, minElevBDeg: Double,
+        time: Long, endTime: Long, sampleInterval: Long
+    ): List<MutualPass> {
+        val results = mutableListOf<MutualPass>()
         for (pass in existingPasses) {
             if (pass.losTime <= time || pass.aosTime >= endTime) continue
             if (pass.isDeepSpace) continue
             if (pass.orbitalObject.data.meanmo < 1e-8) continue
 
             val sat = pass.orbitalObject
-            // Refine the common window: AOS = max(A's AOS, B's horizon crossing)
             val refinedAos = refineEdge(sat, posA, posB, pass.aosTime, 1_000L, goingUp = true)
             val refinedLos = refineEdge(sat, posA, posB, pass.losTime, 1_000L, goingUp = false)
             if (refinedLos <= refinedAos) continue
 
-            val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
-            val tracks = mutableListOf<TrackSample>()
-            var maxElevA = 0.0
-            var maxElevB = 0.0
+            val mutualPass = sampleMutualPass(sat, posA, posB, refinedAos, refinedLos,
+                minElevADeg, minElevBDeg, sampleInterval)
+            if (mutualPass != null) results.add(mutualPass)
+        }
+        return results
+    }
 
-            var tSample = refinedAos
-            while (tSample <= refinedLos) {
-                val fullA = sat.getFullPosition(posA, tSample)
-                val fullB = sat.getFullPosition(posB, tSample)
-                val elevA = fullA.elevation * 180.0 / PI
-                val elevB = fullB.elevation * 180.0 / PI
-                if (elevA > maxElevA) maxElevA = elevA
-                if (elevB > maxElevB) maxElevB = elevB
-                samples.add(tSample to (elevA to elevB))
-                tracks.add(
-                    TrackSample(
-                        time = tSample,
-                        azimuthA = fullA.azimuth * 180.0 / PI,
-                        elevationA = elevA,
-                        azimuthB = fullB.azimuth * 180.0 / PI,
-                        elevationB = elevB
-                    )
-                )
-                tSample += sampleInterval
-            }
+    /** Fallback: search passes independently (same logic as original findMutualPasses). */
+    private fun findMutualPassesFallback(
+        satellites: List<OrbitalObject>,
+        posA: GeoPos, posB: GeoPos,
+        minElevADeg: Double, minElevBDeg: Double,
+        time: Long, endTime: Long, sampleInterval: Long
+    ): List<MutualPass> {
+        val results = mutableListOf<MutualPass>()
+        for (sat in satellites) {
+            if (sat.data.meanmo < 1e-8) continue
+            var searchStart = time
+            while (true) {
+                val t = findNextMutualPass(sat, posA, posB, searchStart, endTime)
+                if (t == null) break
+                val (aos, los) = t
 
-            // Both stations must reach their own min elevation for a usable mutual pass
-            if (maxElevA > minElevADeg && maxElevB > minElevBDeg) {
-                results.add(
-                    MutualPass(
-                        catNum = pass.catNum,
-                        name = pass.orbitalObject.data.name,
-                        startTime = refinedAos,
-                        endTime = refinedLos,
-                        maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
-                        maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
-                        elevationSamples = samples,
-                        trackSamples = tracks
-                    )
-                )
+                val refinedAos = refineEdge(sat, posA, posB, aos, 1_000L, true)
+                val refinedLos = refineEdge(sat, posA, posB, los, 1_000L, false)
+                if (refinedLos <= refinedAos) continue
+
+                val mutualPass = sampleMutualPass(sat, posA, posB, refinedAos, refinedLos,
+                    minElevADeg, minElevBDeg, sampleInterval)
+                if (mutualPass != null) results.add(mutualPass)
+                searchStart = refinedLos + 120_000L
             }
         }
         return results
+    }
+
+    /** Sample elevation/azimuth data for one mutual pass window. */
+    private fun sampleMutualPass(
+        sat: OrbitalObject, posA: GeoPos, posB: GeoPos,
+        refinedAos: Long, refinedLos: Long,
+        minElevADeg: Double, minElevBDeg: Double,
+        sampleInterval: Long
+    ): MutualPass? {
+        val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
+        val tracks = mutableListOf<TrackSample>()
+        var maxElevA = 0.0
+        var maxElevB = 0.0
+
+        var tSample = refinedAos
+        while (tSample <= refinedLos) {
+            val fullA = sat.getFullPosition(posA, tSample)
+            val fullB = sat.getFullPosition(posB, tSample)
+            val elevA = fullA.elevation * 180.0 / PI
+            val elevB = fullB.elevation * 180.0 / PI
+            if (elevA > maxElevA) maxElevA = elevA
+            if (elevB > maxElevB) maxElevB = elevB
+            samples.add(tSample to (elevA to elevB))
+            tracks.add(
+                TrackSample(
+                    time = tSample,
+                    azimuthA = fullA.azimuth * 180.0 / PI,
+                    elevationA = elevA,
+                    azimuthB = fullB.azimuth * 180.0 / PI,
+                    elevationB = elevB
+                )
+            )
+            tSample += sampleInterval
+        }
+
+        if (maxElevA > minElevADeg && maxElevB > minElevBDeg) {
+            return MutualPass(
+                catNum = sat.data.catnum,
+                name = sat.data.name,
+                startTime = refinedAos,
+                endTime = refinedLos,
+                maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
+                maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
+                elevationSamples = samples,
+                trackSamples = tracks
+            )
+        }
+        return null
     }
 
     /** Refine the AOS (goingUp=true) or LOS (goingUp=false) to ~1s precision at the 0° horizon. */
