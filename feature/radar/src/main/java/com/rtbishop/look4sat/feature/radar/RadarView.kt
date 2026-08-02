@@ -60,6 +60,8 @@ import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.predict.PI_2
 import com.rtbishop.look4sat.core.domain.utility.toRadians
 import com.rtbishop.look4sat.core.presentation.R
+import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -226,11 +228,23 @@ private fun DrawScope.drawSweep(center: Offset, degrees: Float, radius: Float, b
 
 private fun createTrackPath(positions: List<OrbitalPos>, radius: Float): Path {
     val trackPath = Path()
+    var lastAzim: Double? = null
     positions.forEachIndexed { index, pos ->
         val offset = sph2Cart(pos.azimuth, pos.elevation, radius.toDouble())
-        if (index == 0) trackPath.moveTo(offset.x, offset.y) else trackPath.lineTo(offset.x, offset.y)
+        // Split the path when azimuth wraps 0°/360° to avoid a line across the plot
+        val wrap = lastAzim != null && abs(azimuthDeltaRad(pos.azimuth - lastAzim!!)) > PI
+        if (index == 0 || wrap) trackPath.moveTo(offset.x, offset.y) else trackPath.lineTo(offset.x, offset.y)
+        lastAzim = pos.azimuth
     }
     return trackPath
+}
+
+/** Normalize an azimuth delta (radians) into the [-PI, PI] range. */
+private fun azimuthDeltaRad(deltaRad: Double): Double {
+    var d = deltaRad % (2 * PI)
+    if (d > PI) d -= 2 * PI
+    if (d < -PI) d += 2 * PI
+    return d
 }
 
 private fun createTrackEffect(trackPath: Path): PathEffect {

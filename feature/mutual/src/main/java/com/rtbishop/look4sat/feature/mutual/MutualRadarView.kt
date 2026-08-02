@@ -103,29 +103,35 @@ fun MutualRadarView(
             // Grid: elevation rings + azimuth spokes + cardinal labels
             drawRadarGrid(center, radius, gridColor, textColor, measurer)
 
-            // Track paths (only the above-horizon arc)
+            // Track paths (only the above-horizon arc, split at the 0/360° azimuth wrap)
             val pathA = Path()
             val pathB = Path()
             var firstVisibleA = true
             var firstVisibleB = true
+            var lastAzimA: Double? = null
+            var lastAzimB: Double? = null
             trackSamples.forEach { sample ->
                 if (sample.elevationA > 0f) {
                     val p = sph2Cart(center, sample.azimuthA, sample.elevationA, radius)
-                    if (firstVisibleA) {
+                    val wrapA = lastAzimA != null && kotlin.math.abs(azimuthDelta(sample.azimuthA - lastAzimA!!)) > 180.0
+                    if (firstVisibleA || wrapA) {
                         pathA.moveTo(p.x, p.y)
                         firstVisibleA = false
                     } else {
                         pathA.lineTo(p.x, p.y)
                     }
+                    lastAzimA = sample.azimuthA
                 }
                 if (sample.elevationB > 0f) {
                     val p = sph2Cart(center, sample.azimuthB, sample.elevationB, radius)
-                    if (firstVisibleB) {
+                    val wrapB = lastAzimB != null && kotlin.math.abs(azimuthDelta(sample.azimuthB - lastAzimB!!)) > 180.0
+                    if (firstVisibleB || wrapB) {
                         pathB.moveTo(p.x, p.y)
                         firstVisibleB = false
                     } else {
                         pathB.lineTo(p.x, p.y)
                     }
+                    lastAzimB = sample.azimuthB
                 }
             }
 
@@ -198,18 +204,25 @@ private fun DrawScope.drawRadarGrid(
         Offset(center.x - diag, center.y + diag), Offset(center.x + diag, center.y - diag), 1f
     )
 
-    // Elevation ring labels
+    // Elevation ring labels: 30° on the outer ring, 60° on the middle ring, 90° at center
+    // (outer edge is the 0° horizon). Labels sit just above their ring.
     val style = TextStyle(color = textColor, fontSize = 11.sp)
-    for (i in 0 until CIRCLES) {
-        val deg = 30 * (CIRCLES - i)
-        val y = (center.y - (radius - step * i)) - 24f
-        drawText(measurer, "$deg°", Offset(center.x + 6f, y), style = style)
-    }
+    drawText(measurer, "30°", Offset(center.x + 6f, (center.y - (radius - step)) - 24f), style = style)
+    drawText(measurer, "60°", Offset(center.x + 6f, (center.y - (radius - 2 * step)) - 24f), style = style)
+    drawText(measurer, "90°", Offset(center.x + 6f, center.y - 18f), style = style)
     // Cardinal labels
     drawText(measurer, "N", Offset(center.x - 8f, center.y - radius - 20f), style = style)
     drawText(measurer, "E", Offset(center.x + radius + 4f, center.y - 10f), style = style)
     drawText(measurer, "S", Offset(center.x - 6f, center.y + radius + 2f), style = style)
     drawText(measurer, "W", Offset(center.x - radius - 24f, center.y - 10f), style = style)
+}
+
+/** Normalize an azimuth delta (degrees) into the [-180, 180] range. */
+private fun azimuthDelta(deltaDeg: Double): Double {
+    var d = deltaDeg % 360.0
+    if (d > 180.0) d -= 360.0
+    if (d < -180.0) d += 360.0
+    return d
 }
 
 /** Convert azimuth (deg, 0=N, clockwise) and elevation (deg) to canvas offset. */
