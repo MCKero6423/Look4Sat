@@ -271,10 +271,12 @@ class MutualViewModel(
 
             var tSample = refinedAos
             while (tSample <= refinedLos) {
+                // Use getElevation (same function used by getLeoPass) for elevation,
+                // and getFullPosition only for azimuth.
+                val elevA = sat.getElevation(posA, tSample) * 180.0 / PI
+                val elevB = sat.getElevation(posB, tSample) * 180.0 / PI
                 val fullA = sat.getFullPosition(posA, tSample)
                 val fullB = sat.getFullPosition(posB, tSample)
-                val elevA = fullA.elevation * 180.0 / PI
-                val elevB = fullB.elevation * 180.0 / PI
                 if (elevA > maxElevA) maxElevA = elevA
                 if (elevB > maxElevB) maxElevB = elevB
                 samples.add(tSample to (elevA to elevB))
