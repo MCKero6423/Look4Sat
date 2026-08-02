@@ -152,11 +152,21 @@ class PassesViewModel(
         }
     }
 
+    /** Returns a locale-appropriate date format for pass grouping headers. */
+    private fun dateFormat(tz: TimeZone): SimpleDateFormat {
+        val pattern = if (Locale.getDefault().language == "zh") {
+            "yyyy'年'M'月'd'日' EEEE"
+        } else {
+            "EEE, dd MMM yyyy"
+        }
+        return SimpleDateFormat(pattern, Locale.getDefault()).also { it.timeZone = tz }
+    }
+
     // Computes sunrise/sunset strings for each unique calendar day in the pass list, plus today for DeepSpace
     private fun computeSunTimes(passes: List<OrbitalPass>, isUtc: Boolean): Map<String, Pair<String, String>> {
         val stationPos = settingsRepo.stationPosition.value
         val tz = if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
-        val sdfDate = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).also { it.timeZone = tz }
+        val sdfDate = dateFormat(tz)
         val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault()).also { it.timeZone = tz }
         val result = LinkedHashMap<String, Pair<String, String>>()
         // DeepSpace group always shows today's sun times
@@ -180,7 +190,7 @@ class PassesViewModel(
 
     private fun groupPasses(passes: List<OrbitalPass>, isUtc: Boolean): Map<String, List<OrbitalPass>> {
         val tz = if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
-        val sdfDate = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).also { it.timeZone = tz }
+        val sdfDate = dateFormat(tz)
         val ordered = LinkedHashMap<String, List<OrbitalPass>>()
         val deepSpace = passes.filter { it.isDeepSpace }
         if (deepSpace.isNotEmpty()) ordered["DeepSpace (period >225min)"] = deepSpace
