@@ -281,6 +281,7 @@ private fun Satellite(
     onSelected: (Int, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val passSatId = stringResource(id = R.string.pass_satId, item.catnum)
     Column(modifier = modifier.clickable { onSelected(item.catnum, item.isSelected) }) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -289,6 +290,10 @@ private fun Satellite(
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(start = 14.dp, top = 8.dp, end = 12.dp, bottom = 8.dp)
         ) {
+            Text(
+                text = "$passSatId - ",
+                color = MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = item.name,
                 modifier = Modifier.weight(1f),
