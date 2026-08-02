@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.rtbishop.look4sat.core.domain.repository
-
+import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.usecase.IAddToCalendar
 import com.rtbishop.look4sat.core.domain.usecase.IAudioCapture
 import com.rtbishop.look4sat.core.domain.usecase.ISaveImage
 import com.rtbishop.look4sat.core.domain.usecase.IShowToast
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.StateFlow
 
 interface IMainContainer {
     val appScope: CoroutineScope
@@ -30,6 +31,8 @@ interface IMainContainer {
     val satelliteRepo: ISatelliteRepo
     val databaseRepo: IDatabaseRepo
     val radioTrackingService: IRadioTrackingService
+    val mutualPassData: StateFlow<MutualPassData>
+    fun setMutualPassData(data: MutualPassData)
     fun provideAddToCalendar(): IAddToCalendar
     fun provideShowToast(): IShowToast
     fun provideBluetoothReporter(): IReporter
@@ -40,6 +43,15 @@ interface IMainContainer {
     fun provideAudioCapture(): IAudioCapture
     fun provideSaveImage(): ISaveImage
 }
+
+data class MutualPassData(
+    val samples: List<Pair<Long, Pair<Double, Double>>> = emptyList(),
+    val startTime: Long = 0L,
+    val endTime: Long = 0L,
+    val maxElev: Double = 10.0,
+    val labelA: String = "你",
+    val labelB: String = "友台"
+)
 
 interface IContainerProvider {
     fun getMainContainer(): IMainContainer

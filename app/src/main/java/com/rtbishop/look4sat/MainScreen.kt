@@ -206,7 +206,15 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                         entry<Screen.Mutual> {
                             val viewModel = MutualViewModel(container.satelliteRepo, container.settingsRepo)
-                            MutualScreen(viewModel = viewModel)
+                            MutualScreen(
+                                viewModel = viewModel,
+                                navigateUp = navigateBack,
+                                navigateToRadar = { catNum, aosTime, pass ->
+                                    pass?.let { container.setMutualPassData(it) }
+                                    container.satelliteRepo.selectPass(catNum, aosTime)
+                                    backStack.add(Screen.Radar)
+                                }
+                            )
                         }
                         entry<Screen.Settings> {
                             SettingsDestination()

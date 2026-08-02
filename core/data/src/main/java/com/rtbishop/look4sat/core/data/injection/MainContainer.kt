@@ -50,6 +50,7 @@ import com.rtbishop.look4sat.core.domain.repository.ISatelliteRepo
 import com.rtbishop.look4sat.core.domain.repository.ISelectionRepo
 import com.rtbishop.look4sat.core.domain.repository.ISensorsRepo
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
+import com.rtbishop.look4sat.core.domain.repository.MutualPassData
 import com.rtbishop.look4sat.core.domain.source.ILocalSource
 import com.rtbishop.look4sat.core.domain.source.IRemoteSource
 import com.rtbishop.look4sat.core.domain.usecase.IAddToCalendar
@@ -61,6 +62,9 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 
 class MainContainer(private val context: Context) : IMainContainer {
@@ -75,6 +79,13 @@ class MainContainer(private val context: Context) : IMainContainer {
     override val radioTrackingService: IRadioTrackingService by lazy {
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         RadioTrackingService(appScope, manager, satelliteRepo, settingsRepo)
+    }
+
+    private val _mutualPassData = MutableStateFlow(MutualPassData())
+    override val mutualPassData: StateFlow<MutualPassData> = _mutualPassData.asStateFlow()
+
+    override fun setMutualPassData(data: MutualPassData) {
+        _mutualPassData.value = data
     }
 
     override fun provideAddToCalendar(): IAddToCalendar = AddToCalendar(context)

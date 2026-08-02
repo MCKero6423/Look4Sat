@@ -63,7 +63,13 @@ data class RadarState(
     val transceivers: TransceiverSubState = TransceiverSubState(),
     val radioControl: RadioControlSubState = RadioControlSubState(),
     val sstv: SstvSubState = SstvSubState(),
-    val cw: CwSubState = CwSubState()
+    val cw: CwSubState = CwSubState(),
+    val mutualSamples: List<Pair<Long, Pair<Double, Double>>> = emptyList(),
+    val mutualStartTime: Long = 0L,
+    val mutualEndTime: Long = 0L,
+    val mutualMaxElev: Double = 10.0,
+    val mutualLabelA: String = "你",
+    val mutualLabelB: String = "友台"
 )
 
 enum class SstvStatus { Idle, Recording }

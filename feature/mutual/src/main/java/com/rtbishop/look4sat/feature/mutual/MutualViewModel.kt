@@ -263,36 +263,34 @@ class MutualViewModel(
         minElevADeg: Double, minElevBDeg: Double,
         approxTime: Long, step: Long, goingUp: Boolean
     ): Long {
-        var t = approxTime
-        val limit = 30_000L // search up to 30 seconds
         if (goingUp) {
-            // Find the point where both stations just go above minElev
-            var best = t
-            t -= limit
-            while (t <= approxTime + limit) {
+            // AOS: walk backward from approxTime to find the last sample where both are below,
+            // then AOS is the next step after that.
+            var t = approxTime
+            while (t > approxTime - 70_000L) {
                 val eA = elevationDeg(sat, posA, t)
                 val eB = elevationDeg(sat, posB, t)
                 if (eA > minElevADeg && eB > minElevBDeg) {
-                    best = t
-                    break
+                    t -= step
+                } else {
+                    return t + step
                 }
-                t += step
             }
-            return best
+            return approxTime - 70_000L + step
         } else {
-            // Find the point where either station just drops below minElev
-            var best = t
-            t -= limit
-            while (t <= approxTime + limit) {
+            // LOS: walk forward from approxTime to find the first sample where either drops below,
+            // then LOS is the step before that.
+            var t = approxTime
+            while (t < approxTime + 70_000L) {
                 val eA = elevationDeg(sat, posA, t)
                 val eB = elevationDeg(sat, posB, t)
-                if (eA < minElevADeg || eB < minElevBDeg) {
-                    best = t
-                    break
+                if (eA > minElevADeg && eB > minElevBDeg) {
+                    t += step
+                } else {
+                    return t - step
                 }
-                t += step
             }
-            return best
+            return approxTime + 70_000L - step
         }
     }
 

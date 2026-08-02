@@ -17,6 +17,10 @@
  */
 package com.rtbishop.look4sat.feature.mutual
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,11 +34,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -42,9 +49,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.rtbishop.look4sat.core.domain.repository.MutualPassData
+import com.rtbishop.look4sat.core.presentation.IconCard
+import com.rtbishop.look4sat.core.presentation.R
+import com.rtbishop.look4sat.core.presentation.ScreenColumn
+import com.rtbishop.look4sat.core.presentation.TopBar
+import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,183 +70,275 @@ import java.util.Locale
 @Composable
 fun MutualScreen(
     viewModel: MutualViewModel,
+    navigateUp: () -> Unit = {},
+    navigateToRadar: (Int, Long, MutualPassData?) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    ScreenColumn(
+        topBar = { isVertical ->
+            TopBar(
+                isVerticalLayout = isVertical,
+                startAction = {
+                    IconCard(action = navigateUp, resId = R.drawable.ic_back)
+                },
+                topInfo = {
+                    Text(
+                        text = "对台过境",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                bottomInfo = {
+                    if (state.mutualPasses.isNotEmpty()) {
+                        Text(
+                            text = "找到 ${state.mutualPasses.size} 个过境",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                endAction = {
+                    if (state.isCalculating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .height(24.dp)
+                                .width(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+            )
+        }
+    ) { isVertical ->
+        MutualContent(
+            state = state,
+            isVertical = isVertical,
+            onQuery = viewModel::queryMutualPasses,
+            onSelectPass = viewModel::onSelectPass,
+            onNavigateToRadar = navigateToRadar,
+            onStationALat = viewModel::onStationALat,
+            onStationALon = viewModel::onStationALon,
+            onStationAGrid = viewModel::onStationAGrid,
+            onStationAMinElev = viewModel::onStationAMinElev,
+            onStationBLat = viewModel::onStationBLat,
+            onStationBLon = viewModel::onStationBLon,
+            onStationBGrid = viewModel::onStationBGrid,
+            onStationBMinElev = viewModel::onStationBMinElev,
+            onHoursAhead = viewModel::onHoursAhead,
+            onClearError = viewModel::clearError
+        )
+    }
+}
+
+@Composable
+private fun MutualContent(
+    state: MutualUiState,
+    isVertical: Boolean,
+    onQuery: () -> Unit,
+    onSelectPass: (Int) -> Unit,
+    onNavigateToRadar: (Int, Long, MutualPassData?) -> Unit,
+    onStationALat: (String) -> Unit,
+    onStationALon: (String) -> Unit,
+    onStationAGrid: (String) -> Unit,
+    onStationAMinElev: (Double) -> Unit,
+    onStationBLat: (String) -> Unit,
+    onStationBLon: (String) -> Unit,
+    onStationBGrid: (String) -> Unit,
+    onStationBMinElev: (Double) -> Unit,
+    onHoursAhead: (Int) -> Unit,
+    onClearError: () -> Unit
+) {
     val timeFormat = remember { SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()) }
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Title
-        item {
-            Text(
-                text = "对台过境查询",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-            Text(
-                text = "查看双方同时过境的卫星，然后相约 QSO 吧！",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
         // Error message
         val errorMsg = state.errorMessage
         if (errorMsg != null) {
             item {
-                Text(
-                    text = errorMsg,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        // Station A input
-        item {
-            Text("你的位置", style = MaterialTheme.typography.titleSmall)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = state.stationALat,
-                    onValueChange = viewModel::onStationALat,
-                    label = { Text("纬度") },
-                    placeholder = { Text("39.9042") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = state.stationALon,
-                    onValueChange = viewModel::onStationALon,
-                    label = { Text("经度") },
-                    placeholder = { Text("116.4074") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            OutlinedTextField(
-                value = state.stationAGrid,
-                onValueChange = viewModel::onStationAGrid,
-                label = { Text("网格（4/6/8位，填此可省略经纬度）") },
-                placeholder = { Text("ON79uj") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text("最小仰角：${state.stationAMinElev.toInt()}°", style = MaterialTheme.typography.bodySmall)
-            Slider(
-                value = state.stationAMinElev.toFloat(),
-                onValueChange = { viewModel.onStationAMinElev(it.toDouble()) },
-                valueRange = 0f..90f,
-                steps = 17,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Station B input
-        item {
-            Text("友台位置", style = MaterialTheme.typography.titleSmall)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = state.stationBLat,
-                    onValueChange = viewModel::onStationBLat,
-                    label = { Text("纬度") },
-                    placeholder = { Text("34.0522") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = state.stationBLon,
-                    onValueChange = viewModel::onStationBLon,
-                    label = { Text("经度") },
-                    placeholder = { Text("-118.2437") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            OutlinedTextField(
-                value = state.stationBGrid,
-                onValueChange = viewModel::onStationBGrid,
-                label = { Text("网格（4/6/8位，填此可省略经纬度）") },
-                placeholder = { Text("PM01tv") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text("最小仰角：${state.stationBMinElev.toInt()}°", style = MaterialTheme.typography.bodySmall)
-            Slider(
-                value = state.stationBMinElev.toFloat(),
-                onValueChange = { viewModel.onStationBMinElev(it.toDouble()) },
-                valueRange = 0f..90f,
-                steps = 17,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Time range
-        item {
-            Text("时间范围", style = MaterialTheme.typography.titleSmall)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                listOf(6, 12, 24, 48, 72).forEach { hours ->
-                    FilterChip(
-                        selected = state.hoursAhead == hours,
-                        onClick = { viewModel.onHoursAhead(hours) },
-                        label = { Text("${hours}h") }
+                ElevatedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = errorMsg,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
         }
 
-        // Query button
+        // Input form
         item {
-            Button(
-                onClick = { viewModel.queryMutualPasses() },
-                enabled = !state.isCalculating,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (state.isCalculating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp).width(20.dp),
-                        strokeWidth = 2.dp
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "你的位置",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = state.stationALat,
+                            onValueChange = onStationALat,
+                            label = { Text("纬度") },
+                            placeholder = { Text("39.9042") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = state.stationALon,
+                            onValueChange = onStationALon,
+                            label = { Text("经度") },
+                            placeholder = { Text("116.4074") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = state.stationAGrid,
+                        onValueChange = onStationAGrid,
+                        label = { Text("网格（4/6/8位，填此可省略经纬度）") },
+                        placeholder = { Text("ON79uj") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "最小仰角：${state.stationAMinElev.toInt()}°",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Slider(
+                        value = state.stationAMinElev.toFloat(),
+                        onValueChange = { onStationAMinElev(it.toDouble()) },
+                        valueRange = 0f..90f,
+                        steps = 17
+                    )
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "友台位置",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = state.stationBLat,
+                            onValueChange = onStationBLat,
+                            label = { Text("纬度") },
+                            placeholder = { Text("34.0522") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = state.stationBLon,
+                            onValueChange = onStationBLon,
+                            label = { Text("经度") },
+                            placeholder = { Text("-118.2437") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = state.stationBGrid,
+                        onValueChange = onStationBGrid,
+                        label = { Text("网格（4/6/8位，填此可省略经纬度）") },
+                        placeholder = { Text("PM01tv") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "最小仰角：${state.stationBMinElev.toInt()}°",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Slider(
+                        value = state.stationBMinElev.toFloat(),
+                        onValueChange = { onStationBMinElev(it.toDouble()) },
+                        valueRange = 0f..90f,
+                        steps = 17
+                    )
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "时间范围",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(6, 12, 24, 48, 72).forEach { hours ->
+                            FilterChip(
+                                selected = state.hoursAhead == hours,
+                                onClick = { onHoursAhead(hours) },
+                                label = { Text("${hours}h") }
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = onQuery,
+                        enabled = !state.isCalculating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (state.isCalculating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .height(18.dp)
+                                    .width(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(if (state.isCalculating) "计算中..." else "查询过境")
+                    }
                 }
-                Text(if (state.isCalculating) "计算中..." else "查询过境")
             }
         }
 
         // Results
-        if (state.mutualPasses.isNotEmpty()) {
-            item {
-                Text(
-                    text = "找到 ${state.mutualPasses.size} 个共同过境",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-            itemsIndexed(state.mutualPasses) { index, pass ->
-                MutualPassCard(
-                    pass = pass,
-                    isExpanded = state.selectedPassIndex == index,
-                    timeFormat = timeFormat,
-                    onToggle = { viewModel.onSelectPass(if (state.selectedPassIndex == index) -1 else index) }
-                )
-            }
+        itemsIndexed(state.mutualPasses) { index, pass ->
+            val mutualData = MutualPassData(
+                samples = pass.elevationSamples,
+                startTime = pass.startTime,
+                endTime = pass.endTime,
+                maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
+                labelA = "你",
+                labelB = "友台"
+            )
+            MutualPassCard(
+                pass = pass,
+                isExpanded = state.selectedPassIndex == index,
+                timeFormat = timeFormat,
+                onClick = { onSelectPass(if (state.selectedPassIndex == index) -1 else index) },
+                onNavigateToRadar = { onNavigateToRadar(pass.catNum, pass.startTime, mutualData) }
+            )
         }
     }
 }
@@ -238,39 +348,79 @@ private fun MutualPassCard(
     pass: MutualPass,
     isExpanded: Boolean,
     timeFormat: SimpleDateFormat,
-    onToggle: () -> Unit
+    onClick: () -> Unit,
+    onNavigateToRadar: () -> Unit
 ) {
-    Card(
-        onClick = onToggle,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = pass.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "${timeFormat.format(Date(pass.startTime))} - ${timeFormat.format(Date(pass.endTime))}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "你: ${pass.maxElevationA}°  友台: ${pass.maxElevationB}°",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            if (isExpanded && pass.elevationSamples.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                ElevationCurveChart(
-                    samples = pass.elevationSamples,
-                    startTime = pass.startTime,
-                    endTime = pass.endTime,
-                    maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = pass.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
                 )
+                Text(
+                    text = "${timeFormat.format(Date(pass.startTime))} - ${timeFormat.format(Date(pass.endTime))}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "你: ${pass.maxElevationA}°",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "友台: ${pass.maxElevationB}°",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    if (pass.elevationSamples.isNotEmpty()) {
+                        ElevationCurveChart(
+                            samples = pass.elevationSamples,
+                            startTime = pass.startTime,
+                            endTime = pass.endTime,
+                            maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0)
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onNavigateToRadar,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_radar),
+                            contentDescription = null,
+                            modifier = Modifier.height(16.dp).width(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("查看雷达")
+                    }
+                }
             }
         }
     }

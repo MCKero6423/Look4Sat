@@ -158,20 +158,21 @@ fun ElevationCurveChart(
                 pathA.moveTo(ptsA[0].x, ptsA[0].y)
                 pathB.moveTo(ptsB[0].x, ptsB[0].y)
                 for (i in 1 until ptsA.size) {
-                    val prev = ptsA.getOrNull(i - 2) ?: ptsA[i - 1]
-                    val curr = ptsA[i - 1]
-                    val next = ptsA.getOrNull(i + 1) ?: ptsA[i]
-                    val cp1 = Offset(curr.x + (next.x - prev.x) / 6f, curr.y + (next.y - prev.y) / 6f)
-                    val cp2 = Offset(ptsA[i].x - (ptsA[i].x - curr.x) / 6f, ptsA[i].y - (ptsA[i].y - curr.y) / 6f)
-                    pathA.cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, ptsA[i].x, ptsA[i].y)
-                }
-                for (i in 1 until ptsB.size) {
-                    val prev = ptsB.getOrNull(i - 2) ?: ptsB[i - 1]
-                    val curr = ptsB[i - 1]
-                    val next = ptsB.getOrNull(i + 1) ?: ptsB[i]
-                    val cp1 = Offset(curr.x + (next.x - prev.x) / 6f, curr.y + (next.y - prev.y) / 6f)
-                    val cp2 = Offset(ptsB[i].x - (ptsB[i].x - curr.x) / 6f, ptsB[i].y - (ptsB[i].y - curr.y) / 6f)
-                    pathB.cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, ptsB[i].x, ptsB[i].y)
+                    val p0a = ptsA.getOrNull(i - 2) ?: ptsA[i - 1]
+                    val p1a = ptsA[i - 1]
+                    val p2a = ptsA[i]
+                    val p3a = ptsA.getOrNull(i + 1) ?: ptsA[i]
+                    val cp1a = Offset(p1a.x + (p2a.x - p0a.x) / 6f, p1a.y + (p2a.y - p0a.y) / 6f)
+                    val cp2a = Offset(p2a.x - (p3a.x - p1a.x) / 6f, p2a.y - (p3a.y - p1a.y) / 6f)
+                    pathA.cubicTo(cp1a.x, cp1a.y, cp2a.x, cp2a.y, p2a.x, p2a.y)
+
+                    val p0b = ptsB.getOrNull(i - 2) ?: ptsB[i - 1]
+                    val p1b = ptsB[i - 1]
+                    val p2b = ptsB[i]
+                    val p3b = ptsB.getOrNull(i + 1) ?: ptsB[i]
+                    val cp1b = Offset(p1b.x + (p2b.x - p0b.x) / 6f, p1b.y + (p2b.y - p0b.y) / 6f)
+                    val cp2b = Offset(p2b.x - (p3b.x - p1b.x) / 6f, p2b.y - (p3b.y - p1b.y) / 6f)
+                    pathB.cubicTo(cp1b.x, cp1b.y, cp2b.x, cp2b.y, p2b.x, p2b.y)
                 }
             }
 

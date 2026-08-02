@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
+import com.rtbishop.look4sat.core.domain.repository.MutualPassData
 import com.rtbishop.look4sat.core.domain.utility.toDegrees
 import com.rtbishop.look4sat.core.presentation.EmptyListCard
 import com.rtbishop.look4sat.core.presentation.IconCard
@@ -70,6 +71,7 @@ import com.rtbishop.look4sat.core.presentation.formatFrequency
 import com.rtbishop.look4sat.core.presentation.getDefaultPass
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import com.rtbishop.look4sat.core.presentation.layoutPadding
+import com.rtbishop.look4sat.feature.mutual.ElevationCurveChart
 import kotlinx.coroutines.launch
 
 private enum class RadarPage(val title: String) {
@@ -83,6 +85,7 @@ fun RadarDestination(navigateUp: () -> Unit) {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val viewModel: RadarViewModel = viewModel(factory = RadarViewModel.factory(container))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val mutualData by container.mutualPassData.collectAsStateWithLifecycle()
     // Sync actual permission state on every recomposition so it survives screen re-entry
     val hasPermission = ContextCompat.checkSelfPermission(
         context, Manifest.permission.RECORD_AUDIO
@@ -97,7 +100,7 @@ fun RadarDestination(navigateUp: () -> Unit) {
         viewModel.onAction(RadarAction.SstvPermissionResult(granted))
         viewModel.onAction(RadarAction.CwPermissionResult(granted))
     }
-    RadarScreen(uiState, viewModel::onAction, navigateUp, requestMicPermission = {
+    RadarScreen(uiState, viewModel::onAction, navigateUp, mutualData, requestMicPermission = {
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     })
 }
@@ -107,6 +110,7 @@ private fun RadarScreen(
     uiState: RadarState,
     onAction: (RadarAction) -> Unit,
     navigateUp: () -> Unit,
+    mutualData: MutualPassData,
     requestMicPermission: () -> Unit
 ) {
     val upcomingPass = uiState.currentPass ?: getDefaultPass()
@@ -137,10 +141,16 @@ private fun RadarScreen(
         }
         if (isVertical) {
             RadarCard(uiState, Modifier.weight(1f))
+            if (mutualData.samples.isNotEmpty()) {
+                MutualElevationCard(mutualData, Modifier.weight(1f))
+            }
             PagerCard(uiState, onAction, requestMicPermission, Modifier.weight(1f))
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 RadarCard(uiState, Modifier.weight(1f))
+                if (mutualData.samples.isNotEmpty()) {
+                    MutualElevationCard(mutualData, Modifier.weight(1f))
+                }
                 PagerCard(uiState, onAction, requestMicPermission, Modifier.weight(1f))
             }
         }
@@ -301,6 +311,22 @@ private fun RadarLabel(
         } else {
             Text(text = value, fontSize = 18.sp)
             Text(text = label, fontSize = 15.sp)
+        }
+    }
+}
+
+@Composable
+private fun MutualElevationCard(mutualData: MutualPassData, modifier: Modifier = Modifier) {
+    ElevatedCard(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+            if (mutualData.samples.isNotEmpty()) {
+                ElevationCurveChart(
+                    samples = mutualData.samples,
+                    startTime = mutualData.startTime,
+                    endTime = mutualData.endTime,
+                    maxElev = mutualData.maxElev
+                )
+            }
         }
     }
 }
