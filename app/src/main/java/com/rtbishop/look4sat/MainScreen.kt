@@ -78,6 +78,8 @@ import com.rtbishop.look4sat.core.presentation.Screen
 import com.rtbishop.look4sat.core.presentation.hasEnoughHeight
 import com.rtbishop.look4sat.core.presentation.hasEnoughWidth
 import com.rtbishop.look4sat.feature.map.MapDestination
+import com.rtbishop.look4sat.feature.mutual.MutualScreen
+import com.rtbishop.look4sat.feature.mutual.MutualViewModel
 import com.rtbishop.look4sat.feature.passes.PassesDestination
 import com.rtbishop.look4sat.feature.radar.RadarDestination
 import com.rtbishop.look4sat.feature.satellites.SatellitesDestination
@@ -125,7 +127,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val currentKey = backStack.lastOrNull()
     val navigateBack: () -> Unit = { backStack.removeLastOrNull() }
     val fadeTransition = fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
-    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Map, Screen.Settings)
+    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Map, Screen.Settings)
 
     val context = LocalContext.current
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
@@ -145,6 +147,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         is Screen.Satellites -> screen is Screen.Satellites
                         is Screen.Passes -> screen is Screen.Passes
                         is Screen.Radar -> screen is Screen.Radar
+                        is Screen.Mutual -> screen is Screen.Mutual
                         is Screen.Map -> screen is Screen.Map
                         is Screen.Settings -> screen is Screen.Settings
                         else -> false
@@ -200,6 +203,10 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                         entry<Screen.Map> {
                             MapDestination()
+                        }
+                        entry<Screen.Mutual> {
+                            val viewModel = MutualViewModel(container.satelliteRepo)
+                            MutualScreen(viewModel = viewModel)
                         }
                         entry<Screen.Settings> {
                             SettingsDestination()

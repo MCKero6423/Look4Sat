@@ -22,6 +22,7 @@ include(
 )
 include(
     ":feature:map",
+    ":feature:mutual",
     ":feature:passes",
     ":feature:radar",
     ":feature:satellites",
