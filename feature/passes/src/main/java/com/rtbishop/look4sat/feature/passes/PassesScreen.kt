@@ -316,7 +316,6 @@ private fun PassItem(
     isVerticalLayout: Boolean = true,
     isUtc: Boolean = false
 ) {
-    val passSatId = stringResource(id = R.string.pass_satId, pass.catNum)
     val horizontalPadding = if (isVerticalLayout) 6.dp else 10.dp
     val timeZone = remember(isUtc) {
         if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
@@ -342,10 +341,6 @@ private fun PassItem(
                 .padding(horizontal = horizontalPadding, vertical = 4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "$passSatId - ",
-                    color = MaterialTheme.colorScheme.primary
-                )
                 Text(
                     text = pass.name,
                     modifier = Modifier

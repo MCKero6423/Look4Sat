@@ -158,10 +158,6 @@ fun RowScope.NextPassRow(pass: OrbitalPass, modifier: Modifier = Modifier, isUtc
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${stringResource(R.string.pass_satId, pass.catNum)} - ",
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
                     text = pass.name,
                     modifier = Modifier
                         .weight(1f)
