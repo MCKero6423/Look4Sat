@@ -210,63 +210,60 @@ class MutualViewModel(
         val endTime = time + hours * 60L * 60L * 1000L
         val sampleInterval = 5_000L // 5 seconds between samples for smooth curves
 
-        for (sat in satellites) {
-            if (sat.data.meanmo < 1e-8) continue
-            var searchStart = time
-            // Find ALL mutual passes for this satellite
-            while (true) {
-                val t = findNextMutualPass(sat, posA, posB, searchStart, endTime)
-                if (t == null) break
-                val (aos, los) = t
+        // Reuse the main page's pass list (calculated by getLeoPass/getGeoPass)
+        // so the mutual pass times match the main page exactly.
+        val existingPasses = satelliteRepo.passes.value
+        for (pass in existingPasses) {
+            if (pass.losTime <= time || pass.aosTime >= endTime) continue
+            if (pass.isDeepSpace) continue
+            if (pass.orbitalObject.data.meanmo < 1e-8) continue
 
-                // Refine AOS: finer search near the edge (0° horizon, like the main radar)
-                val refinedAos = refineEdge(sat, posA, posB, aos, step = 1_000L, goingUp = true)
-                // Refine LOS: finer search near the edge
-                val refinedLos = refineEdge(sat, posA, posB, los, step = 1_000L, goingUp = false)
+            val sat = pass.orbitalObject
+            // Refine the common window: AOS = max(A's AOS, B's horizon crossing)
+            val refinedAos = refineEdge(sat, posA, posB, pass.aosTime, 1_000L, goingUp = true)
+            val refinedLos = refineEdge(sat, posA, posB, pass.losTime, 1_000L, goingUp = false)
+            if (refinedLos <= refinedAos) continue
 
-                val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
-                val tracks = mutableListOf<TrackSample>()
-                var maxElevA = 0.0
-                var maxElevB = 0.0
+            val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
+            val tracks = mutableListOf<TrackSample>()
+            var maxElevA = 0.0
+            var maxElevB = 0.0
 
-                var tSample = refinedAos
-                while (tSample <= refinedLos) {
-                    val fullA = sat.getFullPosition(posA, tSample)
-                    val fullB = sat.getFullPosition(posB, tSample)
-                    val elevA = fullA.elevation * 180.0 / PI
-                    val elevB = fullB.elevation * 180.0 / PI
-                    if (elevA > maxElevA) maxElevA = elevA
-                    if (elevB > maxElevB) maxElevB = elevB
-                    samples.add(tSample to (elevA to elevB))
-                    tracks.add(
-                        TrackSample(
-                            time = tSample,
-                            azimuthA = fullA.azimuth * 180.0 / PI,
-                            elevationA = elevA,
-                            azimuthB = fullB.azimuth * 180.0 / PI,
-                            elevationB = elevB
-                        )
+            var tSample = refinedAos
+            while (tSample <= refinedLos) {
+                val fullA = sat.getFullPosition(posA, tSample)
+                val fullB = sat.getFullPosition(posB, tSample)
+                val elevA = fullA.elevation * 180.0 / PI
+                val elevB = fullB.elevation * 180.0 / PI
+                if (elevA > maxElevA) maxElevA = elevA
+                if (elevB > maxElevB) maxElevB = elevB
+                samples.add(tSample to (elevA to elevB))
+                tracks.add(
+                    TrackSample(
+                        time = tSample,
+                        azimuthA = fullA.azimuth * 180.0 / PI,
+                        elevationA = elevA,
+                        azimuthB = fullB.azimuth * 180.0 / PI,
+                        elevationB = elevB
                     )
-                    tSample += sampleInterval
-                }
+                )
+                tSample += sampleInterval
+            }
 
-                // Both stations must reach their own min elevation for a usable mutual pass
-                if (maxElevA > minElevADeg && maxElevB > minElevBDeg) {
-                    results.add(
-                        MutualPass(
-                            catNum = sat.data.catnum,
-                            name = sat.data.name,
-                            startTime = refinedAos,
-                            endTime = refinedLos,
-                            maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
-                            maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
-                            elevationSamples = samples,
-                            trackSamples = tracks
-                        )
+            // Both stations must reach their own min elevation for a usable mutual pass
+            if (maxElevA > minElevADeg && maxElevB > minElevBDeg) {
+                results.add(
+                    MutualPass(
+                        catNum = pass.catNum,
+                        name = pass.orbitalObject.data.name,
+                        startTime = refinedAos,
+                        endTime = refinedLos,
+                        maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
+                        maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
+                        elevationSamples = samples,
+                        trackSamples = tracks
                     )
-                }
-                // Advance past this pass and keep searching
-                searchStart = refinedLos + 120_000L
+                )
             }
         }
         return results
