@@ -48,7 +48,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -361,6 +363,9 @@ private fun MutualPassCard(
     onClick: () -> Unit,
     onNavigateToRadar: () -> Unit
 ) {
+    // Shared time cursor: both the elevation curve and the radar track view
+    // are controlled by this single progress value for bidirectional drag sync.
+    var dragProgress by remember(pass) { mutableFloatStateOf(0.5f) }
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -419,6 +424,8 @@ private fun MutualPassCard(
                         )
                         MutualRadarView(
                             trackSamples = pass.trackSamples,
+                            progress = dragProgress,
+                            onProgressChange = { dragProgress = it },
                             labelA = "你",
                             labelB = "友台"
                         )
@@ -429,7 +436,9 @@ private fun MutualPassCard(
                             samples = pass.elevationSamples,
                             startTime = pass.startTime,
                             endTime = pass.endTime,
-                            maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0)
+                            maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
+                            progress = dragProgress,
+                            onProgressChange = { dragProgress = it }
                         )
                     }
                     Spacer(Modifier.height(8.dp))

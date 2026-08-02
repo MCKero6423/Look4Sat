@@ -30,10 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
@@ -50,6 +47,8 @@ import kotlin.math.roundToInt
 
 /**
  * Draggable dual-station elevation curve chart.
+ * Controlled component: [progress] (0..1) and [onProgressChange] are owned by the parent,
+ * so the same time cursor can be shared with the radar track view.
  */
 @Composable
 fun ElevationCurveChart(
@@ -57,6 +56,8 @@ fun ElevationCurveChart(
     startTime: Long,
     endTime: Long,
     maxElev: Double,
+    progress: Float = 0.5f,
+    onProgressChange: (Float) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (samples.isEmpty()) return
@@ -73,8 +74,6 @@ fun ElevationCurveChart(
     val gridColorArgb = gridColor.toArgb()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
-    var dragProgress by remember { mutableFloatStateOf(0.5f) }
-
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(
             modifier = Modifier
@@ -83,12 +82,12 @@ fun ElevationCurveChart(
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
-                        dragProgress = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
+                        onProgressChange((offset.x / size.width.toFloat()).coerceIn(0f, 1f))
                     }
                 }
                 .pointerInput(Unit) {
-                    detectDragGestures { _, dragAmount ->
-                        dragProgress = (dragProgress + dragAmount.x / size.width.toFloat()).coerceIn(0f, 1f)
+                    detectDragGestures { change, _ ->
+                        onProgressChange((change.position.x / size.width.toFloat()).coerceIn(0f, 1f))
                     }
                 }
         ) {
@@ -180,8 +179,8 @@ fun ElevationCurveChart(
             drawPath(pathB, colorB, style = Stroke(width = 2.5f))
 
             // Drag indicator
-            val dragX = plotLeft + dragProgress * plotWidth
-            val dragTime = startTime + (dragProgress * (endTime - startTime)).toLong()
+            val dragX = plotLeft + progress * plotWidth
+            val dragTime = startTime + (progress * (endTime - startTime)).toLong()
 
             drawLine(
                 onSurfaceColor,

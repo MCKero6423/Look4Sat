@@ -18,6 +18,8 @@
 package com.rtbishop.look4sat.feature.mutual
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -50,10 +53,14 @@ private const val STROKE_WIDTH = 2.5f
 /**
  * Polar radar chart showing the satellite track as seen from both stations
  * on one plot. Station A is drawn solid, station B dashed.
+ * Controlled: [progress] (0..1) and [onProgressChange] are owned by the parent
+ * so the time cursor can be shared with the elevation curve chart.
  */
 @Composable
 fun MutualRadarView(
     trackSamples: List<TrackSample>,
+    progress: Float = 0.5f,
+    onProgressChange: (Float) -> Unit = {},
     labelA: String = "站点A",
     labelB: String = "站点B",
     modifier: Modifier = Modifier
@@ -66,12 +73,29 @@ fun MutualRadarView(
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val measurer = rememberTextMeasurer()
 
+    // Current-time samples (both stations' position at the shared cursor)
+    val t0 = trackSamples.first().time
+    val t1 = trackSamples.last().time
+    val selectedTime = t0 + ((t1 - t0) * progress).toLong()
+    val visibleSamples = trackSamples.filter { it.time <= selectedTime }
+    val currentSample = visibleSamples.lastOrNull() ?: trackSamples.first()
+
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .padding(4.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        onProgressChange((offset.x / size.width.toFloat()).coerceIn(0f, 1f))
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectDragGestures { change, _ ->
+                        onProgressChange((change.position.x / size.width.toFloat()).coerceIn(0f, 1f))
+                    }
+                }
         ) {
             val radius = size.minDimension / 2f * 0.92f
             val center = Offset(size.width / 2f, size.height / 2f)
@@ -124,6 +148,14 @@ fun MutualRadarView(
             if (first.elevationB > 0f) drawCircle(colorB, 7f, aosB, style = Stroke(2.5f))
             if (last.elevationA > 0f) drawCircle(colorA, 5f, losA)
             if (last.elevationB > 0f) drawCircle(colorB, 5f, losB)
+
+            // Shared time-cursor positions (both stations at selectedTime)
+            val cursorA = sph2Cart(center, currentSample.azimuthA, currentSample.elevationA, radius)
+            val cursorB = sph2Cart(center, currentSample.azimuthB, currentSample.elevationB, radius)
+            drawCircle(colorA, 14f, cursorA, style = Stroke(3f))
+            drawCircle(colorA, 6f, cursorA)
+            drawCircle(colorB, 14f, cursorB, style = Stroke(3f))
+            drawCircle(colorB, 6f, cursorB)
 
             // Center dot
             drawCircle(gridColor, 4f, center)
