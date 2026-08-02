@@ -356,6 +356,8 @@ private fun MutualContent(
                 pass = pass,
                 isExpanded = state.selectedPassIndex == index,
                 timeFormat = timeFormat,
+                minElevA = state.stationAMinElev,
+                minElevB = state.stationBMinElev,
                 onClick = { onSelectPass(if (state.selectedPassIndex == index) -1 else index) },
                 onNavigateToRadar = { onNavigateToRadar(pass.catNum, pass.startTime, mutualData) }
             )
@@ -368,12 +370,32 @@ private fun MutualPassCard(
     pass: MutualPass,
     isExpanded: Boolean,
     timeFormat: SimpleDateFormat,
+    minElevA: Double,
+    minElevB: Double,
     onClick: () -> Unit,
     onNavigateToRadar: () -> Unit
 ) {
     // Shared time cursor: both the elevation curve and the radar track view
     // are controlled by this single progress value for bidirectional drag sync.
     var dragProgress by remember(pass) { mutableFloatStateOf(0.5f) }
+
+    // Filter to only show the portion where both stations are above their minElev
+    // (satlover.de style — only the usable common window)
+    val visibleSamples = remember(pass, minElevA, minElevB) {
+        pass.elevationSamples.filter { (_, elev) ->
+            elev.first >= minElevA && elev.second >= minElevB
+        }
+    }
+    val visibleTracks = remember(pass, minElevA, minElevB) {
+        pass.trackSamples.filter { it.elevationA >= minElevA && it.elevationB >= minElevB }
+    }
+    val visibleStart = visibleSamples.firstOrNull()?.first ?: pass.startTime
+    val visibleEnd = visibleSamples.lastOrNull()?.first ?: pass.endTime
+    val adjustedMaxElev = maxOf(
+        visibleSamples.maxOfOrNull { (_, elev) -> elev.first } ?: 10.0,
+        visibleSamples.maxOfOrNull { (_, elev) -> elev.second } ?: 10.0,
+        10.0
+    )
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -423,7 +445,7 @@ private fun MutualPassCard(
                 Column {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     // Dual-station radar track (polar plot)
-                    if (pass.trackSamples.isNotEmpty()) {
+                    if (visibleTracks.isNotEmpty()) {
                         Text(
                             text = "双方轨迹（雷达图）",
                             style = MaterialTheme.typography.titleSmall,
@@ -431,19 +453,19 @@ private fun MutualPassCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         MutualRadarView(
-                            trackSamples = pass.trackSamples,
+                            trackSamples = visibleTracks,
                             progress = dragProgress,
                             labelA = "你",
                             labelB = "友台"
                         )
                         Spacer(Modifier.height(8.dp))
                     }
-                    if (pass.elevationSamples.isNotEmpty()) {
+                    if (visibleSamples.isNotEmpty()) {
                         ElevationCurveChart(
-                            samples = pass.elevationSamples,
-                            startTime = pass.startTime,
-                            endTime = pass.endTime,
-                            maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
+                            samples = visibleSamples,
+                            startTime = visibleStart,
+                            endTime = visibleEnd,
+                            maxElev = adjustedMaxElev,
                             progress = dragProgress,
                             onProgressChange = { dragProgress = it }
                         )
