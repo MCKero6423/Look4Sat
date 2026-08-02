@@ -129,6 +129,7 @@ fun MutualScreen(
             onStationBLon = viewModel::onStationBLon,
             onStationBGrid = viewModel::onStationBGrid,
             onStationBMinElev = viewModel::onStationBMinElev,
+            onUseCurrentPosition = viewModel::onUseCurrentPosition,
             onHoursAhead = viewModel::onHoursAhead,
             onClearError = viewModel::clearError
         )
@@ -150,6 +151,7 @@ private fun MutualContent(
     onStationBLon: (String) -> Unit,
     onStationBGrid: (String) -> Unit,
     onStationBMinElev: (Double) -> Unit,
+    onUseCurrentPosition: () -> Unit,
     onHoursAhead: (Int) -> Unit,
     onClearError: () -> Unit
 ) {
@@ -224,6 +226,12 @@ private fun MutualContent(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    OutlinedButton(
+                        onClick = onUseCurrentPosition,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("当前精确位置", style = MaterialTheme.typography.bodySmall)
+                    }
                     Text(
                         text = "最小仰角：${state.stationAMinElev.toInt()}°",
                         style = MaterialTheme.typography.bodySmall

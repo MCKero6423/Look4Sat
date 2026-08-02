@@ -139,6 +139,14 @@ class MutualViewModel(
     }
     fun onStationAMinElev(value: Double) = _uiState.update { it.copy(stationAMinElev = value) }
     fun onStationBMinElev(value: Double) = _uiState.update { it.copy(stationBMinElev = value) }
+    fun onUseCurrentPosition() {
+        val pos = settingsRepo.stationPosition.value
+        _uiState.update { it.copy(
+            stationALat = "%.4f".format(pos.latitude),
+            stationALon = "%.4f".format(pos.longitude),
+            stationAGrid = latLonToGrid(pos.latitude, pos.longitude)
+        ) }
+    }
     fun onHoursAhead(value: Int) = _uiState.update { it.copy(hoursAhead = value) }
     fun onSelectPass(index: Int) = _uiState.update { it.copy(selectedPassIndex = index) }
 
@@ -152,19 +160,6 @@ class MutualViewModel(
         if (posA == null || posB == null) {
             _uiState.update { it.copy(errorMessage = "请输入有效的位置坐标或网格（4/6/8位）") }
             return
-        }
-
-        // When station A's grid matches the pre-filled grid (user hasn't changed it),
-        // use the exact station position from settings so the pass times and elevation
-        // curves are consistent with the main Passes page.
-        val stationPos = settingsRepo.stationPosition.value
-        val prefillGrid = latLonToGrid(stationPos.latitude, stationPos.longitude)
-        if (state.stationAGrid.trim().uppercase() == prefillGrid) {
-            posA = stationPos
-        }
-        // Same for station B: if its grid matches the user's station, use exact position.
-        if (state.stationBGrid.trim().uppercase() == prefillGrid) {
-            posB = stationPos
         }
 
         val satellites = satelliteRepo.satellites.value
