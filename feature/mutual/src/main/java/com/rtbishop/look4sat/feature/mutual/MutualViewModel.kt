@@ -207,7 +207,7 @@ class MutualViewModel(
     ): List<MutualPass> {
         val results = mutableListOf<MutualPass>()
         val endTime = time + hours * 60L * 60L * 1000L
-        val sampleInterval = 10_000L
+        val sampleInterval = 5_000L // 5 seconds between samples for smooth curves
 
         for (sat in satellites) {
             if (sat.data.meanmo < 1e-8) continue
@@ -216,14 +216,19 @@ class MutualViewModel(
             while (true) {
                 val t = findNextMutualPass(sat, posA, posB, minElevADeg, minElevBDeg, searchStart, endTime)
                 if (t == null) break
-                val (start, end) = t
+                val (aos, los) = t
+
+                // Refine AOS: finer search near the edge
+                val refinedAos = refineEdge(sat, posA, posB, minElevADeg, minElevBDeg, aos, step = 1_000L, goingUp = true)
+                // Refine LOS: finer search near the edge
+                val refinedLos = refineEdge(sat, posA, posB, minElevADeg, minElevBDeg, los, step = 1_000L, goingUp = false)
 
                 val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
                 var maxElevA = 0.0
                 var maxElevB = 0.0
 
-                var tSample = start
-                while (tSample <= end) {
+                var tSample = refinedAos
+                while (tSample <= refinedLos) {
                     val elevA = elevationDeg(sat, posA, tSample)
                     val elevB = elevationDeg(sat, posB, tSample)
                     if (elevA > maxElevA) maxElevA = elevA
@@ -237,8 +242,8 @@ class MutualViewModel(
                         MutualPass(
                             catNum = sat.data.catnum,
                             name = sat.data.name,
-                            startTime = start,
-                            endTime = end,
+                            startTime = refinedAos,
+                            endTime = refinedLos,
                             maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
                             maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
                             elevationSamples = samples
@@ -246,10 +251,49 @@ class MutualViewModel(
                     )
                 }
                 // Advance past this pass and keep searching
-                searchStart = end + 120_000L
+                searchStart = refinedLos + 120_000L
             }
         }
         return results
+    }
+
+    /** Refine the AOS (goingUp=true) or LOS (goingUp=false) with fine steps. */
+    private fun refineEdge(
+        sat: OrbitalObject, posA: GeoPos, posB: GeoPos,
+        minElevADeg: Double, minElevBDeg: Double,
+        approxTime: Long, step: Long, goingUp: Boolean
+    ): Long {
+        var t = approxTime
+        val limit = 30_000L // search up to 30 seconds
+        if (goingUp) {
+            // Find the point where both stations just go above minElev
+            var best = t
+            t -= limit
+            while (t <= approxTime + limit) {
+                val eA = elevationDeg(sat, posA, t)
+                val eB = elevationDeg(sat, posB, t)
+                if (eA > minElevADeg && eB > minElevBDeg) {
+                    best = t
+                    break
+                }
+                t += step
+            }
+            return best
+        } else {
+            // Find the point where either station just drops below minElev
+            var best = t
+            t -= limit
+            while (t <= approxTime + limit) {
+                val eA = elevationDeg(sat, posA, t)
+                val eB = elevationDeg(sat, posB, t)
+                if (eA < minElevADeg || eB < minElevBDeg) {
+                    best = t
+                    break
+                }
+                t += step
+            }
+            return best
+        }
     }
 
     private fun elevationDeg(sat: OrbitalObject, pos: GeoPos, time: Long): Double {
