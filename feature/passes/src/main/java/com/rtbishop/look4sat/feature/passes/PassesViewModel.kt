@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -157,7 +156,7 @@ class PassesViewModel(
     private fun computeSunTimes(passes: List<OrbitalPass>, isUtc: Boolean): Map<String, Pair<String, String>> {
         val stationPos = settingsRepo.stationPosition.value
         val tz = if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
-        val sdfDate = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault()).also { it.timeZone = tz }
+        val sdfDate = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).also { it.timeZone = tz }
         val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault()).also { it.timeZone = tz }
         val result = LinkedHashMap<String, Pair<String, String>>()
         // DeepSpace group always shows today's sun times
@@ -181,7 +180,7 @@ class PassesViewModel(
 
     private fun groupPasses(passes: List<OrbitalPass>, isUtc: Boolean): Map<String, List<OrbitalPass>> {
         val tz = if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
-        val sdfDate = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault()).also { it.timeZone = tz }
+        val sdfDate = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).also { it.timeZone = tz }
         val ordered = LinkedHashMap<String, List<OrbitalPass>>()
         val deepSpace = passes.filter { it.isDeepSpace }
         if (deepSpace.isNotEmpty()) ordered["DeepSpace (period >225min)"] = deepSpace
