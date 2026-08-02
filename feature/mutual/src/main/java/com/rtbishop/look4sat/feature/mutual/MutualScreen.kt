@@ -42,11 +42,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -102,7 +100,7 @@ fun MutualScreen(
                     value = state.stationALat,
                     onValueChange = viewModel::onStationALat,
                     label = { Text("纬度") },
-                    placeholder = { Text("例如: 39.9042") },
+                    placeholder = { Text("39.9042") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -111,12 +109,20 @@ fun MutualScreen(
                     value = state.stationALon,
                     onValueChange = viewModel::onStationALon,
                     label = { Text("经度") },
-                    placeholder = { Text("例如: 116.4074") },
+                    placeholder = { Text("116.4074") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
             }
+            OutlinedTextField(
+                value = state.stationAGrid,
+                onValueChange = viewModel::onStationAGrid,
+                label = { Text("网格（4/6/8位，填此可省略经纬度）") },
+                placeholder = { Text("ON79uj") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
             Text("最小仰角：${state.stationAMinElev.toInt()}°", style = MaterialTheme.typography.bodySmall)
             Slider(
                 value = state.stationAMinElev.toFloat(),
@@ -138,7 +144,7 @@ fun MutualScreen(
                     value = state.stationBLat,
                     onValueChange = viewModel::onStationBLat,
                     label = { Text("纬度") },
-                    placeholder = { Text("例如: 34.0522") },
+                    placeholder = { Text("34.0522") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -147,12 +153,20 @@ fun MutualScreen(
                     value = state.stationBLon,
                     onValueChange = viewModel::onStationBLon,
                     label = { Text("经度") },
-                    placeholder = { Text("例如: -118.2437") },
+                    placeholder = { Text("-118.2437") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
             }
+            OutlinedTextField(
+                value = state.stationBGrid,
+                onValueChange = viewModel::onStationBGrid,
+                label = { Text("网格（4/6/8位，填此可省略经纬度）") },
+                placeholder = { Text("PM01tv") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
             Text("最小仰角：${state.stationBMinElev.toInt()}°", style = MaterialTheme.typography.bodySmall)
             Slider(
                 value = state.stationBMinElev.toFloat(),
@@ -234,17 +248,11 @@ private fun MutualPassCard(
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = pass.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            Text(
+                text = pass.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = "${timeFormat.format(Date(pass.startTime))} - ${timeFormat.format(Date(pass.endTime))}",
                 style = MaterialTheme.typography.bodySmall,
