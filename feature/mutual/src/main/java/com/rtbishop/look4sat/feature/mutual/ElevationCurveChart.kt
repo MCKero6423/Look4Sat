@@ -36,7 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
@@ -66,6 +66,11 @@ fun ElevationCurveChart(
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val colorAArgb = colorA.toArgb()
+    val colorBArgb = colorB.toArgb()
+    val textColorArgb = textColor.toArgb()
+    val onSurfaceArgb = onSurfaceColor.toArgb()
+    val gridColorArgb = gridColor.toArgb()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     var dragProgress by remember { mutableFloatStateOf(0.5f) }
@@ -113,7 +118,7 @@ fun ElevationCurveChart(
                 drawContext.canvas.nativeCanvas.drawText(
                     "$elev°", 2f, y + 4f,
                     android.graphics.Paint().apply {
-                        color = textColor.hashCode()
+                        color = textColorArgb
                         textSize = 24f
                         textAlign = android.graphics.Paint.Align.LEFT
                     }
@@ -128,7 +133,7 @@ fun ElevationCurveChart(
                 drawContext.canvas.nativeCanvas.drawText(
                     timeFormat.format(Date(t)), x - 20f, chartHeight - 2f,
                     android.graphics.Paint().apply {
-                        color = textColor.hashCode()
+                        color = textColorArgb
                         textSize = 22f
                         textAlign = android.graphics.Paint.Align.LEFT
                     }
@@ -176,7 +181,7 @@ fun ElevationCurveChart(
                 timeFormat.format(Date(dragTime)),
                 dragX - 24f, plotBottom + 16f,
                 android.graphics.Paint().apply {
-                    color = onSurfaceColor.hashCode()
+                    color = onSurfaceArgb
                     textSize = 24f
                     textAlign = android.graphics.Paint.Align.LEFT
                 }
@@ -185,7 +190,7 @@ fun ElevationCurveChart(
                 "A:${dragElevA}°",
                 dragX + 6f, plotTop + 16f,
                 android.graphics.Paint().apply {
-                    color = colorA.hashCode()
+                    color = colorAArgb
                     textSize = 24f
                     textAlign = android.graphics.Paint.Align.LEFT
                 }
@@ -194,14 +199,14 @@ fun ElevationCurveChart(
                 "B:${dragElevB}°",
                 dragX + 6f, plotTop + 42f,
                 android.graphics.Paint().apply {
-                    color = colorB.hashCode()
+                    color = colorBArgb
                     textSize = 24f
                     textAlign = android.graphics.Paint.Align.LEFT
                 }
             )
         }
 
-        // Legend (outside Canvas, in Composable context)
+        // Legend
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly

@@ -205,7 +205,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                             MapDestination()
                         }
                         entry<Screen.Mutual> {
-                            val viewModel = MutualViewModel(container.satelliteRepo)
+                            val viewModel = MutualViewModel(container.satelliteRepo, container.settingsRepo)
                             MutualScreen(viewModel = viewModel)
                         }
                         entry<Screen.Settings> {

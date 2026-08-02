@@ -24,6 +24,7 @@ import com.rtbishop.look4sat.core.domain.predict.GeoPos
 import com.rtbishop.look4sat.core.domain.predict.OrbitalObject
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
 import com.rtbishop.look4sat.core.domain.repository.ISatelliteRepo
+import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.PI
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 data class MutualUiState(
@@ -51,11 +53,19 @@ data class MutualUiState(
 )
 
 class MutualViewModel(
-    private val satelliteRepo: ISatelliteRepo
+    private val satelliteRepo: ISatelliteRepo,
+    private val settingsRepo: ISettingsRepo
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MutualUiState())
     val uiState: StateFlow<MutualUiState> = _uiState.asStateFlow()
+
+    init {
+        // Pre-fill station A with the user's current station position (as grid)
+        val pos = settingsRepo.stationPosition.value
+        val grid = latLonToGrid(pos.latitude, pos.longitude)
+        _uiState.update { it.copy(stationAGrid = grid) }
+    }
 
     fun onStationALat(value: String) = _uiState.update { it.copy(stationALat = value) }
     fun onStationALon(value: String) = _uiState.update { it.copy(stationALon = value) }
@@ -110,27 +120,51 @@ class MutualViewModel(
 
     /** Resolve a position from lat/lon text or grid square text. */
     private fun resolvePosition(latText: String, lonText: String, gridText: String): GeoPos? {
-        // Try grid square first
         val trimmed = gridText.trim().uppercase()
         if (trimmed.length in listOf(4, 6, 8) && trimmed.all { it.isLetterOrDigit() }) {
             return gridToLatLon(trimmed)
         }
-        // Fall back to lat/lon
         val lat = latText.toDoubleOrNull()
         val lon = lonText.toDoubleOrNull()
         return if (lat != null && lon != null) GeoPos(lat, lon) else null
+    }
+
+    /** Convert lat/lon to Maidenhead grid (6-char). */
+    private fun latLonToGrid(lat: Double, lon: Double): String {
+        var adjLon = (lon + 180.0) % 360.0
+        var adjLat = (lat + 90.0) % 180.0
+
+        val fieldLon = (adjLon / 20.0).toInt()
+        val fieldLat = (adjLat / 10.0).toInt()
+        adjLon -= fieldLon * 20.0
+        adjLat -= fieldLat * 10.0
+
+        val squareLon = (adjLon / 2.0).toInt()
+        val squareLat = (adjLat / 1.0).toInt()
+        adjLon -= squareLon * 2.0
+        adjLat -= squareLat * 1.0
+
+        val subLon = (adjLon * 60.0 / 5.0).toInt()
+        val subLat = (adjLat * 60.0 / 2.5).toInt()
+
+        return buildString {
+            append('A' + fieldLon)
+            append('A' + fieldLat)
+            append('0' + squareLon)
+            append('0' + squareLat)
+            append('A' + subLon)
+            append('A' + subLat)
+        }
     }
 
     /** Convert Maidenhead grid (4, 6, or 8 chars) to lat/lon center of the square. */
     private fun gridToLatLon(grid: String): GeoPos? {
         val g = grid.uppercase()
         if (g.length < 4) return null
-        // First pair: letters A-R
         val lonField = (g[0] - 'A').toDouble() * 20.0
         val latField = (g[1] - 'A').toDouble() * 10.0
         if (lonField < 0 || lonField > 340 || latField < 0 || latField > 170) return null
 
-        // Second pair: digits 0-9
         val lonSquare = (g[2] - '0').toDouble() * 2.0
         val latSquare = (g[3] - '0').toDouble() * 1.0
         if (lonSquare < 0 || lonSquare > 18 || latSquare < 0 || latSquare > 9) return null
@@ -139,30 +173,27 @@ class MutualViewModel(
         var lat = latField + latSquare
 
         if (g.length >= 6) {
-            // Third pair: letters A-X
-            val lonSub = (g[4] - 'A').toDouble() * 5.0 / 60.0  // 5 minutes
-            val latSub = (g[5] - 'A').toDouble() * 2.5 / 60.0   // 2.5 minutes
+            val lonSub = (g[4] - 'A').toDouble() * 5.0 / 60.0
+            val latSub = (g[5] - 'A').toDouble() * 2.5 / 60.0
             if (lonSub < 0 || lonSub > 115.0 / 60.0 || latSub < 0 || latSub > 57.5 / 60.0) return null
             lon += lonSub
             lat += latSub
 
             if (g.length >= 8) {
-                // Fourth pair: digits 0-9
-                val lonExt = (g[6] - '0').toDouble() * 30.0 / 3600.0   // 30 seconds
-                val latExt = (g[7] - '0').toDouble() * 15.0 / 3600.0   // 15 seconds
+                val lonExt = (g[6] - '0').toDouble() * 30.0 / 3600.0
+                val latExt = (g[7] - '0').toDouble() * 15.0 / 3600.0
                 if (lonExt < 0 || lonExt > 270.0 / 3600.0 || latExt < 0 || latExt > 135.0 / 3600.0) return null
-                lon += lonExt + 15.0 / 3600.0  // center of the 30" square
-                lat += latExt + 7.5 / 3600.0   // center of the 15" square
+                lon += lonExt + 15.0 / 3600.0
+                lat += latExt + 7.5 / 3600.0
             } else {
-                lon += 2.5 / 60.0  // center of the 5' square
-                lat += 1.25 / 60.0 // center of the 2.5' square
+                lon += 2.5 / 60.0
+                lat += 1.25 / 60.0
             }
         } else {
-            lon += 1.0  // center of the 2° square
-            lat += 0.5  // center of the 1° square
+            lon += 1.0
+            lat += 0.5
         }
 
-        // Convert to signed lat/lon
         lon = (lon + 180.0) % 360.0 - 180.0
         lat = (lat + 90.0) % 180.0 - 90.0
         return GeoPos(lat, lon)
@@ -176,13 +207,17 @@ class MutualViewModel(
     ): List<MutualPass> {
         val results = mutableListOf<MutualPass>()
         val endTime = time + hours * 60L * 60L * 1000L
-        val sampleInterval = 10_000L // 10 seconds between samples
+        val sampleInterval = 10_000L
 
         for (sat in satellites) {
             if (sat.data.meanmo < 1e-8) continue
-            val t = findNextMutualPass(sat, posA, posB, minElevADeg, minElevBDeg, time, endTime)
-            if (t != null) {
+            var searchStart = time
+            // Find ALL mutual passes for this satellite
+            while (true) {
+                val t = findNextMutualPass(sat, posA, posB, minElevADeg, minElevBDeg, searchStart, endTime)
+                if (t == null) break
                 val (start, end) = t
+
                 val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
                 var maxElevA = 0.0
                 var maxElevB = 0.0
@@ -210,20 +245,17 @@ class MutualViewModel(
                         )
                     )
                 }
+                // Advance past this pass and keep searching
+                searchStart = end + 120_000L
             }
         }
         return results
     }
 
-    /** Get elevation in degrees. */
     private fun elevationDeg(sat: OrbitalObject, pos: GeoPos, time: Long): Double {
         return sat.getElevation(pos, time) * 180.0 / PI
     }
 
-    /**
-     * Find the first common time window where a satellite is above both stations'
-     * minimum elevations. Uses 60-second coarse stepping.
-     */
     private fun findNextMutualPass(
         sat: OrbitalObject,
         posA: GeoPos, posB: GeoPos,
@@ -231,15 +263,13 @@ class MutualViewModel(
         startTime: Long, endTime: Long
     ): Pair<Long, Long>? {
         var t = startTime
-        val step = 60_000L // 60s coarse search step
+        val step = 60_000L
 
         while (t < endTime) {
             val elevA = elevationDeg(sat, posA, t)
             val elevB = elevationDeg(sat, posB, t)
 
             if (elevA > minElevADeg && elevB > minElevBDeg) {
-                // Both above horizon — find the common pass window
-                // Rewind to find AOS (either station drops below)
                 var aos = t
                 var rew = t
                 while (rew > startTime - 600_000L) {
@@ -252,7 +282,6 @@ class MutualViewModel(
                     rew -= step
                 }
 
-                // Fast-forward to find LOS (either station drops below)
                 var los = t
                 var fwd = t
                 while (fwd < endTime + 600_000L) {
@@ -278,7 +307,10 @@ class MutualViewModel(
         fun factory(container: IMainContainer) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                MutualViewModel(satelliteRepo = container.satelliteRepo) as T
+                MutualViewModel(
+                    satelliteRepo = container.satelliteRepo,
+                    settingsRepo = container.settingsRepo
+                ) as T
         }
     }
 }
