@@ -104,9 +104,9 @@ fun ElevationCurveChart(
 
             if (plotWidth <= 0f || plotHeight <= 0f) return@Canvas
 
-            val minTime = startTime.toFloat()
-            val maxTime = endTime.toFloat()
-            val timeRange = maxTime - minTime
+            val minTime = startTime
+            val maxTime = endTime
+            val timeRange = (maxTime - minTime).toFloat()
             if (timeRange <= 0f) return@Canvas
 
             // Grid lines
@@ -147,7 +147,7 @@ fun ElevationCurveChart(
             val ptsB = mutableListOf<Offset>()
 
             for ((time, elev) in samples) {
-                val x = plotLeft + ((time.toFloat() - minTime) / timeRange) * plotWidth
+                val x = plotLeft + ((time - minTime).toFloat() / timeRange) * plotWidth
                 val yA = plotBottom - ((elev.first.toFloat() / maxElev.toFloat()) * plotHeight).coerceIn(0f, plotHeight)
                 val yB = plotBottom - ((elev.second.toFloat() / maxElev.toFloat()) * plotHeight).coerceIn(0f, plotHeight)
                 ptsA.add(Offset(x, yA))
