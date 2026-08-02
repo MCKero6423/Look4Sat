@@ -73,6 +73,7 @@ fun RadarViewCompose(
     items: List<OrbitalPos>,
     trackB: List<OrbitalPos>? = null,
     trackBColor: Color = MaterialTheme.colorScheme.tertiary,
+    trackBPosition: OrbitalPos? = null,
     azimElev: Pair<Float, Float>,
     shouldShowSweep: Boolean,
     shouldUseCompass: Boolean,
@@ -138,17 +139,17 @@ fun RadarViewCompose(
             drawElevationLabels(radius, primaryColor, measurer)
             translate(center.x, center.y) {
                 drawTrack(trackPath, trackEffect, aimColor, primaryColor)
-                // Station-B overlay: dashed track + current position dot
+                // Station-B overlay: full dashed track + live position dot
+                // (same display mode as the local station: track line + pulsing dot)
                 if (trackB != null && trackB.isNotEmpty() && !trackBPath.isEmpty) {
                     drawPath(
                         trackBPath, trackBColor,
                         style = Stroke(STROKE_WIDTH, pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 12f)))
                     )
-                    val lastB = trackB.last()
-                    if (lastB.elevation > 0) {
-                        val posB = sph2Cart(lastB.azimuth, lastB.elevation, radius.toDouble())
-                        drawCircle(trackBColor, 26f, posB, style = Stroke(2f))
-                        drawCircle(trackBColor, 12f, posB)
+                }
+                trackBPosition?.let { posB ->
+                    if (posB.elevation > 0) {
+                        drawPosition(posB, radius, animScale, trackBColor)
                     }
                 }
                 if (item.elevation > 0) {

@@ -45,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -117,11 +118,22 @@ private fun RadarScreen(
     val addToCalendar: () -> Unit = {
         uiState.currentPass?.let { onAction(RadarAction.AddToCalendar(it.name, it.aosTime, it.losTime)) }
     }
-    // Live station-B track overlay: samples up to "now" (recomposed each second tick)
+    // Station-B overlay: full track line (not time-limited) + live position dot
+    // at the current moment, same display mode as the local station.
+    val trackB = remember(mutualData.trackSamples) {
+        mutualData.trackSamples.map {
+            OrbitalPos(
+                azimuth = it.azimuthB * PI / 180.0,
+                elevation = it.elevationB * PI / 180.0,
+                time = it.time
+            )
+        }
+    }
     val timeNow = System.currentTimeMillis()
-    val trackB = mutualData.trackSamples
+    val trackBPosition = mutualData.trackSamples
         .filter { it.time <= timeNow }
-        .map {
+        .lastOrNull()
+        ?.let {
             OrbitalPos(
                 azimuth = it.azimuthB * PI / 180.0,
                 elevation = it.elevationB * PI / 180.0,
@@ -151,11 +163,11 @@ private fun RadarScreen(
             }
         }
         if (isVertical) {
-            RadarCard(uiState, trackB, Modifier.weight(1f))
+            RadarCard(uiState, trackB, trackBPosition, Modifier.weight(1f))
             PagerCard(uiState, onAction, requestMicPermission, Modifier.weight(1f))
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                RadarCard(uiState, trackB, Modifier.weight(1f))
+                RadarCard(uiState, trackB, trackBPosition, Modifier.weight(1f))
                 PagerCard(uiState, onAction, requestMicPermission, Modifier.weight(1f))
             }
         }
@@ -214,6 +226,7 @@ private fun PagerCard(
 private fun RadarCard(
     uiState: RadarState,
     trackB: List<OrbitalPos> = emptyList(),
+    trackBPosition: OrbitalPos? = null,
     modifier: Modifier = Modifier
 ) {
     val satellitePos = uiState.orbitalPos
@@ -249,6 +262,7 @@ private fun RadarCard(
                     item = position,
                     items = uiState.satTrack,
                     trackB = trackB.takeIf { it.isNotEmpty() },
+                    trackBPosition = trackBPosition,
                     azimElev = uiState.orientationValues,
                     shouldShowSweep = uiState.shouldShowSweep,
                     shouldUseCompass = uiState.shouldUseCompass,
