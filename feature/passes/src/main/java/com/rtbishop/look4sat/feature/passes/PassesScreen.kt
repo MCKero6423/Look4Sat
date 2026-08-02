@@ -350,7 +350,7 @@ private fun PassItem(
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.primary
                 )
                 val elevColor = elevationColor(pass.maxElevation)
                 Icon(
