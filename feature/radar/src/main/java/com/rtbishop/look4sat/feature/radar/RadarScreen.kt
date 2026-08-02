@@ -118,16 +118,18 @@ private fun RadarScreen(
     val addToCalendar: () -> Unit = {
         uiState.currentPass?.let { onAction(RadarAction.AddToCalendar(it.name, it.aosTime, it.losTime)) }
     }
-    // Station-B overlay: full track line (not time-limited) + live position dot
+    // Station-B overlay: full track line (only where B's elevation > 0) + live position dot
     // at the current moment, same display mode as the local station.
     val trackB = remember(mutualData.trackSamples) {
-        mutualData.trackSamples.map {
-            OrbitalPos(
-                azimuth = it.azimuthB * PI / 180.0,
-                elevation = it.elevationB * PI / 180.0,
-                time = it.time
-            )
-        }
+        mutualData.trackSamples
+            .filter { it.elevationB > 0.0 }
+            .map {
+                OrbitalPos(
+                    azimuth = it.azimuthB * PI / 180.0,
+                    elevation = it.elevationB * PI / 180.0,
+                    time = it.time
+                )
+            }
     }
     val timeNow = System.currentTimeMillis()
     val trackBPosition = mutualData.trackSamples
@@ -182,7 +184,7 @@ private fun PagerCard(
     modifier: Modifier = Modifier
 ) {
     val pages = RadarPage.entries
-    val pagerState = rememberPagerState(pageCount = { pages.size })
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { pages.size })
     val coroutineScope = rememberCoroutineScope()
 
     ElevatedCard(modifier = modifier) {

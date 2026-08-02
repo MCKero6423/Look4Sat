@@ -18,8 +18,6 @@
 package com.rtbishop.look4sat.feature.mutual
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,7 +34,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -60,7 +57,6 @@ private const val STROKE_WIDTH = 2.5f
 fun MutualRadarView(
     trackSamples: List<TrackSample>,
     progress: Float = 0.5f,
-    onProgressChange: (Float) -> Unit = {},
     labelA: String = "站点A",
     labelB: String = "站点B",
     modifier: Modifier = Modifier
@@ -86,16 +82,6 @@ fun MutualRadarView(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .padding(4.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        onProgressChange((offset.x / size.width.toFloat()).coerceIn(0f, 1f))
-                    }
-                }
-                .pointerInput(Unit) {
-                    detectDragGestures { change, _ ->
-                        onProgressChange((change.position.x / size.width.toFloat()).coerceIn(0f, 1f))
-                    }
-                }
         ) {
             val radius = size.minDimension / 2f * 0.92f
             val center = Offset(size.width / 2f, size.height / 2f)

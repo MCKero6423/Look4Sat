@@ -433,7 +433,6 @@ private fun MutualPassCard(
                         MutualRadarView(
                             trackSamples = pass.trackSamples,
                             progress = dragProgress,
-                            onProgressChange = { dragProgress = it },
                             labelA = "你",
                             labelB = "友台"
                         )
