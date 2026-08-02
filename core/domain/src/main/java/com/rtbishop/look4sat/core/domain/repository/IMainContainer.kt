@@ -46,11 +46,20 @@ interface IMainContainer {
 
 data class MutualPassData(
     val samples: List<Pair<Long, Pair<Double, Double>>> = emptyList(),
+    val trackSamples: List<TrackSampleData> = emptyList(),
     val startTime: Long = 0L,
     val endTime: Long = 0L,
     val maxElev: Double = 10.0,
     val labelA: String = "你",
     val labelB: String = "友台"
+)
+
+/** Minimal track sample for cross-module sharing (angles in degrees). */
+data class TrackSampleData(
+    val azimuthA: Double,
+    val elevationA: Double,
+    val azimuthB: Double,
+    val elevationB: Double
 )
 
 interface IContainerProvider {

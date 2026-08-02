@@ -224,16 +224,28 @@ class MutualViewModel(
                 val refinedLos = refineEdge(sat, posA, posB, minElevADeg, minElevBDeg, los, step = 1_000L, goingUp = false)
 
                 val samples = mutableListOf<Pair<Long, Pair<Double, Double>>>()
+                val tracks = mutableListOf<TrackSample>()
                 var maxElevA = 0.0
                 var maxElevB = 0.0
 
                 var tSample = refinedAos
                 while (tSample <= refinedLos) {
-                    val elevA = elevationDeg(sat, posA, tSample)
-                    val elevB = elevationDeg(sat, posB, tSample)
+                    val fullA = sat.getFullPosition(posA, tSample)
+                    val fullB = sat.getFullPosition(posB, tSample)
+                    val elevA = fullA.elevation * 180.0 / PI
+                    val elevB = fullB.elevation * 180.0 / PI
                     if (elevA > maxElevA) maxElevA = elevA
                     if (elevB > maxElevB) maxElevB = elevB
                     samples.add(tSample to (elevA to elevB))
+                    tracks.add(
+                        TrackSample(
+                            time = tSample,
+                            azimuthA = fullA.azimuth * 180.0 / PI,
+                            elevationA = elevA,
+                            azimuthB = fullB.azimuth * 180.0 / PI,
+                            elevationB = elevB
+                        )
+                    )
                     tSample += sampleInterval
                 }
 
@@ -246,7 +258,8 @@ class MutualViewModel(
                             endTime = refinedLos,
                             maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
                             maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
-                            elevationSamples = samples
+                            elevationSamples = samples,
+                            trackSamples = tracks
                         )
                     )
                 }

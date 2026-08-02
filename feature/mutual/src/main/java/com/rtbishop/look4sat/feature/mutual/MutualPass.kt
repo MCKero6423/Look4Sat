@@ -27,6 +27,7 @@ package com.rtbishop.look4sat.feature.mutual
  * @param maxElevationA Peak elevation for station A
  * @param maxElevationB Peak elevation for station B
  * @param elevationSamples List of (time, (elevationA, elevationB)) pairs
+ * @param trackSamples List of radar-track samples (azimuth/elevation for both stations, degrees)
  */
 data class MutualPass(
     val catNum: Int,
@@ -35,5 +36,18 @@ data class MutualPass(
     val endTime: Long,
     val maxElevationA: Double,
     val maxElevationB: Double,
-    val elevationSamples: List<Pair<Long, Pair<Double, Double>>>
+    val elevationSamples: List<Pair<Long, Pair<Double, Double>>>,
+    val trackSamples: List<TrackSample> = emptyList()
+)
+
+/**
+ * One radar-track sample: satellite position as seen from both stations.
+ * All angles are in degrees.
+ */
+data class TrackSample(
+    val time: Long,
+    val azimuthA: Double,
+    val elevationA: Double,
+    val azimuthB: Double,
+    val elevationB: Double
 )

@@ -32,8 +32,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -72,6 +74,8 @@ import com.rtbishop.look4sat.core.presentation.getDefaultPass
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import com.rtbishop.look4sat.core.presentation.layoutPadding
 import com.rtbishop.look4sat.feature.mutual.ElevationCurveChart
+import com.rtbishop.look4sat.feature.mutual.MutualRadarView
+import com.rtbishop.look4sat.feature.mutual.TrackSample
 import kotlinx.coroutines.launch
 
 private enum class RadarPage(val title: String) {
@@ -319,6 +323,22 @@ private fun RadarLabel(
 private fun MutualElevationCard(mutualData: MutualPassData, modifier: Modifier = Modifier) {
     ElevatedCard(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+            if (mutualData.trackSamples.isNotEmpty()) {
+                MutualRadarView(
+                    trackSamples = mutualData.trackSamples.map {
+                        TrackSample(
+                            time = 0L,
+                            azimuthA = it.azimuthA,
+                            elevationA = it.elevationA,
+                            azimuthB = it.azimuthB,
+                            elevationB = it.elevationB
+                        )
+                    },
+                    labelA = mutualData.labelA,
+                    labelB = mutualData.labelB
+                )
+                Spacer(Modifier.height(4.dp))
+            }
             if (mutualData.samples.isNotEmpty()) {
                 ElevationCurveChart(
                     samples = mutualData.samples,

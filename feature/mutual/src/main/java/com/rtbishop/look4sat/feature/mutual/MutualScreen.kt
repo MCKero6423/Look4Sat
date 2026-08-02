@@ -58,6 +58,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.repository.MutualPassData
+import com.rtbishop.look4sat.core.domain.repository.TrackSampleData
 import com.rtbishop.look4sat.core.presentation.IconCard
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
@@ -326,6 +327,14 @@ private fun MutualContent(
         itemsIndexed(state.mutualPasses) { index, pass ->
             val mutualData = MutualPassData(
                 samples = pass.elevationSamples,
+                trackSamples = pass.trackSamples.map {
+                    TrackSampleData(
+                        azimuthA = it.azimuthA,
+                        elevationA = it.elevationA,
+                        azimuthB = it.azimuthB,
+                        elevationB = it.elevationB
+                    )
+                },
                 startTime = pass.startTime,
                 endTime = pass.endTime,
                 maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
@@ -399,6 +408,21 @@ private fun MutualPassCard(
             ) {
                 Column {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    // Dual-station radar track (polar plot)
+                    if (pass.trackSamples.isNotEmpty()) {
+                        Text(
+                            text = "双方轨迹（雷达图）",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        MutualRadarView(
+                            trackSamples = pass.trackSamples,
+                            labelA = "你",
+                            labelB = "友台"
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
                     if (pass.elevationSamples.isNotEmpty()) {
                         ElevationCurveChart(
                             samples = pass.elevationSamples,
