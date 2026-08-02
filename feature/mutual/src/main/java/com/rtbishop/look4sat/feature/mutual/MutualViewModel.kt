@@ -110,11 +110,23 @@ class MutualViewModel(
             val results = withContext(Dispatchers.Default) {
                 findMutualPasses(satellites, posA, posB, minElevA, minElevB, time, hours)
             }
+
+            val errorMsg = if (results.isEmpty()) {
+                // Debug: check if the main pass list is the culprit
+                val passCount = satelliteRepo.passes.value.size
+                val satCount = satellites.size
+                when {
+                    passCount == 0 -> "过境列表为空，请先在卫星列表中选择卫星"
+                    satCount == 0 -> "没有已选中的卫星"
+                    else -> "未找到共同过境（${passCount}个过境，${satCount}颗卫星）"
+                }
+            } else null
+
             _uiState.update {
                 it.copy(
                     mutualPasses = results.sortedBy { mp -> mp.startTime },
                     isCalculating = false,
-                    errorMessage = if (results.isEmpty()) "未找到共同过境" else null
+                    errorMessage = errorMsg
                 )
             }
         }
