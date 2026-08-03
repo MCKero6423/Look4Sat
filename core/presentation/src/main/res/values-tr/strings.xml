@@ -51,7 +51,7 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
-        * Roaming sayfası QTH定位器 2.0'dan birebir taşındı: 8 haneli konum, 3x3 ızgara, kırmızı işaret, canlı GPS
+        * Roaming sayfası QTH定位器 2.0\'dan birebir taşındı: 8 haneli konum, 3x3 ızgara, kırmızı işaret, canlı GPS
         \n\n* İçeriğin sistem durum/gezinme çubuklarıyla çakışması düzeltildi; ızgara sütunları referans düzenle eşleşiyor
         \n\n* Roaming sayfası renkleri uygulama temasını takip eder - kırmızı gece modunda tamamen görünür
         \n\n* Ayarlar: sıkışan anahtar satırları ve teşekkür aralığı düzeltildi
