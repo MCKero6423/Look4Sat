@@ -58,6 +58,7 @@
         \n\n* Roaming page colors follow the app theme - fully visible in red night mode
         \n\n* Settings: fixed squeezed toggle rows and credits spacing
         \n\n* App name is now Look4Sat Pro
+        \n\n* Settings: "Import" button renamed to "Custom URL" - edit TLE/transceiver source URLs directly
     </string>
 
     <!-- Radar screen -->
@@ -149,7 +150,7 @@
     <string name="prefs_data_entries">Satellites: %s</string>
     <string name="prefs_data_radios">Transceivers: %s</string>
     <string name="prefs_data_update">Update</string>
-    <string name="prefs_data_import">Import</string>
+    <string name="prefs_data_import">Custom URL</string>
     <string name="prefs_data_clear">Clear</string>
     <string name="prefs_data_clear_success">Data was cleared successfully</string>
     <string name="prefs_data_update_success">Update completed successfully</string>

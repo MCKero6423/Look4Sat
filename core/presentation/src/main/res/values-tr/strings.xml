@@ -56,6 +56,7 @@
         \n\n* Roaming sayfası renkleri uygulama temasını takip eder - kırmızı gece modunda tamamen görünür
         \n\n* Ayarlar: sıkışan anahtar satırları ve teşekkür aralığı düzeltildi
         \n\n* Uygulama adı artık Look4Sat Pro
+        \n\n* Ayarlar: "İçe aktar" düğmesi "Özel URL" olarak yeniden adlandırıldı - TLE/alıcı-verici kaynak URL'leri doğrudan düzenlenebilir
     </string>
 
     <!-- Radar screen -->
@@ -137,7 +138,7 @@
     <string name="prefs_data_entries">Uydular: %s</string>
     <string name="prefs_data_radios">Transceiver\'lar: %s</string>
     <string name="prefs_data_update">Güncelle</string>
-    <string name="prefs_data_import">İçe aktar</string>
+    <string name="prefs_data_import">Özel URL</string>
     <string name="prefs_data_clear">Temizle</string>
     <string name="prefs_data_clear_success">Veriler başarıyla temizlendi</string>
     <string name="prefs_data_update_success">Güncelleme başarıyla tamamlandı</string>

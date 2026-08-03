@@ -46,6 +46,7 @@
         \n\n* 漫游页配色跟随应用主题，红色夜间模式下清晰可见
         \n\n* 设置：修复开关行挤压与感谢列表间距
         \n\n* 应用名现为 Look4Sat Pro
+        \n\n* 设置：导入文件按钮更名为自定义URL，可直接编辑 TLE/收发机数据源地址
     </string>
 
     <!-- Radar screen -->
@@ -119,7 +120,7 @@
     <string name="prefs_data_entries">卫星：%s</string>
     <string name="prefs_data_radios">收发器：%s</string>
     <string name="prefs_data_update">在线更新</string>
-    <string name="prefs_data_import">导入文件</string>
+    <string name="prefs_data_import">自定义URL</string>
     <string name="prefs_data_clear">清空</string>
     <string name="prefs_data_clear_success">数据清空成功</string>
     <string name="prefs_data_update_success">更新成功</string>
