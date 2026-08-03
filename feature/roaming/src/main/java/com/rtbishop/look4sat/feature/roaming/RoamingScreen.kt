@@ -17,18 +17,7 @@
  */
 package com.rtbishop.look4sat.feature.roaming
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
-import android.os.Bundle
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,12 +36,8 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,12 +48,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
-import com.rtbishop.look4sat.core.domain.utility.positionToQth
-import com.rtbishop.look4sat.core.domain.utility.qthNeighbors
-import com.rtbishop.look4sat.core.domain.utility.qthToSquare
 import com.rtbishop.look4sat.core.presentation.LocalSpacing
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
 import com.rtbishop.look4sat.core.presentation.TopBar
@@ -83,76 +64,19 @@ import java.util.Locale
  * and row are wider/taller, matching the reference app). Styled with the
  * Look4Sat Material 3 theme.
  *
- * Live GPS: while the screen is shown (and the "漫游位置实时更新" setting is on)
- * a LocationManager listener requests gps+network fixes every 10s / 10m,
- * exactly like the reference app; each fix is pushed through the shared
- * settingsRepo.stationPosition StateFlow, so the Settings page and every
- * other consumer update in lockstep. The red marker is placed at the
- * fractional position derived from the 3rd character pair of the locator
- * (ported from the QTH定位器 app), scaled to the actual cell size, so it
- * stays accurate on any screen (phones, tablets, wide/narrow).
+ * Coordinates are read straight from the shared settingsRepo.stationPosition
+ * StateFlow — the same source the Settings page uses — so the page shows
+ * exactly the station position (站位), whatever the GPS says there. No
+ * automatic location polling on this page.
  */
-@SuppressLint("MissingPermission")
 @Composable
 fun RoamingScreen() {
     val context = LocalContext.current
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
-    val settingsRepo = container.settingsRepo
-    val stationPos by settingsRepo.stationPosition.collectAsStateWithLifecycle()
-    val otherSettings by settingsRepo.otherSettings.collectAsStateWithLifecycle()
+    val stationPos by container.settingsRepo.stationPosition.collectAsStateWithLifecycle()
 
-    val state = remember(stationPos, otherSettings.stateOfRoamingLive) {
+    val state = remember(stationPos) {
         RoamingState.fromPosition(stationPos)
-    }
-
-    // Real-time location updates, ported from the reference app's onResume/onPause:
-    // register gps+network listeners while visible, remove them when leaving.
-    var gpsAvailable by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) {
-        val locationManager = context.getSystemService(LocationManager::class.java)
-        val hasPermission = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        gpsAvailable = hasPermission && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        val listener = object : LocationListener {
-            override fun onLocationChanged(location: Location) {
-                // Accept only real gps/network fixes, like the reference app
-                if (location.provider != LocationManager.GPS_PROVIDER &&
-                    location.provider != LocationManager.NETWORK_PROVIDER
-                ) return
-                settingsRepo.setStationPosition(location.latitude, location.longitude, location.altitude)
-            }
-
-            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
-            override fun onProviderEnabled(provider: String) {
-                if (provider == LocationManager.GPS_PROVIDER) gpsAvailable = true
-            }
-
-            override fun onProviderDisabled(provider: String) {
-                if (provider == LocationManager.GPS_PROVIDER) gpsAvailable = false
-            }
-        }
-        if (hasPermission) {
-            // Listen continuously while the page is visible (10s / 10m, like the reference)
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER, 10_000L, 10f, listener
-            )
-            locationManager.requestLocationUpdates(
-                LocationManager.NETWORK_PROVIDER, 10_000L, 10f, listener
-            )
-        }
-        onDispose {
-            if (hasPermission) locationManager.removeUpdates(listener)
-        }
-    }
-
-    // Periodic refresh when live updates are enabled: re-request a fix every 30s
-    // so the page also recovers after the GPS chip falls idle.
-    LaunchedEffect(otherSettings.stateOfRoamingLive) {
-        while (otherSettings.stateOfRoamingLive) {
-            settingsRepo.setStationPosition()
-            kotlinx.coroutines.delay(30_000L)
-        }
     }
 
     ScreenColumn(
@@ -165,16 +89,15 @@ fun RoamingScreen() {
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            InfoCard(state = state, gpsAvailable = gpsAvailable)
+            InfoCard(state = state)
             GridCard(state = state, modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun InfoCard(state: RoamingState, gpsAvailable: Boolean) {
+private fun InfoCard(state: RoamingState) {
     val colorScheme = MaterialTheme.colorScheme
-    val context = LocalContext.current
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -195,13 +118,7 @@ private fun InfoCard(state: RoamingState, gpsAvailable: Boolean) {
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(
-                            when {
-                                state.gpsEnabled -> colorScheme.primary
-                                gpsAvailable -> colorScheme.error
-                                else -> colorScheme.outline
-                            }
-                        )
+                        .background(if (state.gpsEnabled) colorScheme.primary else colorScheme.outline)
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
@@ -215,22 +132,6 @@ private fun InfoCard(state: RoamingState, gpsAvailable: Boolean) {
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = colorScheme.onSurface
-                )
-            }
-            // GPS disabled hint, ported from the reference app's btnLocationSettings:
-            // opens the system location settings so the user can re-enable GPS.
-            if (!gpsAvailable) {
-                Text(
-                    text = "定位未开启,点击前往系统设置",
-                    fontSize = 13.sp,
-                    color = colorScheme.error,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable {
-                            context.startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                        }
-                        .padding(vertical = 6.dp)
                 )
             }
             // Coordinates: DMS + decimal

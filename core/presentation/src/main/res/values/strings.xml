@@ -197,7 +197,6 @@
     <string name="prefs_other_switch_sweep">Enable radar sweep animation</string>
     <string name="prefs_other_switch_sensors">Use sensors to rotate radar view</string>
     <string name="prefs_other_switch_night_mode">Enable red night mode filter</string>
-    <string name="prefs_other_switch_roaming_live">Update Roaming position live</string>
 
     <string name="prefs_highlight_title">Elevation highlight</string>
     <string name="prefs_highlight_low">Low &lt; %1$d°</string>

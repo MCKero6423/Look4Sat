@@ -58,7 +58,6 @@ data class OtherSettings(
     val stateOfUtc: Boolean,
     val stateOfLightTheme: Boolean,
     val stateOfNightMode: Boolean = false,
-    val stateOfRoamingLive: Boolean = true,
     val shouldSeeWarning: Boolean,
     val shouldSeeWhatsNew: Boolean,
     val sstvMode: String = "Auto",

@@ -488,7 +488,7 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .height(296.dp)
+            .height(268.dp)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -512,9 +512,6 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
             }
             SwitchRow(R.string.prefs_other_switch_night_mode, settings.stateOfNightMode) {
                 onAction(SettingsAction.ToggleNightMode(it))
-            }
-            SwitchRow(R.string.prefs_other_switch_roaming_live, settings.stateOfRoamingLive) {
-                onAction(SettingsAction.ToggleRoamingLive(it))
             }
         }
     }
