@@ -50,6 +50,8 @@ jobs:
           rm keystore.jks
 
       - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release create $TAG_NAME --title=$TAG_NAME --generate-notes
           gh release upload $TAG_NAME app/build/outputs/apk/release/look4sat.apk
