@@ -64,6 +64,8 @@ sealed interface SettingsAction {
     data class ToggleSensor(val value: Boolean) : SettingsAction
     data class ToggleLightTheme(val value: Boolean) : SettingsAction
     data class ToggleNightMode(val value: Boolean) : SettingsAction
+    // UI 设置: 切换底部导航栏页面的隐藏状态(Screen simpleName)
+    data class ToggleScreen(val screenName: String) : SettingsAction
 
     // Remote control
     data class UpdateRC(val settings: RCSettings) : SettingsAction

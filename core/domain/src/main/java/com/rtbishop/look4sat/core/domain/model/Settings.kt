@@ -62,7 +62,9 @@ data class OtherSettings(
     val shouldSeeWhatsNew: Boolean,
     val sstvMode: String = "Auto",
     val lowElevation: Double = 15.0,
-    val highElevation: Double = 45.0
+    val highElevation: Double = 45.0,
+    // UI 设置: 底部导航栏隐藏的页面(Screen simpleName 列表, 默认空 = 全部显示)
+    val hiddenScreens: List<String> = emptyList()
 )
 
 data class DataSourcesSettings(

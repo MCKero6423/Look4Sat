@@ -47,6 +47,8 @@
         \n\n* 设置：修复开关行挤压与感谢列表间距
         \n\n* 应用名现为 Look4Sat Pro
         \n\n* 设置：导入文件按钮更名为自定义URL，可直接编辑 TLE/收发机数据源地址
+        \n\n* 自定义数据源开关默认关闭；旧版占位 URL 自动重置为真实默认地址
+        \n\n* 新增 UI设置 卡片：可显示/隐藏底部菜单栏页面（顺序固定，设置页始终显示）
     </string>
 
     <!-- Radar screen -->
@@ -166,6 +168,7 @@
     <string name="rc_enable_switch">启用 CAT 控制</string>
 
     <string name="prefs_other_title">其他设置</string>
+    <string name="prefs_ui_title">UI设置</string>
     <string name="prefs_other_switch_utc">以 UTC 时间显示</string>
     <string name="prefs_other_switch_update">启用卫星数据自动更新</string>
     <string name="prefs_other_switch_sweep">启用雷达扫描动画</string>

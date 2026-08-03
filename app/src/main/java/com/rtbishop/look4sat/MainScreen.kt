@@ -131,12 +131,13 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val currentKey = backStack.lastOrNull()
     val navigateBack: () -> Unit = { backStack.removeLastOrNull() }
     val fadeTransition = fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
-    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.Map, Screen.Settings)
-
     val context = LocalContext.current
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
+    // UI 设置: 按 hiddenScreens 过滤导航项(顺序固定, 关闭项自动靠拢; 设置页固定保留)
+    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.Map, Screen.Settings)
+        .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
     // Activity-scoped so the mutual query results survive navigation to Radar and back
     val mutualViewModel: MutualViewModel = viewModel(
         viewModelStoreOwner = context as ViewModelStoreOwner,

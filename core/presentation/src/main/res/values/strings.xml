@@ -59,6 +59,8 @@
         \n\n* Settings: fixed squeezed toggle rows and credits spacing
         \n\n* App name is now Look4Sat Pro
         \n\n* Settings: "Import" button renamed to "Custom URL" - edit TLE/transceiver source URLs directly
+        \n\n* Custom source toggles default OFF; legacy placeholder URLs are reset to the real defaults
+        \n\n* New UI Settings card: show/hide bottom navigation pages (order fixed, Settings always visible)
     </string>
 
     <!-- Radar screen -->
@@ -197,6 +199,7 @@
     <string name="prefs_net_perm_error">Check your network permission</string>
 
     <string name="prefs_other_title">Other settings</string>
+    <string name="prefs_ui_title">UI Settings</string>
     <string name="prefs_other_switch_utc">Show pass time in UTC</string>
     <string name="prefs_other_switch_update">Enable automatic data update</string>
     <string name="prefs_other_switch_sweep">Enable radar sweep animation</string>

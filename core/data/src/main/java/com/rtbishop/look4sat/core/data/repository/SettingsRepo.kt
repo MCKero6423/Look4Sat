@@ -77,6 +77,7 @@ class SettingsRepo(
     private val keyStateOfUtc = "stateOfUtc"
     private val keyStateOfLightTheme = "stateOfLightTheme"
     private val keyStateOfNightMode = "stateOfNightMode"
+    private val keyHiddenScreens = "hiddenScreens"
     private val keyStationAltitude = "stationAltitude"
     private val keyStationLatitude = "stationLatitude"
     private val keyStationLongitude = "stationLongitude"
@@ -357,6 +358,7 @@ class SettingsRepo(
                 putString(keySstvMode, new.sstvMode)
                 putLong(keyLowElevation, new.lowElevation.toRawBits())
                 putLong(keyHighElevation, new.highElevation.toRawBits())
+                putStringSet(keyHiddenScreens, new.hiddenScreens.toSet())
             }
             new
         }
@@ -372,6 +374,7 @@ class SettingsRepo(
         shouldSeeWarning = preferences.getBoolean(keyShouldSeeWarning, true),
         shouldSeeWhatsNew = preferences.getBoolean(keyShouldSeeWhatsNew, true),
         sstvMode = preferences.getString(keySstvMode, null) ?: "Auto",
+        hiddenScreens = preferences.getStringSet(keyHiddenScreens, emptySet())?.toList() ?: emptyList(),
         lowElevation = Double.fromBits(preferences.getLong(keyLowElevation, 15.0.toRawBits())),
         highElevation = Double.fromBits(preferences.getLong(keyHighElevation, 45.0.toRawBits()))
     )

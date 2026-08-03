@@ -300,6 +300,12 @@ private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) ->
                 )
             }
             item { OtherCard(uiState.otherSettings, onAction) }
+            item {
+                UiSettingsCard(
+                    hiddenScreens = uiState.otherSettings.hiddenScreens,
+                    onToggle = { name -> onAction(SettingsAction.ToggleScreen(name)) }
+                )
+            }
             item { CardCredits() }
         }
     }
@@ -516,8 +522,47 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
     }
 }
 
+/**
+ * UI 设置卡片: 控制底部菜单栏各页面显示/隐藏。
+ * 顺序固定(卫星/过境/雷达/匹配/漫游/地图/设置), 关闭后其余自动靠拢;
+ * "设置"页固定显示(防止失去设置入口)。
+ */
 @Composable
-private fun SwitchRow(labelResId: Int, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun UiSettingsCard(hiddenScreens: List<String>, onToggle: (String) -> Unit) {
+    val screens = listOf(
+        R.string.nav_sat to "Satellites",
+        R.string.nav_pass to "Passes",
+        R.string.nav_radar to "Radar",
+        R.string.nav_mutual to "Mutual",
+        R.string.nav_roaming to "Roaming",
+        R.string.nav_map to "Map",
+        R.string.nav_prefs to "Settings"
+    ) // name 必须与 Screen.screenId 一致 (R8 安全)
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.prefs_ui_title),
+                color = MaterialTheme.colorScheme.primary
+            )
+            screens.forEach { (labelRes, name) ->
+                if (name == "Settings") {
+                    // 设置页固定显示, 开关禁用
+                    SwitchRow(labelRes, true, null)
+                } else {
+                    SwitchRow(labelRes, name !in hiddenScreens) {
+                        onToggle(name)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(labelResId: Int, checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

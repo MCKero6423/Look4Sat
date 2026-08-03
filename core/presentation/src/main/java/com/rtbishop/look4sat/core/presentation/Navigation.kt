@@ -21,28 +21,28 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class Screen(val iconResId: Int, val titleResId: Int) : NavKey {
+sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: String) : NavKey {
 
     @Serializable
-    data object Satellites : Screen(R.drawable.ic_satellites, R.string.nav_sat)
+    data object Satellites : Screen(R.drawable.ic_satellites, R.string.nav_sat, "Satellites")
 
     @Serializable
-    data object Passes : Screen(R.drawable.ic_passes, R.string.nav_pass)
+    data object Passes : Screen(R.drawable.ic_passes, R.string.nav_pass, "Passes")
 
     @Serializable
-    data object Radar : Screen(R.drawable.ic_radar, R.string.nav_radar)
+    data object Radar : Screen(R.drawable.ic_radar, R.string.nav_radar, "Radar")
 
     @Serializable
-    data object Map : Screen(R.drawable.ic_map, R.string.nav_map)
+    data object Map : Screen(R.drawable.ic_map, R.string.nav_map, "Map")
 
     @Serializable
-    data object Mutual : Screen(R.drawable.ic_match, R.string.nav_mutual)
+    data object Mutual : Screen(R.drawable.ic_match, R.string.nav_mutual, "Mutual")
 
     @Serializable
-    data object Roaming : Screen(R.drawable.ic_roaming, R.string.nav_roaming)
+    data object Roaming : Screen(R.drawable.ic_roaming, R.string.nav_roaming, "Roaming")
 
     @Serializable
-    data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs)
+    data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs, "Settings")
 }
 
 @Serializable
