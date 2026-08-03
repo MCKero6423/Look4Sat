@@ -10,6 +10,7 @@
     <string name="nav_pass">过境</string>
     <string name="nav_radar">雷达</string>
     <string name="nav_mutual">匹配</string>
+    <string name="nav_roaming">漫游</string>
     <string name="nav_map">地图</string>
     <string name="nav_prefs">设置</string>
 
@@ -161,6 +162,7 @@
     <string name="prefs_other_switch_sweep">启用雷达扫描动画</string>
     <string name="prefs_other_switch_sensors">使用传感器旋转雷达视图</string>
     <string name="prefs_other_switch_night_mode">启用红色夜间模式</string>
+    <string name="prefs_other_switch_roaming_live">漫游位置实时更新</string>
 
     <string name="prefs_highlight_title">仰角高亮</string>
     <string name="prefs_highlight_low">低 &lt; %1$d°</string>

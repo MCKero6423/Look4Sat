@@ -27,19 +27,24 @@ import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import com.rtbishop.look4sat.core.domain.utility.positionToQth
 import com.rtbishop.look4sat.core.domain.utility.qthNeighbors
 import com.rtbishop.look4sat.core.domain.utility.qthToSquare
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class RoamingState(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
-    val altitude: Double = 0.0,
     val qthLocator: String = "----",
     val gridSquares: List<String> = List(9) { "----" },
-    val isUpdating: Boolean = false,
-    val messageResId: Int = 0
+    /** Fractional position of the red marker inside the center cell, 0..1. */
+    val markerX: Float = 0.5f,
+    val markerY: Float = 0.5f,
+    /** True when a fresh GPS fix is available (station position updated recently). */
+    val gpsEnabled: Boolean = false,
+    val isUpdating: Boolean = false
 )
 
 class RoamingViewModel(private val settingsRepo: ISettingsRepo) : ViewModel() {
@@ -47,19 +52,42 @@ class RoamingViewModel(private val settingsRepo: ISettingsRepo) : ViewModel() {
     private val _uiState = MutableStateFlow(RoamingState())
     val uiState: StateFlow<RoamingState> = _uiState
 
+    private var liveEnabled: Boolean = true
+
     init {
+        // Follow station position updates
         viewModelScope.launch {
             settingsRepo.stationPosition.collect { geoPos ->
-                _uiState.update { it.copy(isUpdating = false, messageResId = 0).withPosition(geoPos) }
+                _uiState.update { state ->
+                    state.copy(isUpdating = false, gpsEnabled = isFixFresh(geoPos)).withPosition(geoPos)
+                }
+            }
+        }
+        // Follow the "live update" preference; when enabled, periodically refresh the fix
+        viewModelScope.launch {
+            settingsRepo.otherSettings.collect { other ->
+                liveEnabled = other.stateOfRoamingLive
+                if (liveEnabled) refreshPosition()
+            }
+        }
+        viewModelScope.launch {
+            while (isActive) {
+                delay(30_000L)
+                if (liveEnabled) refreshPosition()
+                _uiState.update { state ->
+                    state.copy(gpsEnabled = isFixFresh(settingsRepo.stationPosition.value))
+                }
             }
         }
     }
 
-    fun onGpsClick() {
-        val success = settingsRepo.setStationPosition()
-        if (success) {
-            _uiState.update { it.copy(isUpdating = true) }
-        }
+    /** Ask the settings repo for the latest fix (triggers GPS request if stale). */
+    private fun refreshPosition() {
+        settingsRepo.setStationPosition()
+    }
+
+    private fun isFixFresh(pos: GeoPos): Boolean {
+        return pos.timestamp > 0L && System.currentTimeMillis() - pos.timestamp < 600_000L
     }
 
     private fun RoamingState.withPosition(pos: GeoPos): RoamingState {
@@ -69,10 +97,29 @@ class RoamingViewModel(private val settingsRepo: ISettingsRepo) : ViewModel() {
         return copy(
             latitude = pos.latitude,
             longitude = pos.longitude,
-            altitude = pos.altitude,
             qthLocator = locator,
-            gridSquares = squares
+            gridSquares = squares,
+            markerX = markerFraction(pos.longitude, square, isLat = false),
+            markerY = markerFraction(pos.latitude, square, isLat = true)
         )
+    }
+
+    /**
+     * Fractional position of [value] (lon or lat) inside its 4-char square.
+     * A square spans 2° of longitude and 1° of latitude; the fraction is
+     * measured from the square's south-west corner, 0..1.
+     */
+    private fun markerFraction(value: Double, square: String, isLat: Boolean): Float {
+        if (square.length != 4) return 0.5f
+        val fieldIndex = (square[if (isLat) 1 else 0].uppercaseChar().code - 65).coerceIn(0, 17)
+        val squareIndex = square[if (isLat) 3 else 2].digitToIntOrNull() ?: return 0.5f
+        val cellSize = if (isLat) 1.0 else 2.0
+        val cellStart = if (isLat) {
+            fieldIndex * 10.0 + squareIndex - 90.0
+        } else {
+            fieldIndex * 20.0 + squareIndex * 2.0 - 180.0
+        }
+        return ((value - cellStart) / cellSize).coerceIn(0.0, 1.0).toFloat()
     }
 
     companion object {
