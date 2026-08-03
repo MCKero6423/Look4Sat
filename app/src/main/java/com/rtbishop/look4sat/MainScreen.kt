@@ -86,7 +86,6 @@ import com.rtbishop.look4sat.feature.mutual.MutualViewModel
 import com.rtbishop.look4sat.feature.passes.PassesDestination
 import com.rtbishop.look4sat.feature.radar.RadarDestination
 import com.rtbishop.look4sat.feature.roaming.RoamingScreen
-import com.rtbishop.look4sat.feature.roaming.RoamingViewModel
 import com.rtbishop.look4sat.feature.satellites.SatellitesDestination
 import com.rtbishop.look4sat.feature.settings.SettingsDestination
 
@@ -227,11 +226,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                             )
                         }
                         entry<Screen.Roaming> {
-                            val roamingViewModel: RoamingViewModel = viewModel(
-                                viewModelStoreOwner = context as ViewModelStoreOwner,
-                                factory = RoamingViewModel.factory(container)
-                            )
-                            RoamingScreen(viewModel = roamingViewModel)
+                            RoamingScreen()
                         }
                         entry<Screen.Settings> {
                             SettingsDestination()

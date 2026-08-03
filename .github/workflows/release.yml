@@ -39,19 +39,22 @@ jobs:
         run: |
           echo "${{ secrets.KEY_STORE }}" | base64 -d > keystore.jks
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          VERSION=${TAG_NAME#v}
+          SIGNED_APK="app/build/outputs/apk/release/look4sat-${VERSION}.apk"
           BUILD_TOOLS=$(ls -d ${ANDROID_HOME}/build-tools/*/ | sort -V | tail -1)
           ${BUILD_TOOLS}apksigner sign \
             --ks keystore.jks \
             --ks-pass pass:${{ secrets.KEY_STORE_PASSWORD }} \
             --ks-key-alias ${{ secrets.KEY_ALIAS }} \
             --key-pass pass:${{ secrets.KEY_PASSWORD }} \
-            --out app/build/outputs/apk/release/look4sat.apk \
+            --out "$SIGNED_APK" \
             "$APK"
           rm keystore.jks
+          echo "SIGNED_APK=$SIGNED_APK" >> "$GITHUB_ENV"
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create $TAG_NAME --title=$TAG_NAME --generate-notes
-          gh release upload $TAG_NAME app/build/outputs/apk/release/look4sat.apk
+          gh release upload $TAG_NAME "$SIGNED_APK"

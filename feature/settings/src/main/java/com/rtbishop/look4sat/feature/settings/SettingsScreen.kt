@@ -490,7 +490,10 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
             .fillMaxWidth()
             .height(296.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Text(
                 text = stringResource(id = R.string.prefs_other_title),
                 color = MaterialTheme.colorScheme.primary

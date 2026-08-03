@@ -22,11 +22,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,9 +37,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +49,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
+import com.rtbishop.look4sat.core.domain.utility.positionToQth
+import com.rtbishop.look4sat.core.domain.utility.qthNeighbors
+import com.rtbishop.look4sat.core.domain.utility.qthToSquare
 import com.rtbishop.look4sat.core.presentation.LocalSpacing
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
 import com.rtbishop.look4sat.core.presentation.TopBar
@@ -60,19 +66,37 @@ import java.util.Locale
  * Maidenhead locator, and a 3x3 grid of neighboring squares (center column
  * and row are wider/taller, matching the reference app). Styled with the
  * Look4Sat Material 3 theme.
+ *
+ * Coordinates come straight from the shared settingsRepo.stationPosition
+ * StateFlow — the exact same source the Settings page shows — so the two
+ * pages can never disagree. The red marker is placed at the fractional
+ * position derived from the 3rd character pair of the locator (ported from
+ * the QTH定位器 app), scaled to the actual cell size, so it stays accurate
+ * on any screen (phones, tablets, wide/narrow).
  */
 @Composable
-fun RoamingScreen(viewModel: RoamingViewModel) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+fun RoamingScreen() {
+    val context = LocalContext.current
+    val container = (context.applicationContext as IContainerProvider).getMainContainer()
+    val stationPos by container.settingsRepo.stationPosition.collectAsStateWithLifecycle()
+    val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
+
+    val state = remember(stationPos, otherSettings.stateOfRoamingLive) {
+        RoamingState.fromPosition(stationPos)
+    }
+
     ScreenColumn(
         topBar = {
             TopBar { Text(text = "漫游", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
         }
     ) {
         val spacing = LocalSpacing.current
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
             InfoCard(state = state)
-            GridCard(state = state)
+            GridCard(state = state, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -161,32 +185,34 @@ private fun CoordinateRow(label: String, value: Double, isLat: Boolean) {
  * dominates the panel.
  */
 @Composable
-private fun GridCard(state: RoamingState) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+private fun GridCard(state: RoamingState, modifier: Modifier = Modifier) {
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .fillMaxSize()
+                .padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            GridRow(state, row = 0, heightFraction = 0.315f)
-            GridRow(state, row = 1, heightFraction = 0.359f)
-            GridRow(state, row = 2, heightFraction = 0.317f)
+            GridRow(state, row = 0, weight = 0.315f)
+            GridRow(state, row = 1, weight = 0.359f)
+            GridRow(state, row = 2, weight = 0.317f)
         }
     }
 }
 
 @Composable
-private fun GridRow(state: RoamingState, row: Int, heightFraction: Float) {
+private fun ColumnScope.GridRow(state: RoamingState, row: Int, weight: Float) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(weight),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         GridCell(
             label = state.gridSquares.getOrElse(row * 3 + 0) { "----" },
             isCenter = false,
-            markerX = state.markerX,
-            markerY = state.markerY,
             modifier = Modifier.weight(0.214f)
         )
         GridCell(
@@ -200,8 +226,6 @@ private fun GridRow(state: RoamingState, row: Int, heightFraction: Float) {
         GridCell(
             label = state.gridSquares.getOrElse(row * 3 + 2) { "----" },
             isCenter = false,
-            markerX = state.markerX,
-            markerY = state.markerY,
             modifier = Modifier.weight(0.214f)
         )
     }
@@ -211,8 +235,8 @@ private fun GridRow(state: RoamingState, row: Int, heightFraction: Float) {
 private fun GridCell(
     label: String,
     isCenter: Boolean,
-    markerX: Float,
-    markerY: Float,
+    markerX: Float = 0.5f,
+    markerY: Float = 0.5f,
     showMarker: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -222,34 +246,35 @@ private fun GridCell(
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(84.dp)
+            .fillMaxSize()
             .clip(MaterialTheme.shapes.medium)
             .background(cellBackground)
     ) {
         // Capture constraints at the BoxWithConstraints scope (Column scope would shadow them)
         val width = maxWidth
         val height = maxHeight
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = label,
-                fontSize = if (isCenter) 22.sp else 14.sp,
-                fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
-                color = labelColor,
-                textAlign = TextAlign.Center
+        Text(
+            text = label,
+            fontSize = if (isCenter) 22.sp else 13.sp,
+            fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
+            color = labelColor,
+            textAlign = TextAlign.Center
+        )
+        if (showMarker) {
+            // Red marker: absolute position from the top-left of the cell.
+            // markerX/markerY are 0..1 fractions (from the reference app's
+            // 3rd-pair mapping), so offset = fraction * cell size, minus half
+            // the marker size to center the 12dp square on the point.
+            val density = LocalDensity.current
+            val dotSize = 12.dp
+            val offsetX = with(density) { (width * markerX).toPx().toDp() - dotSize / 2 }
+            val offsetY = with(density) { (height * markerY).toPx().toDp() - dotSize / 2 }
+            Box(
+                modifier = Modifier
+                    .size(dotSize)
+                    .background(colorScheme.error)
+                    .offset(x = offsetX, y = offsetY)
             )
-            if (showMarker) {
-                Spacer(modifier = Modifier.height(4.dp))
-                // Red marker at the fractional position inside the center cell
-                val density = LocalDensity.current
-                val offsetX = with(density) { (width * (markerX - 0.5f)).toPx().toDp() }
-                val offsetY = with(density) { (height * (markerY - 0.5f)).toPx().toDp() }
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(colorScheme.error)
-                        .offset(x = offsetX, y = offsetY)
-                )
-            }
         }
     }
 }
