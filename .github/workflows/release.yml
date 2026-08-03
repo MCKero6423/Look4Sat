@@ -5,9 +5,14 @@ on:
     tags:
       - v**
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag name (e.g. v4.4.3)'
+        required: false
+        default: ''
 
 env:
-  TAG_NAME: ${{ github.ref_name }}
+  TAG_NAME: ${{ github.event.inputs.tag_name || github.ref_name }}
 
 jobs:
   release:
