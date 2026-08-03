@@ -339,6 +339,8 @@ private fun LocationCard(
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(text = "Lat: ${settings.stationPos.latitude}°")
                 Text(text = "Lon: ${settings.stationPos.longitude}°")
+            }
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(text = "Qth: ${settings.stationPos.qthLocator}")
             }
             Spacer(modifier = Modifier.height(1.dp))
