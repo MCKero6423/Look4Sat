@@ -11,6 +11,7 @@
     <string name="nav_pass">Passes</string>
     <string name="nav_radar">Radar</string>
     <string name="nav_mutual">Match</string>
+    <string name="nav_roaming">Roaming</string>
     <string name="nav_map">Map</string>
     <string name="nav_prefs">Settings</string>
 
@@ -202,7 +203,7 @@
     <string name="prefs_highlight_mid">Mid %1$d–%2$d°</string>
     <string name="prefs_highlight_high">High &gt; %1$d°</string>
 
-    <string name="prefs_outro_title">I would like to say thanks to</string>
+    <string name="prefs_outro_title">BG7NTA &amp; the original author would like to thank</string>
     <string name="prefs_outro_thanks" translatable="false">
         * Look4Sat users and contributors!
         \n* David A. B. Johnson (predict4java)

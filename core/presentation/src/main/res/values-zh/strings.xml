@@ -167,7 +167,7 @@
     <string name="prefs_highlight_mid">中 %1$d-%2$d°</string>
     <string name="prefs_highlight_high">高 &gt; %1$d°</string>
 
-    <string name="prefs_outro_title">我要感谢：</string>
+    <string name="prefs_outro_title">BG7NTA 与原作者感谢：</string>
     <string name="prefs_outro_thanks" translatable="false">
         • Look4Sat 所有用户及贡献者!
         \n• David A. B. Johnson (predict4java)

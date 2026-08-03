@@ -192,7 +192,7 @@
     <string name="prefs_highlight_mid">Orta %1$d-%2$d°</string>
     <string name="prefs_highlight_high">Yüksek &gt; %1$d°</string>
 
-    <string name="prefs_outro_title">Teşekkürler</string>
+    <string name="prefs_outro_title">BG7NTA ve orijinal yazar teşekkür eder</string>
     <string name="prefs_outro_thanks" translatable="false">
         • Look4Sat users and contributors!
         \n• David A. B. Johnson (predict4java)
