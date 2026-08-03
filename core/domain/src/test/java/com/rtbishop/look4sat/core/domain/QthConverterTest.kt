@@ -26,14 +26,14 @@ class QthConverterTest {
     @Test
     fun `Given valid QTH returns correct POS`() {
         var result = qthToPosition("io91VL39FX")
-        assert(result?.latitude == 51.4999 && result.longitude == -0.2231)
+        assert(result?.latitude == 51.499913 && result.longitude == -0.22309)
         result = qthToPosition("gf15vc")
-        assert(result?.latitude == -34.8958 && result.longitude == -56.2083)
+        assert(result?.latitude == -34.895833 && result.longitude == -56.208333)
         // 8-char locators: finer 30" x 15" cell center
         result = qthToPosition("io91vl47")
-        assert(result?.latitude == 51.4896 && result.longitude == -0.2125)
+        assert(result?.latitude == 51.489583 && result.longitude == -0.2125)
         result = qthToPosition("jn58td25")
-        assert(result?.latitude == 48.1479 && result.longitude == 11.6042)
+        assert(result?.latitude == 48.147917 && result.longitude == 11.604167)
     }
 
     @Test

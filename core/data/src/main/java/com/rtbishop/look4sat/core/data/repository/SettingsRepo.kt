@@ -213,8 +213,8 @@ class SettingsRepo(
     }
 
     private fun setStationPosition(latitude: Double, longitude: Double, altitude: Double, locator: String) {
-        val newLat = latitude.round(4)
-        val newLon = longitude.round(4)
+        val newLat = latitude.round(5)
+        val newLon = longitude.round(5)
         val newAlt = altitude.round(1)
         val timestamp = System.currentTimeMillis()
         println("Received new Position($newLat, $newLon, $newAlt) & Locator $locator")

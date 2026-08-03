@@ -63,7 +63,7 @@ fun qthToPosition(locator: String): GeoPos? {
             latitude += 1.0 / 48.0
         }
     }
-    return GeoPos(latitude.round(4), longitude.round(4))
+    return GeoPos(latitude.round(6), longitude.round(6))
 }
 
 /**
