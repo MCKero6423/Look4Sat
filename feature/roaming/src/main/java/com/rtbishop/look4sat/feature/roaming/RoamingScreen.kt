@@ -265,18 +265,19 @@ fun RoamingScreen() {
             }
         }
         // relativeLayout: 九宫格, 占满剩余, 底部 15dp
+        // 用 Box 等价 RelativeLayout 布局: 左格贴左 / 中格水平居中 / 右格贴右 (成品 main.xml)
         Column(modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 15.dp)) {
             // 行1: relativeLayout5 (上排: 纬度 +1)
-            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                GridCell(text = state.grids[0], modifier = Modifier.width(60.dp).fillMaxHeight())
-                GridCell(text = state.grids[1], modifier = Modifier.width(200.dp).fillMaxHeight())
-                GridCell(text = state.grids[2], modifier = Modifier.width(60.dp).fillMaxHeight())
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                GridCell(text = state.grids[0], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterStart))
+                GridCell(text = state.grids[1], modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center))
+                GridCell(text = state.grids[2], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
             // 行2: relativeLayout4, 205dp 高 (中排: 中央)
-            Row(modifier = Modifier.fillMaxWidth().height(205.dp)) {
-                GridCell(text = state.grids[3], modifier = Modifier.width(60.dp).fillMaxHeight())
+            Box(modifier = Modifier.fillMaxWidth().height(205.dp)) {
+                GridCell(text = state.grids[3], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterStart))
                 // 中央列: tv22 (100x80dp centerInParent) 叠在 linearLayout3 (200x200dp) 之上
-                Box(modifier = Modifier.width(200.dp).fillMaxHeight()) {
+                Box(modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center)) {
                     // linearLayout3: 200x200dp, marginTop 2dp, holo_blue_bright
                     Box(
                         modifier = Modifier
@@ -306,22 +307,22 @@ fun RoamingScreen() {
                             .align(Alignment.Center)
                     )
                 }
-                GridCell(text = state.grids[5], modifier = Modifier.width(60.dp).fillMaxHeight())
+                GridCell(text = state.grids[5], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
             // 行3: relativeLayout3 (下排: 纬度 -1)
-            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                GridCell(text = state.grids[6], modifier = Modifier.width(60.dp).fillMaxHeight())
-                GridCell(text = state.grids[7], modifier = Modifier.width(200.dp).fillMaxHeight())
-                GridCell(text = state.grids[8], modifier = Modifier.width(60.dp).fillMaxHeight())
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                GridCell(text = state.grids[6], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterStart))
+                GridCell(text = state.grids[7], modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center))
+                GridCell(text = state.grids[8], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
         }
-        // tv4: 底部版权, 10sp 黑, 15dp 高
+        // tv4: 底部版权, 10sp 黑 (往上拉, 底部预留空间避免被导航栏遮挡)
         Text(
             text = "制作：US1PM  汉化：BA7LCE",
             fontSize = 10.sp,
             color = Color.Black,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().height(15.dp)
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
         )
     }
 }
