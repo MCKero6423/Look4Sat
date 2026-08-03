@@ -85,6 +85,8 @@ import com.rtbishop.look4sat.feature.mutual.MutualScreen
 import com.rtbishop.look4sat.feature.mutual.MutualViewModel
 import com.rtbishop.look4sat.feature.passes.PassesDestination
 import com.rtbishop.look4sat.feature.radar.RadarDestination
+import com.rtbishop.look4sat.feature.roaming.RoamingScreen
+import com.rtbishop.look4sat.feature.roaming.RoamingViewModel
 import com.rtbishop.look4sat.feature.satellites.SatellitesDestination
 import com.rtbishop.look4sat.feature.settings.SettingsDestination
 
@@ -130,7 +132,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val currentKey = backStack.lastOrNull()
     val navigateBack: () -> Unit = { backStack.removeLastOrNull() }
     val fadeTransition = fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
-    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Map, Screen.Settings)
+    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.Map, Screen.Settings)
 
     val context = LocalContext.current
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
@@ -223,6 +225,13 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                                     backStack.add(Screen.Radar)
                                 }
                             )
+                        }
+                        entry<Screen.Roaming> {
+                            val roamingViewModel: RoamingViewModel = viewModel(
+                                viewModelStoreOwner = context as ViewModelStoreOwner,
+                                factory = RoamingViewModel.factory(container)
+                            )
+                            RoamingScreen(viewModel = roamingViewModel)
                         }
                         entry<Screen.Settings> {
                             SettingsDestination()

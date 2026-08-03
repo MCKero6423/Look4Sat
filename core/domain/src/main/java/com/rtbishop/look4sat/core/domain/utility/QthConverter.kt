@@ -100,3 +100,47 @@ private fun isValidPosition(lat: Double, lon: Double): Boolean {
 private fun isValidLocator(locator: String): Boolean {
     return locator.matches("[a-xA-X]{2}\\d{2}[a-xA-X]{2}(?:\\d{2}(?:[a-xA-X]{2})?)?".toRegex())
 }
+
+/**
+ * Returns the 4-char field+square part of a locator, e.g. "OL42ih45" -> "OL42".
+ * A 4-char input is returned as-is when valid.
+ */
+fun qthToSquare(locator: String): String {
+    val upper = locator.trim().uppercase()
+    return when {
+        upper.length >= 4 && isValidLocator(upper) -> upper.take(4)
+        upper.length == 4 && upper.matches("[a-xA-X]{2}\\d{2}".toRegex()) -> upper
+        else -> "----"
+    }
+}
+
+/**
+ * Builds the 3x3 grid of 4-char squares surrounding [square] (e.g. "OL42").
+ * Row 0 = north (lat +1), col 0 = west (lon -1). Handles field/square carry
+ * at boundaries (e.g. "AA00" wraps to "RR99" at the south-west corner).
+ * Mirrors the neighbor logic decompiled from the QTH定位器 app.
+ */
+fun qthNeighbors(square: String): List<String> {
+    if (square.length != 4) return emptyList()
+    val lonField = (square[0].uppercaseChar().code - 65).coerceIn(0, 17)
+    val latField = (square[1].uppercaseChar().code - 65).coerceIn(0, 17)
+    val lonSquare = square[2].digitToCharOrNull() ?: return emptyList()
+    val latSquare = square[3].digitToCharOrNull() ?: return emptyList()
+    val result = mutableListOf<String>()
+    for (dLat in 1 downTo -1) {          // north -> south
+        for (dLon in -1..1) {            // west -> east
+            var lf = lonField
+            var tf = latField
+            var ls = lonSquare + dLon
+            var ts = latSquare + dLat
+            if (ls < 0) { lf -= 1; ls = 9 } else if (ls > 9) { lf += 1; ls = 0 }
+            if (ts < 0) { tf -= 1; ts = 9 } else if (ts > 9) { tf += 1; ts = 0 }
+            lf = (lf + 18) % 18
+            tf = (tf + 18) % 18
+            result += "${('A' + lf).toChar()}${('A' + tf).toChar()}$ls$ts"
+        }
+    }
+    return result
+}
+
+private fun Char.digitToCharOrNull(): Int? = digitToIntOrNull()

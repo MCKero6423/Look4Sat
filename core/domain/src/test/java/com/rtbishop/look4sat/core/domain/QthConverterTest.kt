@@ -18,7 +18,9 @@
 package com.rtbishop.look4sat.core.domain
 
 import com.rtbishop.look4sat.core.domain.utility.positionToQth
+import com.rtbishop.look4sat.core.domain.utility.qthNeighbors
 import com.rtbishop.look4sat.core.domain.utility.qthToPosition
+import com.rtbishop.look4sat.core.domain.utility.qthToSquare
 import org.junit.Test
 
 class QthConverterTest {
@@ -81,5 +83,43 @@ class QthConverterTest {
             val qth2 = positionToQth(pos!!.latitude, pos.longitude, 8)
             assert(qth == qth2) { "Roundtrip failed for ($lat, $lon): $qth -> $qth2" }
         }
+    }
+
+    @Test
+    fun `Given square returns correct 3x3 neighbors`() {
+        // Reference grid from the QTH定位器 screenshot: OL42
+        val neighbors = qthNeighbors("OL42")
+        assert(neighbors == listOf(
+            "OL33", "OL43", "OL53",
+            "OL32", "OL42", "OL52",
+            "OL31", "OL41", "OL51"
+        )) { "OL42 grid mismatch: $neighbors" }
+        // Center cell must be the input itself
+        assert(neighbors[4] == "OL42")
+        // 9 cells, all distinct
+        assert(neighbors.size == 9 && neighbors.toSet().size == 9)
+    }
+
+    @Test
+    fun `Given boundary square wraps fields correctly`() {
+        // South-west corner: AA00 neighbors wrap to RR99 / RA90 etc.
+        val sw = qthNeighbors("AA00")
+        assert(sw.size == 9 && sw.toSet().size == 9)
+        assert(sw[0] == "RA91" && sw[4] == "AA00" && sw[6] == "RR99" && sw[8] == "AR19")
+        // North-east corner: RR99 wraps to AA00
+        val ne = qthNeighbors("RR99")
+        assert(ne.size == 9 && ne.toSet().size == 9)
+        assert(ne[0] == "RA80" && ne[4] == "RR99" && ne[8] == "AR08")
+        // Field boundary: IO91's east neighbors cross into J field
+        val london = qthNeighbors("IO91")
+        assert(london[2] == "JO02" && london[5] == "JO01")
+    }
+
+    @Test
+    fun `Given full locator returns square part`() {
+        assert(qthToSquare("OL42ih45") == "OL42")
+        assert(qthToSquare("io91VL39FX") == "IO91")
+        assert(qthToSquare("JN58") == "JN58")
+        assert(qthToSquare("garbage!!") == "----")
     }
 }

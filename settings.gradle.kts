@@ -25,6 +25,7 @@ include(
     ":feature:mutual",
     ":feature:passes",
     ":feature:radar",
+    ":feature:roaming",
     ":feature:satellites",
     ":feature:settings"
 )
