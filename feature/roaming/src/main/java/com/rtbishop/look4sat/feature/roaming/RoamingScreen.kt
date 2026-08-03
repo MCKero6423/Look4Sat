@@ -280,34 +280,37 @@ private fun GridCell(
         val width = maxWidth
         val height = maxHeight
         if (isCenter) {
-            // Center cell: locator text at upper-middle, red marker below it,
-            // never overlapping — exactly like the reference app.
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(y = with(LocalDensity.current) { (-height * 0.08f).toPx().toDp() })
-            ) {
-                Text(
-                    text = label,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = labelColor,
-                    textAlign = TextAlign.Center
+            // Center cell, faithful to the reference app: the locator label
+            // sits at the upper-middle and the red marker is positioned by
+            // (markerX, markerY) — both derived from the 3rd character pair
+            // via the reference lookup tables (lon a=-2..x=190, lat a=190..x=-2
+            // as topMargin, i.e. latitude inverted on screen). The marker
+            // therefore tracks the fix inside the 4-char square in BOTH axes.
+            val density = LocalDensity.current
+            val dotSize = 14.dp
+            // Marker top-left from the cell's top-left corner:
+            // x = markerX * cellWidth, y = markerY * cellHeight (screen Y).
+            if (showMarker) {
+                val markerOffsetX = with(density) { (width * markerX).toPx().toDp() - dotSize / 2 }
+                val markerOffsetY = with(density) { (height * markerY).toPx().toDp() - dotSize / 2 }
+                Box(
+                    modifier = Modifier
+                        .size(dotSize)
+                        .background(colorScheme.error)
+                        .offset(x = markerOffsetX, y = markerOffsetY)
                 )
-                if (showMarker) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    val density = LocalDensity.current
-                    val dotSize = 14.dp
-                    val offsetX = with(density) { (width * markerX).toPx().toDp() - width * 0.5f - dotSize / 2 }
-                    Box(
-                        modifier = Modifier
-                            .size(dotSize)
-                            .background(colorScheme.error)
-                            .offset(x = offsetX)
-                    )
-                }
             }
+            // Label above the marker, upper-middle of the cell
+            Text(
+                text = label,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = labelColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp)
+            )
         } else {
             Text(
                 text = label,
