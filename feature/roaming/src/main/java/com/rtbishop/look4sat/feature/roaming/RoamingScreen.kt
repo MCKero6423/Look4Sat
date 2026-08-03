@@ -39,8 +39,11 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,6 +86,16 @@ fun RoamingScreen() {
         RoamingState.fromPosition(stationPos)
     }
 
+    // Clock ticker: re-render date/time every second so the header clock
+    // actually moves (the reference app refreshes it on every location fix).
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
+
     ScreenColumn(
         topBar = {
             TopBar { Text(text = "漫游", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
@@ -93,14 +106,14 @@ fun RoamingScreen() {
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            InfoCard(state = state)
+            InfoCard(state = state, now = now)
             GridCard(state = state, modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun InfoCard(state: RoamingState) {
+private fun InfoCard(state: RoamingState, now: Long) {
     val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
@@ -126,13 +139,13 @@ private fun InfoCard(state: RoamingState) {
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date()),
+                text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(now)),
                 fontSize = 14.sp,
                 color = colorScheme.onSecondaryContainer
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
+                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(now)),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = colorScheme.onSecondaryContainer

@@ -44,7 +44,9 @@ data class RoamingState(
             val locator = positionToQth(pos.latitude, pos.longitude) ?: return RoamingState()
             val square = qthToSquare(locator)
             val squares = if (square != "----") qthNeighbors(square) else List(9) { "----" }
-            val fresh = pos.timestamp > 0L && System.currentTimeMillis() - pos.timestamp < 600_000L
+            // GPS is simply whatever the station position says — a real fix
+            // (non-zero, with timestamp) counts as enabled.
+            val hasFix = pos.timestamp > 0L && (pos.latitude != 0.0 || pos.longitude != 0.0)
             return RoamingState(
                 latitude = pos.latitude,
                 longitude = pos.longitude,
@@ -52,7 +54,7 @@ data class RoamingState(
                 gridSquares = squares,
                 markerX = markerFraction(locator, isLat = false),
                 markerY = markerFraction(locator, isLat = true),
-                gpsEnabled = fresh
+                gpsEnabled = hasFix
             )
         }
 
