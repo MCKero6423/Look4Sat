@@ -40,7 +40,7 @@ jobs:
           echo "${{ secrets.KEY_STORE }}" | base64 -d > keystore.jks
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           VERSION=${TAG_NAME#v}
-          SIGNED_APK="app/build/outputs/apk/release/look4sat-${VERSION}.apk"
+          SIGNED_APK="app/build/outputs/apk/release/Look4Sat-Pro-${VERSION}.apk"
           BUILD_TOOLS=$(ls -d ${ANDROID_HOME}/build-tools/*/ | sort -V | tail -1)
           ${BUILD_TOOLS}apksigner sign \
             --ks keystore.jks \

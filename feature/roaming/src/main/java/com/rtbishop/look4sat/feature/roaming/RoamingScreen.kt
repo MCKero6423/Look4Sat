@@ -31,6 +31,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -144,7 +146,7 @@ fun RoamingScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F2))
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.systemBars)
     ) {
         // relativeLayout7: 顶部 GPS 状态条, 25dp 高, holo_blue_bright
@@ -153,45 +155,45 @@ fun RoamingScreen() {
                 .fillMaxWidth()
                 .padding(2.dp)
                 .height(25.dp)
-                .background(Color(0xFF01DDFF))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 // tvTitleGPS: "GPS" 14sp 黑, 左 8dp
                 Text(
                     text = "GPS",
                     fontSize = 14.sp,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp)
                 )
                 // imGps: toRightOf tvTitleGPS + marginLeft 15dp (成品 main.xml)
                 Spacer(modifier = Modifier.width(15.dp))
-                // imGps: 绿点 (15dp)
+                // imGps: 绿点 (15dp, 主题色 primary -> 夜间滤镜下可见)
                 if (state.gpsOn) {
-                    Image(
-                        painter = painterResource(R.drawable.roam_gps_green),
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(15.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
                     )
                 }
-                // imGpsOff: 红点叠层 (15dp)
+                // imGpsOff: 红点叠层 (15dp, 主题色 error)
                 if (state.gpsOff) {
-                    Image(
-                        painter = painterResource(R.drawable.roam_gps_red),
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(15.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape)
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 // tvDate: 14sp 黑, 居中
                 if (state.showDate) {
-                    Text(text = state.date.ifEmpty { dateText }, fontSize = 14.sp, color = Color.Black)
+                    Text(text = state.date.ifEmpty { dateText }, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 // tvTime: 14sp 黑, 右对齐
                 Text(
                     text = state.time,
                     fontSize = 14.sp,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
@@ -201,12 +203,12 @@ fun RoamingScreen() {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .background(Color(0xFAF8F54A))
+                        .background(MaterialTheme.colorScheme.primary)
                         .clickable { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
                         .padding(horizontal = 5.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "设置启用GPS", fontSize = 14.sp, color = Color.Black)
+                    Text(text = "设置启用GPS", fontSize = 14.sp, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -215,19 +217,19 @@ fun RoamingScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 2.dp)
-                .background(Color(0xFF01DDFF))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             // 纬度行: tvLati 16sp 黑 左 8dp | tvLat 右对齐 3dp
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = state.latLabel, fontSize = 16.sp, color = Color.Black, modifier = Modifier.padding(start = 8.dp))
+                Text(text = state.latLabel, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp))
                 Spacer(modifier = Modifier.weight(1f))
-                Text(text = state.latValue, fontSize = 14.sp, color = Color.Black, modifier = Modifier.padding(end = 3.dp))
+                Text(text = state.latValue, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 3.dp))
             }
             // 经度行
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = state.lonLabel, fontSize = 16.sp, color = Color.Black, modifier = Modifier.padding(start = 8.dp))
+                Text(text = state.lonLabel, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp))
                 Spacer(modifier = Modifier.weight(1f))
-                Text(text = state.lonValue, fontSize = 14.sp, color = Color.Black, modifier = Modifier.padding(end = 3.dp))
+                Text(text = state.lonValue, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 3.dp))
             }
         }
         // relativeLayout6: 定位码区, 43sp bold 黑居中
@@ -235,13 +237,13 @@ fun RoamingScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(2.dp)
-                .background(Color(0xFF01DDFF))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Text(
                 text = state.loc,
                 fontSize = 43.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -249,7 +251,7 @@ fun RoamingScreen() {
             if (state.showProgress) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp).align(Alignment.Center),
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     strokeWidth = 2.dp
                 )
             }
@@ -259,7 +261,7 @@ fun RoamingScreen() {
                     text = "请稍等，加载可能需要几分钟的时间。",
                     fontSize = 16.sp,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 2.dp)
                 )
             }
@@ -284,7 +286,7 @@ fun RoamingScreen() {
                             .align(Alignment.TopCenter)
                             .offset(y = 2.dp)
                             .size(width = 200.dp, height = 200.dp)
-                            .background(Color(0xFF01DDFF))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         // iv: 红点 10x10dp, top|left, leftMargin/topMargin 查表绝对定位
                         Image(
@@ -300,7 +302,7 @@ fun RoamingScreen() {
                         text = state.grids[4],
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .size(width = 100.dp, height = 80.dp)
@@ -320,7 +322,7 @@ fun RoamingScreen() {
         Text(
             text = "制作：US1PM  汉化：BA7LCE",
             fontSize = 10.sp,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
         )
@@ -333,14 +335,14 @@ private fun GridCell(text: String, modifier: Modifier) {
     Box(
         modifier = modifier
             .padding(2.dp)
-            .background(Color(0xFF0BACF1)),
+            .background(MaterialTheme.colorScheme.surface),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
     }

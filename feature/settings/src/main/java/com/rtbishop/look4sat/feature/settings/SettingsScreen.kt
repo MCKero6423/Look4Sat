@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -486,9 +487,7 @@ private fun OtherCardPreview() = MainTheme {
 @Composable
 private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Unit) {
     ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(268.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -561,15 +560,11 @@ private fun CardCreditsPreview() = MainTheme { CardCredits() }
 @Composable
 private fun CardCredits(modifier: Modifier = Modifier) {
     ElevatedCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(268.dp)
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .fillMaxHeight()
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = stringResource(id = R.string.prefs_outro_title),
@@ -578,6 +573,8 @@ private fun CardCredits(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(id = R.string.prefs_outro_thanks)
             )
+            // 感谢列表与保修声明之间保留约两行间距 (用户要求)
+            Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(id = R.string.prefs_outro_license),
                 color = MaterialTheme.colorScheme.primary
@@ -593,7 +590,7 @@ private fun TopCard(onClick: () -> Unit, modifier: Modifier = Modifier, version:
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .height(48.dp)
+                .heightIn(min = 48.dp)
                 .clickable { onClick() }) {
             Spacer(Modifier)
             Icon(
@@ -608,7 +605,6 @@ private fun TopCard(onClick: () -> Unit, modifier: Modifier = Modifier, version:
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 6.dp)
-                    .infiniteMarquee()
             )
         }
     }
