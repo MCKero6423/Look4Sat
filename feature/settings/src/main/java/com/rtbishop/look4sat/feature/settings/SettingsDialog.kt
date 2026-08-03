@@ -208,7 +208,10 @@ fun DataSourcesDialog(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isEnabledCustomTle.value,
                 trailingIcon = {
-                    IconButton(onClick = { urlTle.value = Sources.defaultTleUrl }) {
+                    IconButton(
+                        onClick = { urlTle.value = Sources.defaultTleUrl },
+                        enabled = isEnabledCustomTle.value
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_reset),
                             contentDescription = stringResource(id = R.string.prefs_data_reset_url)
@@ -245,7 +248,10 @@ fun DataSourcesDialog(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isEnabledCustomTransceivers.value,
                 trailingIcon = {
-                    IconButton(onClick = { urlTransceivers.value = Sources.defaultTransceiversUrl }) {
+                    IconButton(
+                        onClick = { urlTransceivers.value = Sources.defaultTransceiversUrl },
+                        enabled = isEnabledCustomTransceivers.value
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_reset),
                             contentDescription = stringResource(id = R.string.prefs_data_reset_url)

@@ -391,12 +391,20 @@ class SettingsRepo(
         _dataSourcesSettings.value = settings
     }
 
-    private fun getDataSourcesSettings(): DataSourcesSettings = DataSourcesSettings(
-        useCustomTLE = preferences.getBoolean(keyUseCustomTle, false),
-        useCustomTransceivers = preferences.getBoolean(keyUseCustomTransceivers, false),
-        tleUrl = preferences.getString(keyTleUrl, Sources.defaultTleUrl) ?: "",
-        transceiversUrl = preferences.getString(keyTransceiversUrl, Sources.defaultTransceiversUrl) ?: ""
-    )
+    private fun getDataSourcesSettings(): DataSourcesSettings {
+        // 4.4.8 修复: 旧版 example.com 占位 URL 视为未配置 -> 替换为真实默认 URL 且开关强制关闭,
+        // 否则在线更新的 All/SatNOGS 源会指向错误地址导致更新失败
+        val storedTleUrl = preferences.getString(keyTleUrl, Sources.defaultTleUrl) ?: Sources.defaultTleUrl
+        val storedTxUrl = preferences.getString(keyTransceiversUrl, Sources.defaultTransceiversUrl) ?: Sources.defaultTransceiversUrl
+        val tleUrl = if (storedTleUrl == "https://example.com/tle.txt") Sources.defaultTleUrl else storedTleUrl
+        val txUrl = if (storedTxUrl == "https://example.com/radio.json") Sources.defaultTransceiversUrl else storedTxUrl
+        return DataSourcesSettings(
+            useCustomTLE = preferences.getBoolean(keyUseCustomTle, false) && tleUrl != Sources.defaultTleUrl,
+            useCustomTransceivers = preferences.getBoolean(keyUseCustomTransceivers, false) && txUrl != Sources.defaultTransceiversUrl,
+            tleUrl = tleUrl,
+            transceiversUrl = txUrl
+        )
+    }
     //endregion
 
     //region # Radio control settings
