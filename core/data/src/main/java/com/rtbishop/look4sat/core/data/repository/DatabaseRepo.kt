@@ -69,11 +69,14 @@ class DatabaseRepo(
         val dataSourcesSettings = settingsRepo.dataSourcesSettings.value
         val tleUrls = buildMap {
             putAll(Sources.satelliteDataUrls)
-            if (dataSourcesSettings.useCustomTLE) put(customSourceType, dataSourcesSettings.tleUrl)
+            // 开关开且 URL 非空 -> All 用自定义 URL;否则用默认 URL(在线更新默认源)
+            put("All", if (dataSourcesSettings.useCustomTLE && dataSourcesSettings.tleUrl.isNotBlank())
+                dataSourcesSettings.tleUrl else Sources.defaultTleUrl)
         }.filterValues { it.isNotBlank() }
         val radioUrls = buildMap {
             putAll(Sources.transceiversDataUrls)
-            if (dataSourcesSettings.useCustomTransceivers) put(customSourceType, dataSourcesSettings.transceiversUrl)
+            put("SatNOGS", if (dataSourcesSettings.useCustomTransceivers && dataSourcesSettings.transceiversUrl.isNotBlank())
+                dataSourcesSettings.transceiversUrl else Sources.defaultTransceiversUrl)
         }.filterValues { it.isNotBlank() }
         // launch all network requests concurrently
         val tleJobs = tleUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }

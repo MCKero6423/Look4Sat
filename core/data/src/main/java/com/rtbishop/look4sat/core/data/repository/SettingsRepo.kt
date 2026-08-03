@@ -29,6 +29,7 @@ import com.rtbishop.look4sat.core.domain.model.OtherSettings
 import com.rtbishop.look4sat.core.domain.model.PassesSettings
 import com.rtbishop.look4sat.core.domain.model.RCSettings
 import com.rtbishop.look4sat.core.domain.model.RadioControlSettings
+import com.rtbishop.look4sat.core.domain.source.Sources
 import com.rtbishop.look4sat.core.domain.predict.GeoPos
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import com.rtbishop.look4sat.core.domain.utility.positionToQth
@@ -393,8 +394,8 @@ class SettingsRepo(
     private fun getDataSourcesSettings(): DataSourcesSettings = DataSourcesSettings(
         useCustomTLE = preferences.getBoolean(keyUseCustomTle, false),
         useCustomTransceivers = preferences.getBoolean(keyUseCustomTransceivers, false),
-        tleUrl = preferences.getString(keyTleUrl, "https://example.com/tle.txt") ?: "",
-        transceiversUrl = preferences.getString(keyTransceiversUrl, "https://example.com/radio.json") ?: ""
+        tleUrl = preferences.getString(keyTleUrl, Sources.defaultTleUrl) ?: "",
+        transceiversUrl = preferences.getString(keyTransceiversUrl, Sources.defaultTransceiversUrl) ?: ""
     )
     //endregion
 
