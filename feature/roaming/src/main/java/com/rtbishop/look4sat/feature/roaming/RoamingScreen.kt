@@ -269,13 +269,13 @@ fun RoamingScreen() {
         Column(modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 15.dp)) {
             // 行1: relativeLayout5 (上排: 纬度 +1)
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                GridCell(text = state.grids[0], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterStart))
+                GridCell(text = state.grids[0], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterStart))
                 GridCell(text = state.grids[1], modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center))
-                GridCell(text = state.grids[2], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterEnd))
+                GridCell(text = state.grids[2], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
             // 行2: relativeLayout4, 205dp 高 (中排: 中央)
             Box(modifier = Modifier.fillMaxWidth().height(205.dp)) {
-                GridCell(text = state.grids[3], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterStart))
+                GridCell(text = state.grids[3], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterStart))
                 // 中央列: tv22 (100x80dp centerInParent) 叠在 linearLayout3 (200x200dp) 之上
                 Box(modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center)) {
                     // linearLayout3: 200x200dp, marginTop 2dp, holo_blue_bright
@@ -307,13 +307,13 @@ fun RoamingScreen() {
                             .align(Alignment.Center)
                     )
                 }
-                GridCell(text = state.grids[5], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterEnd))
+                GridCell(text = state.grids[5], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
             // 行3: relativeLayout3 (下排: 纬度 -1)
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                GridCell(text = state.grids[6], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterStart))
+                GridCell(text = state.grids[6], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterStart))
                 GridCell(text = state.grids[7], modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center))
-                GridCell(text = state.grids[8], modifier = Modifier.width(60.dp).fillMaxHeight().align(Alignment.CenterEnd))
+                GridCell(text = state.grids[8], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
         }
         // tv4: 底部版权, 10sp 黑 (往上拉, 底部预留空间避免被导航栏遮挡)
