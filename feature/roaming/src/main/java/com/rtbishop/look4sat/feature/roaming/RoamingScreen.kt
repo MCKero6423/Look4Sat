@@ -18,6 +18,7 @@
 package com.rtbishop.look4sat.feature.roaming
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,14 +26,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -98,56 +102,55 @@ fun RoamingScreen() {
 @Composable
 private fun InfoCard(state: RoamingState) {
     val colorScheme = MaterialTheme.colorScheme
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Top bar: GPS status + date + time
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "GPS",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(if (state.gpsEnabled) colorScheme.primary else colorScheme.outline)
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date()),
-                    fontSize = 14.sp,
-                    color = colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorScheme.onSurface
-                )
-            }
-            // Coordinates: DMS + decimal
-            CoordinateRow(label = "纬度", value = state.latitude, isLat = true)
-            CoordinateRow(label = "经度", value = state.longitude, isLat = false)
-            // Big locator, centered
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colorScheme.secondaryContainer)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Top bar: GPS status + date + time
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = state.qthLocator,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                text = "GPS",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (state.gpsEnabled) colorScheme.primary else colorScheme.outline)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date()),
+                fontSize = 14.sp,
+                color = colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.onSecondaryContainer
             )
         }
+        // Coordinates: DMS + decimal
+        CoordinateRow(label = "纬度", value = state.latitude, isLat = true)
+        CoordinateRow(label = "经度", value = state.longitude, isLat = false)
+        // Big locator, centered
+        Text(
+            text = state.qthLocator,
+            fontSize = 34.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            color = colorScheme.onSecondaryContainer,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -173,41 +176,52 @@ private fun CoordinateRow(label: String, value: Double, isLat: Boolean) {
 }
 
 /**
- * 3x3 grid of 4-char squares. Column widths 21.4% : 56.2% : 21.4% and row
- * heights 31.5% : 35.9% : 31.7% mirror the reference app: the center column
- * is ~2.6x wider and the center row is the tallest, so the current square
+ * 3x3 grid of 4-char squares — a faithful continuous-table port: no outer
+ * card, no rounded cells, no gaps. Cells are connected edge-to-edge and
+ * separated by thin divider lines (crossing at right angles like a real
+ * coordinate grid). Column widths 21.4% : 56.2% : 21.4%, row heights
+ * 31.5% : 35.9% : 31.7% mirror the reference app: the center column is
+ * ~2.6x wider and the center row is the tallest, so the current square
  * dominates the panel.
  */
 @Composable
 private fun GridCard(state: RoamingState, modifier: Modifier = Modifier) {
-    ElevatedCard(
-        modifier = modifier.fillMaxWidth()
+    val colorScheme = MaterialTheme.colorScheme
+    val dividerColor = colorScheme.outline
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .border(2.dp, dividerColor)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            GridRow(state, row = 0, weight = 0.315f)
-            GridRow(state, row = 1, weight = 0.359f)
-            GridRow(state, row = 2, weight = 0.317f)
-        }
+        GridRow(state, row = 0, weight = 0.315f, dividerColor = dividerColor)
+        Divider(color = dividerColor, thickness = 2.dp)
+        GridRow(state, row = 1, weight = 0.359f, dividerColor = dividerColor)
+        Divider(color = dividerColor, thickness = 2.dp)
+        GridRow(state, row = 2, weight = 0.317f, dividerColor = dividerColor)
     }
 }
 
 @Composable
-private fun ColumnScope.GridRow(state: RoamingState, row: Int, weight: Float) {
+private fun ColumnScope.GridRow(
+    state: RoamingState,
+    row: Int,
+    weight: Float,
+    dividerColor: Color
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(weight),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            .weight(weight)
     ) {
         GridCell(
             label = state.gridSquares.getOrElse(row * 3 + 0) { "----" },
             isCenter = false,
+            dividerColor = dividerColor,
             modifier = Modifier.weight(0.214f)
+        )
+        Divider(
+            color = dividerColor, thickness = 2.dp,
+            modifier = Modifier.fillMaxHeight().width(2.dp)
         )
         GridCell(
             label = state.gridSquares.getOrElse(row * 3 + 1) { "----" },
@@ -215,11 +229,17 @@ private fun ColumnScope.GridRow(state: RoamingState, row: Int, weight: Float) {
             markerX = state.markerX,
             markerY = state.markerY,
             showMarker = row == 1 && state.qthLocator != "----",
+            dividerColor = dividerColor,
             modifier = Modifier.weight(0.562f)
+        )
+        Divider(
+            color = dividerColor, thickness = 2.dp,
+            modifier = Modifier.fillMaxHeight().width(2.dp)
         )
         GridCell(
             label = state.gridSquares.getOrElse(row * 3 + 2) { "----" },
             isCenter = false,
+            dividerColor = dividerColor,
             modifier = Modifier.weight(0.214f)
         )
     }
@@ -232,42 +252,57 @@ private fun GridCell(
     markerX: Float = 0.5f,
     markerY: Float = 0.5f,
     showMarker: Boolean = false,
+    dividerColor: Color,
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val cellBackground = if (isCenter) colorScheme.secondaryContainer else colorScheme.surfaceVariant
     val labelColor = if (isCenter) colorScheme.onSecondaryContainer else colorScheme.onSurfaceVariant
     BoxWithConstraints(
-        contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxSize()
-            .clip(MaterialTheme.shapes.medium)
             .background(cellBackground)
     ) {
         // Capture constraints at the BoxWithConstraints scope (Column scope would shadow them)
         val width = maxWidth
         val height = maxHeight
-        Text(
-            text = label,
-            fontSize = if (isCenter) 22.sp else 13.sp,
-            fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
-            color = labelColor,
-            textAlign = TextAlign.Center
-        )
-        if (showMarker) {
-            // Red marker: absolute position from the top-left of the cell.
-            // markerX/markerY are 0..1 fractions (from the reference app's
-            // 3rd-pair mapping), so offset = fraction * cell size, minus half
-            // the marker size to center the 12dp square on the point.
-            val density = LocalDensity.current
-            val dotSize = 12.dp
-            val offsetX = with(density) { (width * markerX).toPx().toDp() - dotSize / 2 }
-            val offsetY = with(density) { (height * markerY).toPx().toDp() - dotSize / 2 }
-            Box(
+        if (isCenter) {
+            // Center cell: locator text at upper-middle, red marker below it,
+            // never overlapping — exactly like the reference app.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .size(dotSize)
-                    .background(colorScheme.error)
-                    .offset(x = offsetX, y = offsetY)
+                    .align(Alignment.Center)
+                    .offset(y = with(LocalDensity.current) { (-height * 0.08f).toPx().toDp() })
+            ) {
+                Text(
+                    text = label,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = labelColor,
+                    textAlign = TextAlign.Center
+                )
+                if (showMarker) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val density = LocalDensity.current
+                    val dotSize = 14.dp
+                    val offsetX = with(density) { (width * markerX).toPx().toDp() - width * 0.5f - dotSize / 2 }
+                    Box(
+                        modifier = Modifier
+                            .size(dotSize)
+                            .background(colorScheme.error)
+                            .offset(x = offsetX)
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = label,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = labelColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center)
             )
         }
     }
