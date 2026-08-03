@@ -352,20 +352,23 @@ class MutualViewModel(
                 tSample += sampleInterval
             }
 
-            // The pass list already filters by maxElev > minElevation, so we trust
-            // the pass is valid. The mutual pass just needs both stations' curves.
-            results.add(
-                MutualPass(
-                    catNum = pass.catNum,
-                    name = pass.orbitalObject.data.name,
-                    startTime = refinedAos,
-                    endTime = refinedLos,
-                    maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
-                    maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
-                    elevationSamples = samples,
-                    trackSamples = tracks
+            // Search uses the 0° horizon as the pass boundary, but the user sliders are
+            // a final visibility filter. Both stations must exceed their own threshold;
+            // otherwise the result would expand to an empty filtered chart.
+            if (maxElevA > minElevADeg && maxElevB > minElevBDeg) {
+                results.add(
+                    MutualPass(
+                        catNum = pass.catNum,
+                        name = pass.orbitalObject.data.name,
+                        startTime = refinedAos,
+                        endTime = refinedLos,
+                        maxElevationA = (maxElevA * 10).roundToInt() / 10.0,
+                        maxElevationB = (maxElevB * 10).roundToInt() / 10.0,
+                        elevationSamples = samples,
+                        trackSamples = tracks
+                    )
                 )
-            )
+            }
         }
         return results
     }
@@ -413,10 +416,12 @@ class MutualViewModel(
 
         var tSample = refinedAos
         while (tSample <= refinedLos) {
+            // Use getElevation for elevation, matching the main pass predictor; use
+            // getFullPosition only for azimuth needed by the radar plot.
+            val elevA = elevationDeg(sat, posA, tSample)
+            val elevB = elevationDeg(sat, posB, tSample)
             val fullA = sat.getFullPosition(posA, tSample)
             val fullB = sat.getFullPosition(posB, tSample)
-            val elevA = fullA.elevation * 180.0 / PI
-            val elevB = fullB.elevation * 180.0 / PI
             if (elevA > maxElevA) maxElevA = elevA
             if (elevB > maxElevB) maxElevB = elevB
             samples.add(tSample to (elevA to elevB))

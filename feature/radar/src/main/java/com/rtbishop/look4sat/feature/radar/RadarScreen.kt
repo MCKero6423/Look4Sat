@@ -73,6 +73,7 @@ import com.rtbishop.look4sat.core.presentation.getDefaultPass
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import com.rtbishop.look4sat.core.presentation.layoutPadding
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlin.math.PI
 
 private enum class RadarPage(val title: String) {
@@ -87,6 +88,23 @@ fun RadarDestination(navigateUp: () -> Unit) {
     val viewModel: RadarViewModel = viewModel(factory = RadarViewModel.factory(container))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val mutualData by container.mutualPassData.collectAsStateWithLifecycle()
+    val navigateUpAndClearMutual = {
+        if (container.mutualPassData.value.endTime > 0L) {
+            container.setMutualPassData(MutualPassData())
+        }
+        navigateUp()
+    }
+    LaunchedEffect(mutualData.endTime) {
+        if (mutualData.endTime <= 0L) return@LaunchedEffect
+        while (true) {
+            val remainingMs = mutualData.endTime - System.currentTimeMillis()
+            if (remainingMs <= 0L) {
+                navigateUpAndClearMutual()
+                return@LaunchedEffect
+            }
+            delay(remainingMs.coerceAtMost(1000L))
+        }
+    }
     // Sync actual permission state on every recomposition so it survives screen re-entry
     val hasPermission = ContextCompat.checkSelfPermission(
         context, Manifest.permission.RECORD_AUDIO
@@ -101,7 +119,7 @@ fun RadarDestination(navigateUp: () -> Unit) {
         viewModel.onAction(RadarAction.SstvPermissionResult(granted))
         viewModel.onAction(RadarAction.CwPermissionResult(granted))
     }
-    RadarScreen(uiState, viewModel::onAction, navigateUp, mutualData, requestMicPermission = {
+    RadarScreen(uiState, viewModel::onAction, navigateUpAndClearMutual, mutualData, requestMicPermission = {
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     })
 }

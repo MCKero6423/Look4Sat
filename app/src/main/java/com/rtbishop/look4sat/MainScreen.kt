@@ -72,6 +72,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
+import com.rtbishop.look4sat.core.domain.repository.MutualPassData
 import com.rtbishop.look4sat.core.presentation.DeeplinkResolver
 import com.rtbishop.look4sat.core.presentation.ElevationThresholds
 import com.rtbishop.look4sat.core.presentation.LocalElevationThresholds
@@ -200,6 +201,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                         entry<Screen.Passes> {
                             PassesDestination { catNum, aosTime ->
+                                container.setMutualPassData(MutualPassData())
                                 container.satelliteRepo.selectPass(catNum, aosTime)
                                 backStack.add(Screen.Radar)
 //                            navigateToRadar()
@@ -216,7 +218,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                                 viewModel = mutualViewModel,
                                 navigateUp = navigateBack,
                                 navigateToRadar = { catNum, aosTime, pass ->
-                                    pass?.let { container.setMutualPassData(it) }
+                                    container.setMutualPassData(pass ?: MutualPassData())
                                     container.satelliteRepo.selectPass(catNum, aosTime)
                                     backStack.add(Screen.Radar)
                                 }
@@ -245,6 +247,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                             .clickable {
                                 val pass = trackingState.currentPass
                                 if (pass != null) {
+                                    container.setMutualPassData(MutualPassData())
                                     container.satelliteRepo.selectPass(pass.catNum, pass.aosTime)
                                     backStack.add(Screen.Radar)
                                 }

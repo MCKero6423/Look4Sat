@@ -139,6 +139,8 @@ class RadarViewModel(
         val passes = satelliteRepo.passes.value
         val (catNum, aosTime) = satelliteRepo.selectedPass.value
         return passes.find { it.catNum == catNum && it.aosTime == aosTime }
+            ?: passes.find { it.catNum == catNum && aosTime in it.aosTime..it.losTime }
+            ?: passes.find { it.catNum == catNum }
             ?: passes.firstOrNull()
     }
 

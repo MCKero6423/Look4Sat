@@ -88,7 +88,7 @@ fun MutualScreen(
                 },
                 topInfo = {
                     Text(
-                        text = "对台过境",
+                        text = "过境匹配",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -96,7 +96,7 @@ fun MutualScreen(
                 bottomInfo = {
                     if (state.mutualPasses.isNotEmpty()) {
                         Text(
-                            text = "找到 ${state.mutualPasses.size} 个过境",
+                            text = "找到 ${state.mutualPasses.size} 个匹配",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -183,153 +183,91 @@ private fun MutualContent(
 
         // Input form
         item {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "你的位置",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                MatchIntroCard()
+
+                if (isVertical) {
+                    StationInputCard(
+                        title = "你的位置",
+                        titleColor = MaterialTheme.colorScheme.primary,
+                        lat = state.stationALat,
+                        lon = state.stationALon,
+                        grid = state.stationAGrid,
+                        minElev = state.stationAMinElev,
+                        latPlaceholder = "39.9042",
+                        lonPlaceholder = "116.4074",
+                        gridPlaceholder = "ON79uj",
+                        onLatChange = onStationALat,
+                        onLonChange = onStationALon,
+                        onGridChange = onStationAGrid,
+                        onMinElevChange = onStationAMinElev,
+                        currentPositionAction = onUseCurrentPosition
                     )
+                    StationInputCard(
+                        title = "友台位置",
+                        titleColor = MaterialTheme.colorScheme.tertiary,
+                        lat = state.stationBLat,
+                        lon = state.stationBLon,
+                        grid = state.stationBGrid,
+                        minElev = state.stationBMinElev,
+                        latPlaceholder = "34.0522",
+                        lonPlaceholder = "-118.2437",
+                        gridPlaceholder = "PM01tv",
+                        onLatChange = onStationBLat,
+                        onLonChange = onStationBLon,
+                        onGridChange = onStationBGrid,
+                        onMinElevChange = onStationBMinElev
+                    )
+                } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        OutlinedTextField(
-                            value = state.stationALat,
-                            onValueChange = onStationALat,
-                            label = { Text("纬度") },
-                            placeholder = { Text("39.9042") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
+                        StationInputCard(
+                            title = "你的位置",
+                            titleColor = MaterialTheme.colorScheme.primary,
+                            lat = state.stationALat,
+                            lon = state.stationALon,
+                            grid = state.stationAGrid,
+                            minElev = state.stationAMinElev,
+                            latPlaceholder = "39.9042",
+                            lonPlaceholder = "116.4074",
+                            gridPlaceholder = "ON79uj",
+                            onLatChange = onStationALat,
+                            onLonChange = onStationALon,
+                            onGridChange = onStationAGrid,
+                            onMinElevChange = onStationAMinElev,
+                            currentPositionAction = onUseCurrentPosition,
                             modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
-                            value = state.stationALon,
-                            onValueChange = onStationALon,
-                            label = { Text("经度") },
-                            placeholder = { Text("116.4074") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
+                        StationInputCard(
+                            title = "友台位置",
+                            titleColor = MaterialTheme.colorScheme.tertiary,
+                            lat = state.stationBLat,
+                            lon = state.stationBLon,
+                            grid = state.stationBGrid,
+                            minElev = state.stationBMinElev,
+                            latPlaceholder = "34.0522",
+                            lonPlaceholder = "-118.2437",
+                            gridPlaceholder = "PM01tv",
+                            onLatChange = onStationBLat,
+                            onLonChange = onStationBLon,
+                            onGridChange = onStationBGrid,
+                            onMinElevChange = onStationBMinElev,
                             modifier = Modifier.weight(1f)
                         )
-                    }
-                    OutlinedTextField(
-                        value = state.stationAGrid,
-                        onValueChange = onStationAGrid,
-                        label = { Text("网格（4/6/8位，填此可省略经纬度）") },
-                        placeholder = { Text("ON79uj") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedButton(
-                        onClick = onUseCurrentPosition,
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("当前精确位置", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Text(
-                        text = "最小仰角：${state.stationAMinElev.toInt()}°",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Slider(
-                        value = state.stationAMinElev.toFloat(),
-                        onValueChange = { onStationAMinElev(it.toDouble()) },
-                        valueRange = 0f..90f,
-                        steps = 17
-                    )
-
-                    HorizontalDivider()
-
-                    Text(
-                        text = "友台位置",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = state.stationBLat,
-                            onValueChange = onStationBLat,
-                            label = { Text("纬度") },
-                            placeholder = { Text("34.0522") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = state.stationBLon,
-                            onValueChange = onStationBLon,
-                            label = { Text("经度") },
-                            placeholder = { Text("-118.2437") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = state.stationBGrid,
-                        onValueChange = onStationBGrid,
-                        label = { Text("网格（4/6/8位，填此可省略经纬度）") },
-                        placeholder = { Text("PM01tv") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        text = "最小仰角：${state.stationBMinElev.toInt()}°",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Slider(
-                        value = state.stationBMinElev.toFloat(),
-                        onValueChange = { onStationBMinElev(it.toDouble()) },
-                        valueRange = 0f..90f,
-                        steps = 17
-                    )
-
-                    HorizontalDivider()
-
-                    Text(
-                        text = "时间范围",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(6, 12, 24, 48, 72).forEach { hours ->
-                            FilterChip(
-                                selected = state.hoursAhead == hours,
-                                onClick = { onHoursAhead(hours) },
-                                label = { Text("${hours}h") }
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = onQuery,
-                        enabled = !state.isCalculating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (state.isCalculating) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .height(18.dp)
-                                    .width(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Text(if (state.isCalculating) "计算中..." else "查询过境")
                     }
                 }
+
+                MatchSearchCard(
+                    hoursAhead = state.hoursAhead,
+                    isCalculating = state.isCalculating,
+                    onHoursAhead = onHoursAhead,
+                    onQuery = onQuery
+                )
             }
         }
 
@@ -366,6 +304,169 @@ private fun MutualContent(
 }
 
 @Composable
+private fun MatchIntroCard(modifier: Modifier = Modifier) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "位置匹配",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "输入双方位置，查找共同可见的卫星过境窗口",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun StationInputCard(
+    title: String,
+    titleColor: androidx.compose.ui.graphics.Color,
+    lat: String,
+    lon: String,
+    grid: String,
+    minElev: Double,
+    latPlaceholder: String,
+    lonPlaceholder: String,
+    gridPlaceholder: String,
+    onLatChange: (String) -> Unit,
+    onLonChange: (String) -> Unit,
+    onGridChange: (String) -> Unit,
+    onMinElevChange: (Double) -> Unit,
+    modifier: Modifier = Modifier,
+    currentPositionAction: (() -> Unit)? = null
+) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = titleColor
+                )
+                if (currentPositionAction != null) {
+                    OutlinedButton(onClick = currentPositionAction) {
+                        Text("填入当前位置", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = lat,
+                    onValueChange = onLatChange,
+                    label = { Text("纬度") },
+                    placeholder = { Text(latPlaceholder) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = lon,
+                    onValueChange = onLonChange,
+                    label = { Text("经度") },
+                    placeholder = { Text(lonPlaceholder) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            OutlinedTextField(
+                value = grid,
+                onValueChange = onGridChange,
+                label = { Text("网格") },
+                placeholder = { Text(gridPlaceholder) },
+                supportingText = { Text("支持 4/6/8 位 Maidenhead 网格；也可直接输入经纬度") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Text(
+                text = "最小仰角：${minElev.toInt()}°",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Slider(
+                value = minElev.toFloat(),
+                onValueChange = { onMinElevChange(it.toDouble()) },
+                valueRange = 0f..90f,
+                steps = 17
+            )
+        }
+    }
+}
+
+@Composable
+private fun MatchSearchCard(
+    hoursAhead: Int,
+    isCalculating: Boolean,
+    onHoursAhead: (Int) -> Unit,
+    onQuery: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "时间范围",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(6, 12, 24, 48, 72).forEach { hours ->
+                    FilterChip(
+                        selected = hoursAhead == hours,
+                        onClick = { onHoursAhead(hours) },
+                        label = { Text("${hours}h") }
+                    )
+                }
+            }
+            Button(
+                onClick = onQuery,
+                enabled = !isCalculating,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isCalculating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .height(18.dp)
+                            .width(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (isCalculating) "计算中..." else "查询匹配")
+            }
+        }
+    }
+}
+
+@Composable
 private fun MutualPassCard(
     pass: MutualPass,
     isExpanded: Boolean,
@@ -380,7 +481,6 @@ private fun MutualPassCard(
     var dragProgress by remember(pass) { mutableFloatStateOf(0.5f) }
 
     // Filter to only show the portion where both stations are above their minElev
-    // (satlover.de style — only the usable common window)
     val visibleSamples = remember(pass, minElevA, minElevB) {
         pass.elevationSamples.filter { (_, elev) ->
             elev.first >= minElevA && elev.second >= minElevB
@@ -447,7 +547,7 @@ private fun MutualPassCard(
                     // Dual-station radar track (polar plot)
                     if (visibleTracks.isNotEmpty()) {
                         Text(
-                            text = "双方轨迹（雷达图）",
+                            text = "双方轨迹",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
