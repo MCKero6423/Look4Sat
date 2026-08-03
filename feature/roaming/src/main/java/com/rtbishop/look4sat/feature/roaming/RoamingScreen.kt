@@ -46,6 +46,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -137,7 +140,13 @@ fun RoamingScreen() {
         }
     }
     // 照搬 res/layout/main.xml: 浅色页面, 蓝色信息区, 43sp 定位码, 3x3 九宫格, 底部版权
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {
+    // 按用户要求: 上下往内缩进系统栏安全区, 避免内容被状态栏/导航栏遮挡
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF2F2F2))
+            .windowInsetsPadding(WindowInsets.systemBars)
+    ) {
         // relativeLayout7: 顶部 GPS 状态条, 25dp 高, holo_blue_bright
         Box(
             modifier = Modifier
