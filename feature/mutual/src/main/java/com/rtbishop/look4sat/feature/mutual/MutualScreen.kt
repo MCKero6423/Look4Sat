@@ -44,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,6 +58,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.repository.MutualPassData
@@ -94,22 +96,29 @@ fun MutualScreen(
                     )
                 },
                 bottomInfo = {
-                    if (state.mutualPasses.isNotEmpty()) {
-                        Text(
-                            text = "找到 ${state.mutualPasses.size} 个匹配",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = mutualStatusText(state),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
                 },
                 endAction = {
-                    if (state.isCalculating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .height(24.dp)
-                                .width(24.dp),
-                            strokeWidth = 2.dp
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (state.isCalculating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .width(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                        MutualStatusChip(state)
                     }
                 }
             )
@@ -187,8 +196,6 @@ private fun MutualContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                MatchIntroCard()
-
                 if (isVertical) {
                     StationInputCard(
                         title = "你的位置",
@@ -304,25 +311,50 @@ private fun MutualContent(
 }
 
 @Composable
-private fun MatchIntroCard(modifier: Modifier = Modifier) {
-    ElevatedCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "位置匹配",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "输入双方位置，查找共同可见的卫星过境窗口",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+private fun MutualStatusChip(state: MutualUiState) {
+    val colorScheme = MaterialTheme.colorScheme
+    val containerColor = when {
+        state.isCalculating -> colorScheme.primaryContainer
+        state.errorMessage != null -> colorScheme.errorContainer
+        state.mutualPasses.isNotEmpty() -> colorScheme.primary
+        state.hasSearched -> colorScheme.surfaceVariant
+        else -> colorScheme.surfaceVariant
     }
+    val contentColor = when {
+        state.isCalculating -> colorScheme.onPrimaryContainer
+        state.errorMessage != null -> colorScheme.onErrorContainer
+        state.mutualPasses.isNotEmpty() -> colorScheme.onPrimary
+        else -> colorScheme.onSurfaceVariant
+    }
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            text = mutualStatusChipText(state),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        )
+    }
+}
+
+private fun mutualStatusText(state: MutualUiState): String = when {
+    state.isCalculating -> "正在计算双方共同可见窗口…"
+    state.errorMessage != null -> "请修正提示后重新查询"
+    state.mutualPasses.isNotEmpty() -> "找到 ${state.mutualPasses.size} 个匹配 · 点击卡片展开曲线"
+    state.hasSearched -> "未找到共同可见窗口，调整时间或仰角后重试"
+    else -> "输入双方位置后点击查询"
+}
+
+private fun mutualStatusChipText(state: MutualUiState): String = when {
+    state.isCalculating -> "计算中"
+    state.errorMessage != null -> "有错误"
+    state.mutualPasses.isNotEmpty() -> "${state.mutualPasses.size}个匹配"
+    state.hasSearched -> "无匹配"
+    else -> "待查询"
 }
 
 @Composable

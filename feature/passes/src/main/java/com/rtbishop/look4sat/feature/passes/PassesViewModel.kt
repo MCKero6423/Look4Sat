@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -162,7 +163,10 @@ class PassesViewModel(
         return SimpleDateFormat(pattern, Locale.getDefault()).also { it.timeZone = tz }
     }
 
-    // Computes sunrise/sunset strings for each unique calendar day in the pass list, plus today for DeepSpace
+    // Computes sunrise/sunset strings for each unique calendar day in the pass list, plus today for DeepSpace.
+    // CelestialComputer.findSunRiseSet() returns the next rise/set after the supplied time, so pass
+    // the calendar day's 00:00 in the same timezone used by the visible date group. Passing a pass's
+    // AOS time can jump to the following day's sunrise/sunset when that AOS is after the local event.
     private fun computeSunTimes(passes: List<OrbitalPass>, isUtc: Boolean): Map<String, Pair<String, String>> {
         val stationPos = settingsRepo.stationPosition.value
         val tz = if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
@@ -171,7 +175,7 @@ class PassesViewModel(
         val result = LinkedHashMap<String, Pair<String, String>>()
         // DeepSpace group always shows today's sun times
         if (passes.any { it.isDeepSpace }) {
-            val riseSet = CelestialComputer.findSunRiseSet(stationPos, System.currentTimeMillis())
+            val riseSet = CelestialComputer.findSunRiseSet(stationPos, startOfDayMillis(System.currentTimeMillis(), tz))
             val rise = if (riseSet.riseTimeMillis > 0) sdfTime.format(Date(riseSet.riseTimeMillis)) else "--:--"
             val set = if (riseSet.setTimeMillis > 0) sdfTime.format(Date(riseSet.setTimeMillis)) else "--:--"
             result["DeepSpace (period >225min)"] = rise to set
@@ -180,12 +184,22 @@ class PassesViewModel(
             if (pass.isDeepSpace) continue
             val label = sdfDate.format(Date(pass.aosTime))
             if (label in result) continue
-            val riseSet = CelestialComputer.findSunRiseSet(stationPos, pass.aosTime)
+            val riseSet = CelestialComputer.findSunRiseSet(stationPos, startOfDayMillis(pass.aosTime, tz))
             val rise = if (riseSet.riseTimeMillis > 0) sdfTime.format(Date(riseSet.riseTimeMillis)) else "--:--"
             val set = if (riseSet.setTimeMillis > 0) sdfTime.format(Date(riseSet.setTimeMillis)) else "--:--"
             result[label] = rise to set
         }
         return result
+    }
+
+    private fun startOfDayMillis(timeMillis: Long, tz: TimeZone): Long {
+        return Calendar.getInstance(tz, Locale.getDefault()).apply {
+            timeInMillis = timeMillis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
     }
 
     private fun groupPasses(passes: List<OrbitalPass>, isUtc: Boolean): Map<String, List<OrbitalPass>> {
