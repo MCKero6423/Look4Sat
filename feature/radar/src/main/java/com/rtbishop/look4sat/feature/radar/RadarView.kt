@@ -112,9 +112,10 @@ fun RadarViewCompose(
     var cachedSweepColor by remember { mutableStateOf(Color.Unspecified) }
     var trackPath by remember { mutableStateOf(Path()) }
     var trackEffect by remember { mutableStateOf(PathEffect.cornerPathEffect(0f)) }
-    // Station-B overlay track (dashed)
+    // Station-B overlay track (dashed, with the same directional arrow stamp as station A)
     var cachedTrackBRef by remember { mutableStateOf<List<OrbitalPos>?>(null) }
     var trackBPath by remember { mutableStateOf(Path()) }
+    var trackBEffect by remember { mutableStateOf(PathEffect.cornerPathEffect(0f)) }
     // ShaderBrush is cached to avoid allocating a new GPU shader object every frame
     var cachedSweepBrush by remember { mutableStateOf<ShaderBrush?>(null) }
 
@@ -124,7 +125,10 @@ fun RadarViewCompose(
         if (radius != cachedRadius || items !== cachedItemsRef || trackB !== cachedTrackBRef) {
             trackPath = createTrackPath(items, radius)
             trackEffect = createTrackEffect(trackPath)
-            trackBPath = trackB?.let { createTrackPath(it, radius) } ?: Path()
+            val newTrackBPath = trackB?.let { createTrackPath(it, radius) } ?: Path()
+            trackBPath = newTrackBPath
+            trackBEffect = if (!newTrackBPath.isEmpty) createTrackEffect(newTrackBPath)
+            else PathEffect.cornerPathEffect(0f)
             cachedSweepBrush = makeSweepBrush(center, primaryColor)
             cachedRadius = radius
             cachedItemsRef = items
@@ -141,13 +145,14 @@ fun RadarViewCompose(
             drawElevationLabels(radius, primaryColor, measurer)
             translate(center.x, center.y) {
                 drawTrack(trackPath, trackEffect, aimColor, primaryColor)
-                // Station-B overlay: full dashed track + live position dot
-                // (same display mode as the local station: track line + pulsing dot)
+                // Station-B overlay: full dashed track + directional arrows + live position dot
+                // (same display mode as the local station: track line/arrow + pulsing dot)
                 if (trackB != null && trackB.isNotEmpty() && !trackBPath.isEmpty) {
                     drawPath(
                         trackBPath, trackBColor,
                         style = Stroke(STROKE_WIDTH, pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 12f)))
                     )
+                    drawPath(trackBPath, trackBColor, style = Stroke(pathEffect = trackBEffect))
                 }
                 trackBPosition?.let { posB ->
                     if (posB.elevation > 0) {
