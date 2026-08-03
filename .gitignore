@@ -1,6 +1,9 @@
 # Built application files
 *.ap_
 
+# Hermes AI plans and metadata
+.hermes/
+
 # Files for the ART/Dalvik VM
 *.dex
 
