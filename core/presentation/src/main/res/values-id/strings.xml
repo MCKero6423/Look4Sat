@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Look4Sat Pro</string>
+    <string name="app_name" translatable="false">Look4Sat Pro</string>
     <string name="btn_accept">Terima</string>
     <string name="btn_cancel">Batal</string>
     <string name="empty_list_message">Tidak ada data untuk ditampilkan</string>
@@ -45,13 +45,13 @@
     <string name="pass_filter_aos_time">Jendela AOS</string>
     <string name="pass_filter_invert_time">Balik jendela AOS</string>
     <string name="pass_filter_deep_space">DeepSpace (periode >225 mnt)</string>
-    <string name="pass_time_placeholder"> -- : -- : -- </string>
+    <string name="pass_time_placeholder" translatable="false"> -- : -- : -- </string>
     <string name="pass_modes_title">Pilih jenis modulasi</string>
-    <string name="pass_satId">%05d</string>
+    <string name="pass_satId" translatable="false">%05d</string>
     <string name="pass_elevation">Elevasi: %.1f°</string>
-    <string name="pass_deep_space">DeepSpace</string>
+    <string name="pass_deep_space" translatable="false">DeepSpace</string>
     <string name="pass_altitude">Ketinggian: %d km</string>
-    <string name="pass_aosLos">%03d° - %03d°</string>
+    <string name="pass_aosLos" translatable="false">%03d° - %03d°</string>
     <string name="pass_empty_list_message">
         Pastikan filter Anda benar dan Anda sudah memilih satelit</string>
     <string name="pass_error_message">Tidak ada lintasan satelit mendatang untuk ditampilkan</string>
@@ -59,7 +59,7 @@
     <string name="pass_welcome_message">
         Pastikan Anda mengatur posisi melalui GPS, Lat/Lon atau QTH di Pengaturan.
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
-    <string name="pass_whatsnew_title">Apa yang baru di Look4Sat</string>
+    <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
         * BARU: Halaman status satelit AMSAT - tabel status langsung (warna resmi), jumlah laporan, laporan detail per satelit/hari
         * Log dikelompokkan per lintasan satelit (sesi = satelit + waktu AOS), garis pemisah antar sesi
@@ -70,19 +70,19 @@
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
-    <string name="radar_az_value">%.1f°</string>
+    <string name="radar_az_value" translatable="false">%.1f°</string>
     <string name="radar_el_text">Elevasi</string>
-    <string name="radar_el_value">%.1f°</string>
+    <string name="radar_el_value" translatable="false">%.1f°</string>
     <string name="radar_alt_text">Ketinggian</string>
-    <string name="radar_alt_value">%.0f km</string>
+    <string name="radar_alt_value" translatable="false">%.0f km</string>
     <string name="radar_dist_text">Jarak</string>
-    <string name="radar_dist_value">%.0f km</string>
+    <string name="radar_dist_value" translatable="false">%.0f km</string>
     <string name="radar_eclipsed">Gerhana</string>
     <string name="radar_downlink">Downlink</string>
     <string name="radar_uplink">Uplink</string>
-    <string name="radar_link_low">%.4f</string>
-    <string name="radar_link_lowHigh">%.4f - %.4f</string>
-    <string name="radar_no_link">- - . - -</string>
+    <string name="radar_link_low" translatable="false">%.4f</string>
+    <string name="radar_link_lowHigh" translatable="false">%.4f - %.4f</string>
+    <string name="radar_no_link" translatable="false">- - . - -</string>
     <string name="radar_no_data">Satelit ini tidak memiliki transceiver</string>
     <string name="radar_add">Tambah</string>
     <string name="radar_data">Transceiver satelit:</string>
@@ -102,32 +102,32 @@
     <string name="radar_cw_reset">Bersihkan</string>
     <string name="map_prev">Sebelumnya</string>
     <string name="map_next">Berikutnya</string>
-    <string name="map_copyright">© Kontributor OpenStreetMap</string>
+    <string name="map_copyright" translatable="false">© Kontributor OpenStreetMap</string>
     <string name="map_azimuth">Azimuth: %.1f°</string>
     <string name="map_elevation">Elevasi: %.1f°</string>
     <string name="map_altitude">Ketinggian: %.0f km</string>
     <string name="map_distance">Jarak: %.0f km</string>
     <string name="map_latitude">Lintang: %.1f°</string>
     <string name="map_longitude">Bujur: %.1f°</string>
-    <string name="map_qth">QTH: %s</string>
+    <string name="map_qth" translatable="false">QTH: %s</string>
     <string name="map_phase">Fase: %.1f°</string>
     <string name="map_eclipsed">Gerhana</string>
     <string name="map_period">Periode: %.0f mnt</string>
     <string name="map_velocity">Kecepatan: %.2f km/d</string>
     <string name="map_visibility">Visibilitas: %s</string>
     <string name="map_visible">Terlihat</string>
-    <string name="prefs_app_title">Look4Sat Pro v%s</string>
-    <string name="prefs_app_url">https://play.google.com/store/apps/details?id=com.rtbishop.look4sat</string>
+    <string name="prefs_app_title" translatable="false">Look4Sat Pro v%s</string>
+    <string name="prefs_app_url" translatable="false">https://play.google.com/store/apps/details?id=com.rtbishop.look4sat</string>
     <string name="prefs_donate_title">Donasi</string>
-    <string name="prefs_donate_url">https://ko-fi.com/rt_bishop</string>
-    <string name="prefs_fdroid_title">F-Droid</string>
-    <string name="prefs_fdroid_url">https://f-droid.org/en/packages/com.rtbishop.look4sat/</string>
-    <string name="prefs_github_title">GitHub</string>
-    <string name="prefs_github_url">https://github.com/rt-bishop/Look4Sat/</string>
-    <string name="prefs_license_title">GPLv3</string>
-    <string name="prefs_license_url">https://www.gnu.org/licenses/gpl-3.0.html</string>
+    <string name="prefs_donate_url" translatable="false">https://ko-fi.com/rt_bishop</string>
+    <string name="prefs_fdroid_title" translatable="false">F-Droid</string>
+    <string name="prefs_fdroid_url" translatable="false">https://f-droid.org/en/packages/com.rtbishop.look4sat/</string>
+    <string name="prefs_github_title" translatable="false">GitHub</string>
+    <string name="prefs_github_url" translatable="false">https://github.com/rt-bishop/Look4Sat/</string>
+    <string name="prefs_license_title" translatable="false">GPLv3</string>
+    <string name="prefs_license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
     <string name="prefs_privacy_title">Kebijakan Privasi</string>
-    <string name="prefs_privacy_url">https://sites.google.com/view/look4sat-privacy-policy/home</string>
+    <string name="prefs_privacy_url" translatable="false">https://sites.google.com/view/look4sat-privacy-policy/home</string>
     <string name="prefs_updated_title">Diperbarui: %s</string>
     <string name="prefs_updated_time">d MMM yyyy - HH:mm:ss</string>
     <string name="prefs_loc_title">Posisi stasiun</string>
@@ -157,7 +157,7 @@
     <string name="prefs_data_sources_title">Sumber data kustom</string>
     <string name="prefs_data_sources_tle_switch">URL TLE Kustom</string>
     <string name="prefs_data_sources_transceivers_switch">URL transceiver kustom</string>
-    <string name="prefs_data_sources_url_title">URL (HTTPS)</string>
+    <string name="prefs_data_sources_url_title" translatable="false">URL (HTTPS)</string>
     <string name="prefs_data_reset_url">Setel ulang ke URL bawaan</string>
     <string name="prefs_data_output_title">Keluaran data</string>
     <string name="prefs_net_output">Jaringan</string>
@@ -238,7 +238,7 @@
     <string name="prefs_highlight_mid">Sedang %1$d–%2$d°</string>
     <string name="prefs_highlight_high">Tinggi &gt; %1$d°</string>
     <string name="prefs_outro_title">BG7NTA &amp; penulis asli mengucapkan terima kasih</string>
-    <string name="prefs_outro_thanks">
+    <string name="prefs_outro_thanks" translatable="false">
         * Pengguna dan kontributor Look4Sat!
         \n* David A. B. Johnson (predict4java)
         \n* Dave Moten (predict4java)
