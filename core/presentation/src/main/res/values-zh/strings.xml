@@ -102,7 +102,7 @@
 
     <string name="prefs_loc_title">站位</string>
     <string name="prefs_loc_gps_title">GPS 定位</string>
-    <string name="prefs_loc_gps_error">检查您的位置权限</string>
+    <string name="prefs_loc_gps_error">无法获取位置,请检查定位权限和GPS/网络信号</string>
     <string name="prefs_loc_input_title">输入位置</string>
     <string name="prefs_loc_input_error">输入的位置无效</string>
     <string name="prefs_loc_qth_title">QTH 网格</string>
@@ -122,6 +122,7 @@
     <string name="prefs_data_clear">清空</string>
     <string name="prefs_data_clear_success">数据清空成功</string>
     <string name="prefs_data_update_success">更新成功</string>
+    <string name="prefs_data_update_failed">更新失败,请检查网络</string>
 
     <string name="prefs_data_import_satellites_error">未导入卫星。请选择有效的 TLE/3LE (.txt) 或 OMM (.csv) 文件。</string>
     <string name="prefs_data_import_transceivers_error">未导入收发器。请选择有效的 SatNOGS (.json) 文件。</string>

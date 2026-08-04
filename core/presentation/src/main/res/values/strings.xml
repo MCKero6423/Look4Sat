@@ -132,7 +132,7 @@
 
     <string name="prefs_loc_title">Station position</string>
     <string name="prefs_loc_gps_title">GPS</string>
-    <string name="prefs_loc_gps_error">Check your location permissions</string>
+    <string name="prefs_loc_gps_error">Unable to get location - check permission and GPS/network signal</string>
     <string name="prefs_loc_input_title">Input</string>
     <string name="prefs_loc_input_error">Invalid location entered</string>
     <string name="prefs_loc_qth_title">QTH</string>
@@ -152,6 +152,7 @@
     <string name="prefs_data_clear">Clear</string>
     <string name="prefs_data_clear_success">Data was cleared successfully</string>
     <string name="prefs_data_update_success">Update completed successfully</string>
+    <string name="prefs_data_update_failed">Update failed - check your network</string>
     <string name="prefs_data_import_satellites_error">No satellites imported. Select a valid TLE/3LE (.txt) or OMM (.csv) file.</string>
     <string name="prefs_data_import_transceivers_error">No transceivers imported. Select a valid SatNOGS (.json) file.</string>
 

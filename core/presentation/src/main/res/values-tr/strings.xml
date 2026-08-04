@@ -120,7 +120,7 @@
 
     <string name="prefs_loc_title">İstasyon konumu</string>
     <string name="prefs_loc_gps_title">GPS</string>
-    <string name="prefs_loc_gps_error">Konum izinlerinizi kontrol edin</string>
+    <string name="prefs_loc_gps_error">Konum alınamıyor - izinleri ve GPS/ağ sinyalini kontrol edin</string>
     <string name="prefs_loc_input_title">Manuel giriş</string>
     <string name="prefs_loc_input_error">Geçersiz konum girildi</string>
     <string name="prefs_loc_qth_title">QTH</string>
@@ -140,6 +140,7 @@
     <string name="prefs_data_clear">Temizle</string>
     <string name="prefs_data_clear_success">Veriler başarıyla temizlendi</string>
     <string name="prefs_data_update_success">Güncelleme başarıyla tamamlandı</string>
+    <string name="prefs_data_update_failed">Güncelleme başarısız - ağınızı kontrol edin</string>
 
     <string name="prefs_data_sources_title">Özel veri kaynakları</string>
     <string name="prefs_data_sources_tle_switch">Özel TLE URL</string>

@@ -116,7 +116,7 @@
     <string name="prefs_updated_time">d MMM yyyy - HH:mm:ss</string>
     <string name="prefs_loc_title">Posisi stasiun</string>
     <string name="prefs_loc_gps_title">GPS</string>
-    <string name="prefs_loc_gps_error">Periksa izin lokasi Anda</string>
+    <string name="prefs_loc_gps_error">Tidak dapat mengambil lokasi - periksa izin dan sinyal GPS/jaringan</string>
     <string name="prefs_loc_input_title">Input</string>
     <string name="prefs_loc_input_error">Lokasi yang dimasukkan tidak valid</string>
     <string name="prefs_loc_qth_title">QTH</string>
@@ -135,6 +135,7 @@
     <string name="prefs_data_clear">Bersihkan</string>
     <string name="prefs_data_clear_success">Data berhasil dibersihkan</string>
     <string name="prefs_data_update_success">Pembaruan berhasil diselesaikan</string>
+    <string name="prefs_data_update_failed">Pembaruan gagal - periksa jaringan Anda</string>
     <string name="prefs_data_import_satellites_error">Tidak ada satelit yang diimpor. Pilih file TLE/3LE (.txt) atau OMM (.csv) yang valid.</string>
     <string name="prefs_data_import_transceivers_error">Tidak ada transceiver yang diimpor. Pilih file SatNOGS (.json) yang valid.</string>
     <string name="prefs_data_sources_title">Sumber data kustom</string>

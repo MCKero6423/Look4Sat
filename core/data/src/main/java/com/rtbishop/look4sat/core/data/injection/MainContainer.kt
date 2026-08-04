@@ -173,7 +173,14 @@ class MainContainer(private val context: Context) : IMainContainer {
     }
 
     private fun provideRemoteSource(): IRemoteSource {
-        return RemoteSource(Dispatchers.IO, context.contentResolver, OkHttpClient.Builder().build())
+        return RemoteSource(
+            Dispatchers.IO, context.contentResolver,
+            OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+        )
     }
 
     private fun provideSatelliteRepo(): ISatelliteRepo {
@@ -189,6 +196,6 @@ class MainContainer(private val context: Context) : IMainContainer {
         val appPrefsFileName = "${context.packageName}_preferences"
         val appPreferences = context.getSharedPreferences(appPrefsFileName, Context.MODE_PRIVATE)
         val appVersionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "4.0.4"
-        return SettingsRepo(manager, appPreferences, appVersionName)
+        return SettingsRepo(context, manager, appPreferences, appVersionName)
     }
 }

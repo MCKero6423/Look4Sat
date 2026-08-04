@@ -164,7 +164,16 @@ class SettingsViewModel(
     // region Position helpers — consolidated from 3 near-identical functions
 
     private fun setGpsPosition() {
-        updatePosition(R.string.prefs_loc_gps_error) { settingsRepo.setStationPosition() }
+        viewModelScope.launch {
+            _uiState.update { it.copy(positionSettings = it.positionSettings.copy(isUpdating = true)) }
+            val success = settingsRepo.setStationPosition()
+            _uiState.update {
+                it.copy(positionSettings = it.positionSettings.copy(
+                    isUpdating = false,
+                    messageResId = if (success) R.string.prefs_loc_success else R.string.prefs_loc_gps_error
+                ))
+            }
+        }
     }
 
     private fun setGeoPosition(latitude: Double, longitude: Double) {
@@ -212,6 +221,7 @@ class SettingsViewModel(
                 it.copy(dataSettings = it.dataSettings.copy(isUpdating = false))
             }
             println(exception)
+            showToast(R.string.prefs_data_update_failed)
         }
     }
 

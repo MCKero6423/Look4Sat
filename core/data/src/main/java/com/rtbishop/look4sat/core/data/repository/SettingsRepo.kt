@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 class SettingsRepo(
+    private val context: android.content.Context,
     private val locationManager: LocationManager,
     private val preferences: SharedPreferences,
     override val appVersionName: String
@@ -186,23 +187,41 @@ class SettingsRepo(
         return true
     }
 
-    override fun setStationPosition(): Boolean {
-        if (!LocationManagerCompat.isLocationEnabled(locationManager)) return false
-        try {
-            val hasGps = LocationManagerCompat.hasProvider(locationManager, providerGps)
-            val hasNet = LocationManagerCompat.hasProvider(locationManager, providerNet)
-            val provider = if (hasGps) providerGps else if (hasNet) providerNet else providerDef
-            val location = locationManager.getLastKnownLocation(providerDef)
-            if (location == null || System.currentTimeMillis() - location.time > 600_000L) {
-                println("Requesting location for $provider provider")
-                locationManager.requestLocationUpdates(provider, 0L, 0f, this)
-            } else {
-                setStationPosition(location.latitude, location.longitude, location.altitude)
-            }
-        } catch (exception: SecurityException) {
-            println("No permissions were given - $exception")
+    /** GPS 定位: 一次性 getCurrentLocation(GPS 优先, 15 秒超时), 拿到位置才返回 true */
+    override suspend fun setStationPosition(): Boolean {
+        // 权限前置: 无定位权限直接失败(不吞异常)
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            println("GPS: no fine location permission")
+            return false
         }
-        return true
+        if (!LocationManagerCompat.isLocationEnabled(locationManager)) return false
+        return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            val signal = android.os.CancellationSignal()
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            val executor = java.util.concurrent.Executor { handler.post(it) }
+            // 15 秒超时
+            val timeout = handler.postDelayed({
+                signal.cancel()
+                if (cont.isActive) cont.resume(false) { }
+            }, 15_000L)
+            val listener = androidx.core.util.Consumer<Location> { location ->
+                handler.removeCallbacksAndMessages(null)
+                setStationPosition(location.latitude, location.longitude, location.altitude)
+                if (cont.isActive) cont.resume(true) { }
+            }
+            val hasGps = LocationManagerCompat.hasProvider(locationManager, providerGps)
+            val provider = if (hasGps) providerGps else providerNet
+            try {
+                LocationManagerCompat.getCurrentLocation(locationManager, provider, signal, executor, listener)
+            } catch (exception: SecurityException) {
+                handler.removeCallbacksAndMessages(null)
+                if (cont.isActive) cont.resume(false) { }
+            }
+            cont.invokeOnCancellation { signal.cancel(); handler.removeCallbacksAndMessages(null) }
+        }
     }
 
     override fun setStationPosition(locator: String): Boolean {
