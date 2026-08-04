@@ -17,6 +17,10 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a")
         }
+        // 显式保留全部语言(防 shrinkResources 丢弃 in/id 印尼语配置)
+        resourceConfigurations += listOf(
+            "en", "zh", "tr", "in", "id", "es", "ru", "si", "uk"
+        )
     }
     signingConfigs {
         if (keystoreProperties["storeFile"] != null) {
