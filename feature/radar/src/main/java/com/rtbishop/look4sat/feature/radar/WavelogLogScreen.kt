@@ -2,8 +2,7 @@
  * WavelogLogScreen.kt — 「日志」页面(更多菜单, 4.5.2 修复)。
  *
  * 表格形式展示本地存储的日志: 时间 | 频率 | 卫星 | 呼号 | 已上传(✓)。
- * 数据来自 WavelogQueue(与雷达页 Log 标签共用)。空态提示; 表格行
- * 复用左滑删除(同 LogTab 交互)。
+ * 完整格子线(表头横线 + 行横线 + 列竖线 + 外边框); 行复用左滑删除。
  */
 package com.rtbishop.look4sat.feature.radar
 
@@ -13,21 +12,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
@@ -44,6 +43,7 @@ import java.util.Calendar
 import java.util.TimeZone
 
 private val CheckGreen = Color(0xFF4CAF50)
+private val GridLineColor = Color(0xFF3A3A3A)
 
 @Composable
 fun WavelogLogScreen(
@@ -57,66 +57,80 @@ fun WavelogLogScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(8.dp)
     ) {
-        // 表头
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        // 表格外边框(左右 + 上下由表头/行底线构成)
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
         ) {
-            HeaderCell(stringResource(id = R.string.wavelog_col_time), 52.dp)
-            HeaderCell(stringResource(id = R.string.wavelog_col_freq), 70.dp)
-            HeaderCell(stringResource(id = R.string.wavelog_col_sat), 0.dp, weight = 1.2f)
-            HeaderCell(stringResource(id = R.string.wavelog_col_call), 0.dp, weight = 1f)
-            HeaderCell(stringResource(id = R.string.wavelog_col_uploaded), 44.dp)
-        }
+            // 表头
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(38.dp)
+            ) {
+                HeaderCell(stringResource(id = R.string.wavelog_col_time), 72.dp)
+                GridVLine()
+                HeaderCell(stringResource(id = R.string.wavelog_col_freq), 64.dp)
+                GridVLine()
+                HeaderCell(stringResource(id = R.string.wavelog_col_sat), 0.dp, weight = 1.2f)
+                GridVLine()
+                HeaderCell(stringResource(id = R.string.wavelog_col_call), 0.dp, weight = 1f)
+                GridVLine()
+                HeaderCell(stringResource(id = R.string.wavelog_col_uploaded), 44.dp)
+            }
+            // 表头横线
+            HorizontalDivider(thickness = 1.5.dp, color = GridLineColor)
+            // 表头与数据区留白
+            Box(modifier = Modifier.height(8.dp))
 
-        if (entries.isEmpty()) {
-            Text(
-                text = stringResource(id = R.string.wavelog_empty),
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 12.dp)
-            )
-        } else {
-            entries.forEachIndexed { index, entry ->
-                SwipeDeleteRow(
-                    onDelete = {
-                        queue.remove(entry.id)
-                        refreshTick++
-                    }
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceContainer)
-                                .padding(horizontal = 10.dp, vertical = 8.dp)
-                        ) {
-                            Cell(formatLocalTime(entry.timeUtcMs), 74.dp)
-                            Cell(formatFrequency(entry.freqTxHz), 62.dp)
-                            Cell(entry.satName, 0.dp, weight = 1.2f)
-                            Cell(entry.call, 0.dp, weight = 1f)
-                            Box(modifier = Modifier.width(44.dp)) {
-                                if (entry.uploaded) {
-                                    Text(
-                                        text = "✓",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = CheckGreen
-                                    )
+            if (entries.isEmpty()) {
+                Text(
+                    text = stringResource(id = R.string.wavelog_empty),
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp)
+                )
+            } else {
+                entries.forEachIndexed { index, entry ->
+                    SwipeDeleteRow(
+                        onDelete = {
+                            queue.remove(entry.id)
+                            refreshTick++
+                        }
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                            ) {
+                                Cell(formatLocalTime(entry.timeUtcMs), 72.dp)
+                                GridVLine()
+                                Cell(formatFrequency(entry.freqTxHz), 64.dp)
+                                GridVLine()
+                                Cell(entry.satName, 0.dp, weight = 1.2f)
+                                GridVLine()
+                                Cell(entry.call, 0.dp, weight = 1f)
+                                GridVLine()
+                                Box(modifier = Modifier.width(44.dp)) {
+                                    if (entry.uploaded) {
+                                        Text(
+                                            text = "✓",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = CheckGreen
+                                        )
+                                    }
                                 }
                             }
+                            // 行分隔线
+                            HorizontalDivider(thickness = 1.dp, color = GridLineColor)
                         }
-                        // 表格分隔线
-                        HorizontalDivider(
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                        )
                     }
                 }
             }
@@ -124,32 +138,46 @@ fun WavelogLogScreen(
     }
 }
 
+/** 列竖线 */
 @Composable
-private fun RowScope.HeaderCell(text: String, width: androidx.compose.ui.unit.Dp, weight: Float = 0f) {
-    val mod = if (weight > 0f) Modifier.weight(weight) else Modifier.width(width)
-    Text(
-        text = text,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        modifier = mod
+private fun GridVLine() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(GridLineColor)
     )
 }
 
 @Composable
-private fun RowScope.Cell(text: String, width: androidx.compose.ui.unit.Dp, weight: Float = 0f) {
+private fun RowScope.HeaderCell(text: String, width: Dp, weight: Float = 0f) {
+    val mod = if (weight > 0f) Modifier.weight(weight) else Modifier.width(width)
+    Text(
+        text = text,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        modifier = mod.padding(horizontal = 6.dp)
+    )
+}
+
+@Composable
+private fun RowScope.Cell(text: String, width: Dp, weight: Float = 0f) {
     val mod = if (weight > 0f) Modifier.weight(weight) else Modifier.width(width)
     Text(
         text = text,
         fontSize = 12.sp,
         maxLines = 1,
-        modifier = mod
+        modifier = mod.padding(horizontal = 6.dp)
     )
 }
 
 private fun formatLocalTime(utcMs: Long): String {
     val cal = Calendar.getInstance(TimeZone.getDefault())
     cal.timeInMillis = utcMs
-    return "%02d-%02d %02d:%02d".format(cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+    return "%02d-%02d %02d:%02d".format(
+        cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH),
+        cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)
+    )
 }

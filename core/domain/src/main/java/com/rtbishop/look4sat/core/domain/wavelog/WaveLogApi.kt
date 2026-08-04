@@ -106,6 +106,19 @@ object WaveLogApi {
         WavelogResult.Success("")
     }
 
+    /** LoTW 认可的卫星名: 取括号前主名 + 大写(ISS 特判) */
+    fun normalizeSatName(raw: String): String {
+        val main = raw.substringBefore('(').trim()
+            .ifBlank { raw.trim() }
+            .uppercase(Locale.ENGLISH)
+        // ISS 特判: 主名是 ISS/ZARYA/ARISS 变体 → ISS(LoTW 认可名)
+        return when {
+            main == "ZARYA" || main.startsWith("ISS") -> "ISS"
+            main == "ARISS" -> "ISS"
+            else -> main
+        }
+    }
+
     /** 创建 QSO: 优先 v2, 404 降级 v1(ADIF) */
     suspend fun postQso(
         url: String,
@@ -116,6 +129,8 @@ object WaveLogApi {
     ): WavelogResult = withContext(Dispatchers.IO) {
         val base = normalizeUrl(url)
         if (base.isBlank()) return@withContext WavelogResult.Failure("服务器地址为空")
+
+        val satName = normalizeSatName(qso.satName)
 
         // v2: POST /index.php/api/v2/qso(JSON 字段)
         val v2Body = JSONObject().apply {
@@ -128,7 +143,7 @@ object WaveLogApi {
             put("freq", qso.freqTxHz)
             put("freq_rx", qso.freqRxHz)
             put("gridsquare", gridsquare)
-            put("sat_name", qso.satName)
+            put("sat_name", satName)
         }
         val (code, resp) = httpRequest("$base/index.php/api/v2/qso", "POST", apiKey, v2Body.toString())
         if (code in 200..299) return@withContext WavelogResult.Success("已上传 (v2)")
@@ -139,7 +154,7 @@ object WaveLogApi {
             put("key", apiKey)
             put("station_profile_id", stationProfileId)
             put("type", "adif")
-            put("string", toAdif(qso, gridsquare))
+            put("string", toAdif(qso, gridsquare, satName))
         }
         val (code1, resp1) = httpRequest("$base/index.php/api/qso", "POST", apiKey, v1Body.toString())
         if (code1 in 200..299) return@withContext WavelogResult.Success("已上传 (v1)")
@@ -151,8 +166,8 @@ object WaveLogApi {
         WavelogResult.Failure("上传失败: v2 HTTP $code, v1 HTTP $code1 — ${shortError(resp1.ifBlank { resp1b })}")
     }
 
-    /** v1 ADIF 字符串(频率 MHz, 长度=UTF-8 字节数) */
-    private fun toAdif(qso: WavelogQso, gridsquare: String): String {
+    /** v1 ADIF 字符串(频率 MHz, 长度=UTF-8 字节数, sat_name 已规范化) */
+    private fun toAdif(qso: WavelogQso, gridsquare: String, satName: String): String {
         fun field(name: String, value: String): String {
             val bytes = value.toByteArray(Charsets.UTF_8).size
             return "<$name:$bytes>$value"
@@ -168,8 +183,8 @@ object WaveLogApi {
             append(field("qso_date", utcDateCompact(qso.timeUtcMs)))
             append(field("time_on", utcTimeCompact(qso.timeUtcMs)))
             if (gridsquare.isNotBlank()) append(field("gridsquare", gridsquare.take(4)))
-            if (qso.satName.isNotBlank()) {
-                append(field("sat_name", qso.satName))
+            if (satName.isNotBlank()) {
+                append(field("sat_name", satName))
                 append(field("prop_mode", "SAT"))
             }
             append("<eor>")

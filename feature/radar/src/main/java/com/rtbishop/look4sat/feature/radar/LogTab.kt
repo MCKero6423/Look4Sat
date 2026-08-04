@@ -253,15 +253,19 @@ private fun ExpandedLogInput(
         showToast(savedMsg)
     }
 
-    // 频率显示与转发器栏完全一致(不再另算): TX = 当前调谐(txBaseFrequencyHz), 线性附加频段范围
+    // 频率显示与转发器栏完全一致: TX 行 + RX 行(线性附加频段范围)
     val txForDisplay = txBaseFrequencyHz ?: (radio.uplinkLow ?: radio.downlinkLow ?: 0L)
+    val rxForDisplay = radio.downlinkLow ?: radio.uplinkLow ?: 0L
     val upLow = radio.uplinkLow
     val upHigh = radio.uplinkHigh
+    val downLow = radio.downlinkLow
+    val downHigh = radio.downlinkHigh
     val isLinearRange = upLow != null && upHigh != null && upLow != upHigh
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // TX 行
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "TX ",
+                text = "TX: ",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -274,6 +278,27 @@ private fun ExpandedLogInput(
             if (isLinearRange) {
                 Text(
                     text = "  (${formatFrequency(upLow)} – ${formatFrequency(upHigh)})",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        // RX 行(与转发器栏 RX 一致)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "RX: ",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${formatFrequency(rxForDisplay)} MHz",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (downLow != null && downHigh != null && downLow != downHigh) {
+                Text(
+                    text = "  (${formatFrequency(downLow)} – ${formatFrequency(downHigh)})",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
