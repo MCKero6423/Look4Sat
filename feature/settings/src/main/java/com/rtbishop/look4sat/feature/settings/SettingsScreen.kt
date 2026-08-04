@@ -704,6 +704,7 @@ private fun UiSettingsCard(
         R.string.nav_mutual to "Mutual",
         R.string.nav_roaming to "Roaming",
         R.string.nav_cw to "CwDecode",
+        R.string.nav_log to "WavelogLog",
         R.string.nav_map to "Map",
         R.string.nav_prefs to "Settings"
     ) // name 必须与 Screen.screenId 一致 (R8 安全)

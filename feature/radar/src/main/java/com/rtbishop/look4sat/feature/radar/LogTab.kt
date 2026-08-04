@@ -229,26 +229,14 @@ private fun ExpandedLogInput(
     var callsign by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
 
-    // 回车那一刻的频率(与雷达页 Doppler 面板一致): 优先用当前调谐 TX 频率
-    fun currentFreqs(): Pair<Long, Long> {
-        val uplinkBase = radio.uplinkLow ?: radio.downlinkLow ?: 0L
-        val downlinkBase = radio.downlinkLow ?: radio.uplinkLow ?: 0L
-        // 调谐基准(用户在当前转发器上调的)优先; 否则转发器标称下限
-        val tx = txBaseFrequencyHz ?: (if (orbitalPos != null) orbitalPos.getUplinkFreq(uplinkBase) else uplinkBase)
-        val rx = if (orbitalPos != null) {
-            // 线性转发器: 按映射算下行; FM: 标称下行加多普勒
-            DopplerFrequencyCalculator.computeDownlinkFromUplink(tx, radio, orbitalPos)
-                ?: orbitalPos.getDownlinkFreq(downlinkBase)
-        } else downlinkBase
-        return tx to rx
-    }
-
     val savedMsg = stringResource(id = R.string.wavelog_saved)
 
     fun submit() {
         val call = callsign.trim().uppercase()
         if (call.length < 3) return
-        val (tx, rx) = currentFreqs()
+        // 频率直接取转发器栏的数字(不再多普勒再计算): TX = 当前调谐, RX = 下行基准
+        val tx = txBaseFrequencyHz ?: (radio.uplinkLow ?: radio.downlinkLow ?: 0L)
+        val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
         queue.add(
             WavelogQso(
                 id = UUID.randomUUID().toString(),
@@ -265,35 +253,31 @@ private fun ExpandedLogInput(
         showToast(savedMsg)
     }
 
-    val (txHz, rxHz) = currentFreqs()
-    // 线性转发器: 显示频段区间(多普勒修正); FM: 单频
-    val isLinear = DopplerFrequencyCalculator.isLinearTransponder(radio)
-    val uplinkLow = radio.uplinkLow
-    val uplinkHigh = radio.uplinkHigh
-    val downlinkLow = radio.downlinkLow
-    val downlinkHigh = radio.downlinkHigh
-    val txRange = if (isLinear && uplinkLow != null && uplinkHigh != null && orbitalPos != null) {
-        val lo = orbitalPos.getUplinkFreq(uplinkLow)
-        val hi = orbitalPos.getUplinkFreq(uplinkHigh)
-        "${formatFrequency(minOf(lo, hi))}–${formatFrequency(maxOf(lo, hi))}"
-    } else null
-    val rxRange = if (isLinear && downlinkLow != null && downlinkHigh != null && orbitalPos != null) {
-        val lo = orbitalPos.getDownlinkFreq(downlinkLow)
-        val hi = orbitalPos.getDownlinkFreq(downlinkHigh)
-        "${formatFrequency(minOf(lo, hi))}–${formatFrequency(maxOf(lo, hi))}"
-    } else null
+    // 频率显示与转发器栏完全一致(不再另算): TX = 当前调谐(txBaseFrequencyHz), 线性附加频段范围
+    val txForDisplay = txBaseFrequencyHz ?: (radio.uplinkLow ?: radio.downlinkLow ?: 0L)
+    val upLow = radio.uplinkLow
+    val upHigh = radio.uplinkHigh
+    val isLinearRange = upLow != null && upHigh != null && upLow != upHigh
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "TX ${txRange ?: formatFrequency(txHz)}",
+                text = "TX ",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "RX ${rxRange ?: formatFrequency(rxHz)}",
-                fontSize = 12.sp,
+                text = "${formatFrequency(txForDisplay)} MHz",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
+            if (isLinearRange) {
+                Text(
+                    text = "  (${formatFrequency(upLow)} – ${formatFrequency(upHigh)})",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         OutlinedTextField(
             value = callsign,

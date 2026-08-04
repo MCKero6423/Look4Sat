@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,34 +82,41 @@ fun WavelogLogScreen(
                 modifier = Modifier.padding(vertical = 12.dp)
             )
         } else {
-            entries.forEach { entry ->
+            entries.forEachIndexed { index, entry ->
                 SwipeDeleteRow(
                     onDelete = {
                         queue.remove(entry.id)
                         refreshTick++
                     }
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .padding(horizontal = 10.dp, vertical = 8.dp)
-                    ) {
-                        Cell(formatLocalTime(entry.timeUtcMs), 52.dp)
-                        Cell(formatFrequency(entry.freqTxHz), 70.dp)
-                        Cell(entry.satName, 0.dp, weight = 1.2f)
-                        Cell(entry.call, 0.dp, weight = 1f)
-                        Box(modifier = Modifier.width(44.dp)) {
-                            if (entry.uploaded) {
-                                Text(
-                                    text = "✓",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = CheckGreen
-                                )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
+                            Cell(formatLocalTime(entry.timeUtcMs), 74.dp)
+                            Cell(formatFrequency(entry.freqTxHz), 62.dp)
+                            Cell(entry.satName, 0.dp, weight = 1.2f)
+                            Cell(entry.call, 0.dp, weight = 1f)
+                            Box(modifier = Modifier.width(44.dp)) {
+                                if (entry.uploaded) {
+                                    Text(
+                                        text = "✓",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CheckGreen
+                                    )
+                                }
                             }
                         }
+                        // 表格分隔线
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                        )
                     }
                 }
             }
@@ -143,5 +151,5 @@ private fun RowScope.Cell(text: String, width: androidx.compose.ui.unit.Dp, weig
 private fun formatLocalTime(utcMs: Long): String {
     val cal = Calendar.getInstance(TimeZone.getDefault())
     cal.timeInMillis = utcMs
-    return "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+    return "%02d-%02d %02d:%02d".format(cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
 }

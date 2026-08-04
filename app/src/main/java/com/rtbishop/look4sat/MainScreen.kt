@@ -148,7 +148,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
     // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
-    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.Map, Screen.Settings)
+    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
             // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置(漫游↔地图), 再兜底最后
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
