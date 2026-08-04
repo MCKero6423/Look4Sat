@@ -54,8 +54,8 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * New CW Decoder page (between Roaming and Map): live Morse code decoding from the microphone with waterfall display
-        * Settings: message type, font size and 9 color themes</string>
+        * Transponder CW decoder panel now uses the enhanced decoding engine with a live waterfall display
+        * CW decoding pages share the same engine: navigation page and transponder panel</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>

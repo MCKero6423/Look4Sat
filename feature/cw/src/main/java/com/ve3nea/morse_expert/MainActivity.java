@@ -48,9 +48,19 @@ public class MainActivity {
     public android.app.Activity mActivity;
 
     public void onCreate(android.app.Activity activity, ConstraintLayout constraintLayout) {
+        onCreate(activity, constraintLayout, true);
+    }
+
+    /**
+     * applyImmersive=false 用于嵌入小容器(如转发器 CW 面板):
+     * 不触碰宿主窗口的系统栏标志(避免影响整个 Activity)。
+     */
+    public void onCreate(android.app.Activity activity, ConstraintLayout constraintLayout, boolean applyImmersive) {
         this.mActivity = activity;
-        // K1.a.M(getWindow(), false): immersive status bar (nav/fullscreen flags, ported as-is)
-        setImmersive(activity.getWindow(), false);
+        if (applyImmersive) {
+            // K1.a.M(getWindow(), false): immersive status bar (nav/fullscreen flags, ported as-is)
+            setImmersive(activity.getWindow(), false);
+        }
         View inflate = constraintLayout;
         int i4 = R.id.decodedTextView;
         DecodedTextView decodedTextView = (DecodedTextView) findViewRecursive(inflate, R.id.decodedTextView);

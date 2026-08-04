@@ -17,6 +17,8 @@
  */
 package com.rtbishop.look4sat.feature.radar
 
+import android.app.Activity
+import android.view.LayoutInflater
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -50,6 +52,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +72,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
@@ -75,6 +81,8 @@ import com.rtbishop.look4sat.core.presentation.CardButton
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.formatFrequency
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
+import com.rtbishop.look4sat.feature.cw.R as CwR
+import com.ve3nea.morse_expert.MainActivity
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -661,19 +669,56 @@ private fun CwDecoderPanel(
         }
 
         AnimatedVisibility(visible = cw.isExpanded) {
+            // Morse Expert 引擎(4.5.0 移植): 小布局 cw_panel_main(瀑布图 + 解码文本)
+            // 自带 Kotlin 贝叶斯引擎(CwDecoder)不再用于此面板(代码保留作回退)
+            val context = LocalContext.current
+            val activity = remember { context as? Activity }
+            val controller = remember { MainActivity() }
+            val rootView = remember {
+                LayoutInflater.from(context).inflate(CwR.layout.cw_panel_main, null) as ConstraintLayout
+            }
+            var initialized by remember { mutableStateOf(false) }
+            var listening by remember { mutableStateOf(false) }
+
+            // 生命周期: 展开即绑定视图(不改宿主窗口); 收起/离开自动释放
+            DisposableEffect(Unit) {
+                if (activity != null) {
+                    controller.onCreate(activity, rootView, false)
+                }
+                onDispose {
+                    controller.onPause()
+                    controller.onDestroy()
+                }
+            }
+            // 权限已授予(首次进入/授权回调统一入口): 初始化引擎 + 启动录音
+            LaunchedEffect(cw.hasPermission) {
+                if (cw.hasPermission && !initialized) {
+                    controller.onPermissionGranted() // = v(): 创建音频采集 + 解码核心
+                    controller.onResume()            // 立即启动录音
+                    initialized = true
+                    listening = true
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Control buttons row
+                // Control buttons row(映射到控制器)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (cw.status == CwStatus.Idle) {
+                    if (!listening) {
                         Button(
                             onClick = {
                                 if (!cw.hasPermission) {
                                     requestMicPermission()
+                                } else if (!initialized) {
+                                    controller.onPermissionGranted()
+                                    controller.onResume()
+                                    initialized = true
+                                    listening = true
                                 } else {
-                                    onAction(RadarAction.CwStartListening)
+                                    controller.onResume()
+                                    listening = true
                                 }
                             },
                             modifier = Modifier.weight(1f)
@@ -682,58 +727,30 @@ private fun CwDecoderPanel(
                         }
                     } else {
                         Button(
-                            onClick = { onAction(RadarAction.CwStopListening) },
+                            onClick = {
+                                controller.onPause()
+                                listening = false
+                            },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(R.string.radar_cw_stop))
                         }
                     }
                     OutlinedButton(
-                        onClick = { onAction(RadarAction.CwReset) },
+                        onClick = { controller.clearDecoded() },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.radar_cw_reset))
                     }
                 }
 
-                // Signal strength indicator
-                if (cw.status == CwStatus.Listening && cw.signalStrength > 0f) {
-                    val strengthPct = (cw.signalStrength * 100).toInt()
-                    Text(
-                        text = "Signal: $strengthPct%",
-                        fontSize = 12.sp,
-                        color = if (cw.signalStrength > 0.5f) Color(0xFF4CAF50)
-                        else if (cw.signalStrength > 0.2f) Color(0xFFFFC107)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Decoded text output
-                ElevatedCard(
+                // 瀑布图 + 解码文本(原版布局迷你版, 适配容器)
+                AndroidView(
+                    factory = { rootView },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(8.dp)
-                    ) {
-                        Text(
-                            text = "Decoded:",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = cw.decodedText.ifEmpty { "Waiting for CW signal..." },
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                        .height(150.dp)
+                )
             }
         }
     }
