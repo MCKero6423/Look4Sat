@@ -53,9 +53,9 @@
         Make sure to set your position via GPS, Lat/Lon or QTH in Settings.
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
-    <string name="pass_whatsnew_message" translatable="false">
-        * Fixed a crash when scrolling the Settings page
-        * Page order: drag a page past multiple positions in one gesture; grip is now a single dot</string>
+        <string name="pass_whatsnew_message" translatable="false">
+        * New CW Decoder page (between Roaming and Map): live Morse code decoding from the microphone with waterfall display
+        * Settings: message type, font size and 9 color themes</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>

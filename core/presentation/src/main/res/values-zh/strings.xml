@@ -41,9 +41,9 @@
     <string name="pass_welcome_title">欢迎来到 Look4Sat\!</string>
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
-    <string name="pass_whatsnew_message" translatable="false">
-        * 修复设置页滑动时闪退的问题
-        * 页面顺序：可一次拖动越过多个位置；拖拽手柄改为小圆点</string>
+        <string name="pass_whatsnew_message" translatable="false">
+        * 新增 CW 解码页(漫游与地图之间): 麦克风实时摩尔斯电码解码 + 瀑布图显示
+        * 设置: 消息类型、字体大小、9 种颜色主题</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
