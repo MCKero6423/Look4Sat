@@ -1,4 +1,4 @@
-package sun.misc;
+package com.rtbishop.look4sat.feature.cw.suncompat;
 
 /**
  * 编译期 stub:Android 无 sun.misc.Unsafe(运行时通过反射获取,失败时 k3.r.f12109a 为 null)。

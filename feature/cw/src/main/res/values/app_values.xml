@@ -2,7 +2,6 @@
 <resources>
     <color name="purple_500">#ff6200ee</color>
     <integer name="default_font_size">18</integer>
-    <string name="app_name">Morse Expert</string>
     <string name="idle">Idle</string>
     <string name="waterfall_display">Waterfall display</string>
     <string name="frequency_scale">Frequency scale</string>

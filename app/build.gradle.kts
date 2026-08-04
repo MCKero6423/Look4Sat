@@ -11,6 +11,13 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
+    // CW 解码 native 库仅 armeabi-v7a(照搬 Morse Expert 1.15): 全 ABI 打包会在
+    // arm64 设备 loadLibrary 失败, 强制 32 位兼容(用户设备为 32 位软件)
+    defaultConfig {
+        ndk {
+            abiFilters += listOf("armeabi-v7a")
+        }
+    }
     signingConfigs {
         if (keystoreProperties["storeFile"] != null) {
             create("release") {

@@ -1,3 +1,6 @@
+import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.variant.CanProduceConsumerProguardFiles
+
 plugins {
     alias(libs.plugins.convention.featurePlugin)
 }
@@ -12,6 +15,16 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a")
         }
+    }
+}
+
+// CW 类保持规则(JNI 按类名注册 + 照搬混淆类保逻辑), 由 app 的 R8 消费
+// AGP 9: consumer 规则走 variant 级 CanProduceConsumerProguardFiles
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        (variant as? CanProduceConsumerProguardFiles)?.consumerProguardFiles?.add(
+            project.layout.projectDirectory.file("proguard-rules.pro")
+        )
     }
 }
 
