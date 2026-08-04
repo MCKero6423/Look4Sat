@@ -51,7 +51,8 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
-        * Ayarlar sayfasında kaydırırken oluşan çökme düzeltildi (sayfa sırası listesi yüksekliği)</string>
+        * Ayarlar sayfasında kaydırırken oluşan çökme düzeltildi
+        * Sayfa sırası: tek hareketle birden fazla konum atlanabilir; tutamaç tek nokta oldu</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>

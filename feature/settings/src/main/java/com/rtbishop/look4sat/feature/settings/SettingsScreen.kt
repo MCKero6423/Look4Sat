@@ -22,15 +22,19 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.height
@@ -639,23 +643,22 @@ private fun DragOrderList(
                     text = stringResource(id = screen.first),
                     modifier = Modifier.weight(1f)
                 )
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_drag),
-                    contentDescription = stringResource(id = R.string.prefs_ui_order_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Box(
                     modifier = Modifier
                         .size(48.dp)
+                        .padding(20.dp)
                         .pointerInput(screen.second) {
                             detectDragGestures(
-                                onDragStart = { draggingIndex = index },
+                                onDragStart = { draggingIndex = items.indexOf(screen) },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     dragOffset += dragAmount.y
-                                    val target = (index + (dragOffset / itemHeightPx).roundToInt())
+                                    val currentIndex = draggingIndex
+                                    val target = (currentIndex + (dragOffset / itemHeightPx).roundToInt())
                                         .coerceIn(0, items.size - 1)
-                                    if (target != index) {
-                                        items.add(target, items.removeAt(index))
-                                        dragOffset += (index - target) * itemHeightPx
+                                    if (target != currentIndex) {
+                                        items.add(target, items.removeAt(currentIndex))
+                                        dragOffset += (currentIndex - target) * itemHeightPx
                                         draggingIndex = target
                                     }
                                 },
@@ -670,7 +673,14 @@ private fun DragOrderList(
                                 }
                             )
                         }
-                )
+                ) {
+                    // 小圆点手柄(触控区 padding 20dp 居中 -> 8dp 圆点)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
+                    )
+                }
             }
         }
     }
