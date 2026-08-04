@@ -15,6 +15,7 @@
     <string name="nav_map">地图</string>
     <string name="nav_prefs">设置</string>
     <string name="nav_more">更多</string>
+    <string name="nav_log">日志</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">类型：%s</string>
@@ -43,8 +44,8 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 新增 WaveLog 日志系统: 雷达页 Log 标签记录卫星通联日志
-        * 自动/手动上传到 WaveLog 服务器,带网格不一致检测</string>
+        * 修复 WaveLog 上传 404(URL 处理 + 自动路径重试)
+        * 转发器改为下拉选择框; 修复左滑删除; 更多菜单新增「日志」页(表格视图)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
@@ -178,6 +179,7 @@
     <string name="prefs_wavelog_test">测试连接</string>
     <string name="prefs_wavelog_upload">手动上传</string>
     <string name="wavelog_title">日志</string>
+    <string name="wavelog_select_transponder">选择转发器</string>
     <string name="wavelog_call_hint">对方呼号</string>
     <string name="wavelog_mode_hint">模式</string>
     <string name="wavelog_saved">已存入本地日志</string>
@@ -187,6 +189,11 @@
     <string name="wavelog_ignore">忽略并上传</string>
     <string name="wavelog_cancel">取消</string>
     <string name="wavelog_delete_undo">撤销</string>
+    <string name="wavelog_col_time">时间</string>
+    <string name="wavelog_col_freq">频率</string>
+    <string name="wavelog_col_sat">卫星</string>
+    <string name="wavelog_col_call">呼号</string>
+    <string name="wavelog_col_uploaded">已传</string>
     <string name="prefs_other_title">其他设置</string>
     <string name="prefs_ui_title">UI设置</string>
     <string name="prefs_ui_order_title">页面顺序</string>

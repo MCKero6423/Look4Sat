@@ -47,21 +47,20 @@ class WavelogUploader(
             }
         }
 
-        // 3. 逐条上传
+        // 3. 逐条上传(成功后标记 uploaded, 保留在本地供日志页打勾)
         val entries = queue.all()
         var ok = 0
         var fail = 0
-        val uploadedIds = mutableSetOf<String>()
         for (qso in entries) {
+            if (qso.uploaded) { ok++; continue }
             val result = WaveLogApi.postQso(url, apiKey, stationId, qso, stationGrid)
             if (result is WavelogResult.Success) {
                 ok++
-                uploadedIds.add(qso.id)
+                queue.markUploaded(qso.id)
             } else {
                 fail++
             }
         }
-        if (uploadedIds.isNotEmpty()) queue.removeAll(uploadedIds)
         val message = if (fail == 0) "成功上传 $ok 条" else "成功 $ok 条, 失败 $fail 条(保留待重试)"
         return UploadOutcome.Done(ok, fail, message)
     }

@@ -13,6 +13,7 @@
     <string name="nav_map">Peta</string>
     <string name="nav_prefs">Pengaturan</string>
     <string name="nav_more">Lainnya</string>
+    <string name="nav_log">Log</string>
     <string name="sat_type_hint">Jenis: %s</string>
     <string name="sat_type_title">Pilih jenis satelit</string>
     <string name="sat_search_hint">Id - Nama</string>
@@ -48,8 +49,8 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message">
-        * Integrasi logbook WaveLog baru: catat kontak satelit dari halaman radar (tab Log)
-        * Unggah otomatis/manual ke server WaveLog Anda dengan deteksi ketidakcocokan grid</string>
+        * Perbaiki kesalahan 404 unggah WaveLog (penanganan URL + percobaan jalur otomatis)
+        * Pemilih transponder kini dropdown; swipe-to-delete diperbaiki; halaman Log baru (tampilan tabel) di menu Lainnya</string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
@@ -185,6 +186,7 @@
     <string name="prefs_wavelog_test">Uji koneksi</string>
     <string name="prefs_wavelog_upload">Unggah sekarang</string>
     <string name="wavelog_title">Log</string>
+    <string name="wavelog_select_transponder">Pilih transponder</string>
     <string name="wavelog_call_hint">Tanda panggil</string>
     <string name="wavelog_mode_hint">Mode</string>
     <string name="wavelog_saved">Tersimpan ke log lokal</string>
@@ -194,6 +196,11 @@
     <string name="wavelog_ignore">Abaikan dan unggah</string>
     <string name="wavelog_cancel">Batal</string>
     <string name="wavelog_delete_undo">Urungkan</string>
+    <string name="wavelog_col_time">Waktu</string>
+    <string name="wavelog_col_freq">Frek.</string>
+    <string name="wavelog_col_sat">Satelit</string>
+    <string name="wavelog_col_call">Panggilan</string>
+    <string name="wavelog_col_uploaded">Terkirim</string>
     <string name="prefs_other_title">Pengaturan lainnya</string>
     <string name="prefs_ui_title">Pengaturan UI</string>
     <string name="prefs_ui_order_title">Urutan halaman</string>

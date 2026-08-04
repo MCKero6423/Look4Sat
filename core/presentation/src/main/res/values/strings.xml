@@ -16,6 +16,7 @@
     <string name="nav_map">Map</string>
     <string name="nav_prefs">Settings</string>
     <string name="nav_more">More</string>
+    <string name="nav_log">Log</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">Type: %s</string>
@@ -55,8 +56,8 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * New WaveLog logbook integration: log satellite contacts from the radar page (Log tab)
-        * Auto/manual upload to your WaveLog server with grid mismatch detection</string>
+        * Fixed WaveLog upload 404 (URL handling + automatic path retry)
+        * Transponder picker is now a dropdown; swipe-to-delete fixed; new Log page (table view) under More</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>
@@ -209,6 +210,7 @@
     <string name="prefs_wavelog_test">Test connection</string>
     <string name="prefs_wavelog_upload">Upload now</string>
     <string name="wavelog_title">Log</string>
+    <string name="wavelog_select_transponder">Select transponder</string>
     <string name="wavelog_call_hint">Callsign</string>
     <string name="wavelog_mode_hint">Mode</string>
     <string name="wavelog_saved">Saved to local log</string>
@@ -218,6 +220,11 @@
     <string name="wavelog_ignore">Ignore and upload</string>
     <string name="wavelog_cancel">Cancel</string>
     <string name="wavelog_delete_undo">Undo</string>
+    <string name="wavelog_col_time">Time</string>
+    <string name="wavelog_col_freq">Freq</string>
+    <string name="wavelog_col_sat">Satellite</string>
+    <string name="wavelog_col_call">Call</string>
+    <string name="wavelog_col_uploaded">Sent</string>
     <string name="prefs_other_title">Other settings</string>
     <string name="prefs_ui_title">UI Settings</string>
     <string name="prefs_ui_order_title">Page order</string>

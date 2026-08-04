@@ -24,7 +24,8 @@ data class WavelogQso(
     val mode: String,
     val freqTxHz: Long,          // 上行(回车那一秒多普勒修正)
     val freqRxHz: Long,          // 下行
-    val satName: String
+    val satName: String,
+    val uploaded: Boolean = false // 是否已成功上传(4.5.2 修复: 成功后保留标记, 表格打勾)
 )
 
 class WavelogQueue(private val store: IWavelogQueueStore) {
@@ -44,7 +45,8 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
                     mode = o.optString("mode"),
                     freqTxHz = o.optLong("freqTxHz"),
                     freqRxHz = o.optLong("freqRxHz"),
-                    satName = o.optString("satName")
+                    satName = o.optString("satName"),
+                    uploaded = o.optBoolean("uploaded", false)
                 )
             }
         } catch (_: Exception) { emptyList() }
@@ -68,6 +70,18 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
         save(all().filter { it.id !in ids })
     }
 
+    /** 标记为已上传(保留在队列, 表格打勾) */
+    @Synchronized
+    fun markUploaded(id: String) {
+        save(all().map { if (it.id == id) it.copy(uploaded = true) else it })
+    }
+
+    /** 移除所有已上传条目(可选项, 保持队列精简) */
+    @Synchronized
+    fun removeUploaded() {
+        save(all().filter { !it.uploaded })
+    }
+
     private fun save(list: List<WavelogQso>) {
         val arr = JSONArray()
         list.forEach { q ->
@@ -75,6 +89,7 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
                 put("id", q.id); put("timeUtcMs", q.timeUtcMs); put("call", q.call)
                 put("mode", q.mode); put("freqTxHz", q.freqTxHz)
                 put("freqRxHz", q.freqRxHz); put("satName", q.satName)
+                put("uploaded", q.uploaded)
             })
         }
         store.save(arr.toString())

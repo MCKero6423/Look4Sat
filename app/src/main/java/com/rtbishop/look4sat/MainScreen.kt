@@ -96,6 +96,7 @@ import com.rtbishop.look4sat.feature.mutual.MutualScreen
 import com.rtbishop.look4sat.feature.mutual.MutualViewModel
 import com.rtbishop.look4sat.feature.passes.PassesDestination
 import com.rtbishop.look4sat.feature.radar.RadarDestination
+import com.rtbishop.look4sat.feature.radar.WavelogLogScreen
 import com.rtbishop.look4sat.feature.roaming.RoamingScreen
 import com.rtbishop.look4sat.feature.satellites.SatellitesDestination
 import com.rtbishop.look4sat.feature.settings.SettingsDestination
@@ -158,7 +159,9 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
         }
         .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
     // 4.5.1 折叠菜单: 主菜单(底部栏 5 槽) + 更多菜单(溢出页面)
-    val subOrder = otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder }
+    // 老用户迁移: 已持久化的 subMenuOrder 不含新页面 WavelogLog → 追加到子菜单尾部
+    val subOrder = (otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder })
+        .let { list -> if ("WavelogLog" in list) list else list + "WavelogLog" }
     val mainNavItems = remember(allNavItems, subOrder) {
         allNavItems.filter { it.screenId !in subOrder }.take(5)
     }
@@ -189,6 +192,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         is Screen.Radar -> screen is Screen.Radar
                         is Screen.Mutual -> screen is Screen.Mutual
                         is Screen.CwDecode -> screen is Screen.CwDecode
+                        is Screen.WavelogLog -> screen is Screen.WavelogLog
                         is Screen.Map -> screen is Screen.Map
                         is Screen.Settings -> screen is Screen.Settings
                         else -> false
@@ -278,6 +282,9 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                             }
                             entry<Screen.CwDecode> {
                                 CwDecodeScreen()
+                            }
+                            entry<Screen.WavelogLog> {
+                                WavelogLogScreen(queue = container.wavelogQueue)
                             }
                             entry<Screen.Settings> {
                                 SettingsDestination()

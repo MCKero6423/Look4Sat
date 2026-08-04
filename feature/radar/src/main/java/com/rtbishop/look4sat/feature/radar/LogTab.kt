@@ -9,6 +9,10 @@
  */
 package com.rtbishop.look4sat.feature.radar
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,8 +34,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +77,7 @@ import kotlin.math.roundToInt
 
 private val WaveLogYellow = Color(0xFFFFC107)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogTab(
     transceivers: List<SatRadio>,
@@ -97,44 +107,56 @@ fun LogTab(
             )
         }
 
-        // 转发器选择: 点开一个, 边看频率边填日志
-        transceivers.forEach { radio ->
-            val isExpanded = radio.uuid == selectedUuid
-            Card(
+        // 转发器选择(下拉选择框): 选中后底下出现输入区
+        var menuExpanded by remember { mutableStateOf(false) }
+        var selectedRadio by remember { mutableStateOf<SatRadio?>(null) }
+        ExposedDropdownMenuBox(
+            expanded = menuExpanded,
+            onExpandedChange = { menuExpanded = it }
+        ) {
+            OutlinedTextField(
+                value = selectedRadio?.info ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(id = R.string.wavelog_select_transponder)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuExpanded) },
+                textStyle = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth()
-                    .clickable { selectedUuid = if (isExpanded) null else radio.uuid },
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isExpanded) MaterialTheme.colorScheme.surfaceContainerHighest
-                    else MaterialTheme.colorScheme.surfaceContainer
-                )
+            )
+            ExposedDropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
             ) {
-                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = radio.info,
-                            fontSize = 13.sp,
-                            fontWeight = if (isExpanded) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = if (isExpanded) "▾" else "▸",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (isExpanded) {
-                        ExpandedLogInput(
-                            radio = radio,
-                            orbitalPos = orbitalPos,
-                            satelliteName = satelliteName,
-                            queue = queue,
-                            showToast = showToast,
-                            onSaved = { refreshTick++ }
-                        )
-                    }
+                transceivers.forEach { radio ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = radio.info,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        onClick = {
+                            selectedRadio = radio
+                            menuExpanded = false
+                        }
+                    )
                 }
             }
+        }
+
+        // 选中转发器后: 输入区(实时频率 + 呼号 + 模式)
+        selectedRadio?.let { radio ->
+            ExpandedLogInput(
+                radio = radio,
+                orbitalPos = orbitalPos,
+                satelliteName = satelliteName,
+                queue = queue,
+                showToast = showToast,
+                onSaved = { refreshTick++ }
+            )
         }
 
         // 本地记录列表(时间/频率/呼号)
@@ -275,7 +297,7 @@ private fun ExpandedLogInput(
  * 5 秒倒计时内点撤销恢复, 不点自动删除。
  */
 @Composable
-private fun SwipeDeleteRow(
+internal fun SwipeDeleteRow(
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -284,6 +306,13 @@ private fun SwipeDeleteRow(
     var countdown by remember { mutableIntStateOf(5) }
     var rowWidth by remember { mutableIntStateOf(0) }
     val threshold = rowWidth * 0.75f
+
+    // 平滑弹回/滑入(动画)
+    val animatedOffset by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = if (pending) tween(200) else spring(dampingRatio = Spring.DampingRatioNoBouncy),
+        label = "swipeOffset"
+    )
 
     // 倒计时: 进入待删除后 5 秒自动删
     LaunchedEffect(pending) {
@@ -301,7 +330,11 @@ private fun SwipeDeleteRow(
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onSizeChanged { rowWidth = it.width }
+    ) {
         // 背景层(右侧图标: 垃圾桶 / 撤销+倒计时)
         Box(
             modifier = Modifier
@@ -348,7 +381,7 @@ private fun SwipeDeleteRow(
         // 内容层(跟手滑动)
         Box(
             modifier = Modifier
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragStart = { if (pending) { pending = false } },

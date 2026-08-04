@@ -65,6 +65,7 @@ fun MoreMenuPopup(
                         is Screen.Radar -> screen is Screen.Radar
                         is Screen.Mutual -> screen is Screen.Mutual
                         is Screen.CwDecode -> screen is Screen.CwDecode
+                        is Screen.WavelogLog -> screen is Screen.WavelogLog
                         is Screen.Map -> screen is Screen.Map
                         is Screen.Settings -> screen is Screen.Settings
                         else -> false

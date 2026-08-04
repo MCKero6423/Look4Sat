@@ -14,6 +14,7 @@
     <string name="nav_map">Harita</string>
     <string name="nav_prefs">Ayarlar</string>
     <string name="nav_more">Daha Fazla</string>
+    <string name="nav_log">Günlük</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">Uydu türü: %s</string>
@@ -53,8 +54,8 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * Yeni WaveLog günlük entegrasyonu: radar sayfasından uydu temaslarını kaydedin (Günlük sekmesi)
-        * Izgara uyuşmazlığı algılamayla WaveLog sunucunuza otomatik/manuel yükleme</string>
+        * WaveLog yükleme 404 hatası düzeltildi (URL işleme + otomatik yol denemesi)
+        * Transponder seçici artık açılır menü; kaydır-sil düzeltildi; Daha Fazla altında yeni Günlük sayfası (tablo görünümü)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>
@@ -195,6 +196,7 @@
     <string name="prefs_wavelog_test">Bağlantıyı test et</string>
     <string name="prefs_wavelog_upload">Şimdi yükle</string>
     <string name="wavelog_title">Günlük</string>
+    <string name="wavelog_select_transponder">Transponder seç</string>
     <string name="wavelog_call_hint">Çağrı işareti</string>
     <string name="wavelog_mode_hint">Mod</string>
     <string name="wavelog_saved">Yerel günlüğe kaydedildi</string>
@@ -204,6 +206,11 @@
     <string name="wavelog_ignore">Yoksay ve yükle</string>
     <string name="wavelog_cancel">İptal</string>
     <string name="wavelog_delete_undo">Geri al</string>
+    <string name="wavelog_col_time">Zaman</string>
+    <string name="wavelog_col_freq">Frekans</string>
+    <string name="wavelog_col_sat">Uydu</string>
+    <string name="wavelog_col_call">Çağrı</string>
+    <string name="wavelog_col_uploaded">Gönderildi</string>
     <string name="prefs_other_title">Diğer ayarlar</string>
     <string name="prefs_ui_title">UI Ayarları</string>
     <string name="prefs_ui_order_title">Sayfa sırası</string>
