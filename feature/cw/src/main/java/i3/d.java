@@ -1211,7 +1211,8 @@ public final class d {
                                 throw null;
                             }
                         }
-                    } else {
+                    }
+                } else {
                         // smali cond_22(a5==0, k=1 时运行时路径!): 单线程 FFT + 后处理
                         // jadx 原把这段错塞进 if(i8!=1) 的 else(死代码), a5==0 的 else 是幻觉(throw null)
                         int i26 = this.f11700a;
@@ -1264,4 +1265,3 @@ public final class d {
             }
         }
     }
-}

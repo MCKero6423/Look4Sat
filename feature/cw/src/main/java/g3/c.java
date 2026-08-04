@@ -455,21 +455,23 @@ public abstract class c {
             if (z3) {
                 i4 ^= 2;
             }
+            // smali 证实: f() = sin(象限 switch!):
+            //   case 0 -> g(d5,0)(sin(0-π/2))
+            //   case 1 -> c(d5,0)(sin(π/2-π) = cos(余角))
+            //   case 2 -> -g(d5,0)(sin(π-3π/2) = -sin(余角))
+            //   case 3 -> -c(d5,0)(sin(3π/2-2π) = -cos(余角))
+            // jadx 畸形嵌套 if 把 case 0 还原成 return NaN(小角度全 NaN!),
+            // 且 case 1/2/3 全走 g() —— 旋转因子表 329 个 NaN + 频谱错乱的根源!
             if (i4 == 0) {
-                if (i4 != 1) {
-                    if (i4 != 2) {
-                        if (i4 != 3) {
-                            return Double.NaN;
-                        }
-                        g4 = c(d5, d7);
-                    } else {
-                        g4 = g(d5, d7);
-                    }
-                    return -g4;
-                }
+                return g(d5, d7);
+            }
+            if (i4 == 1) {
                 return c(d5, d7);
             }
-            return g(d5, d7);
+            if (i4 == 2) {
+                return -g(d5, d7);
+            }
+            return -c(d5, d7);
         }
         d7 = d6;
         // jadx 还原不完整(smali 650 行, jadx 只还原 63 行); f() 未被任何代码调用(死代码),
