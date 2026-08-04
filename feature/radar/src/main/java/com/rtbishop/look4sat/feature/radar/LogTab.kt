@@ -413,11 +413,12 @@ internal fun SwipeDeleteRow(
                 )
             }
         }
-        // 内容层(跟手滑动): 不透明背景确保平时完全盖住垃圾桶, 仅左滑露出
+        // 内容层(跟手滑动): 背景在 offset 内侧(随内容移动)!
+        // 平时盖住垃圾桶, 左滑时内容带背景移开 → 右侧露出黄色垃圾桶/撤销倒计时
         Box(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragStart = { if (pending) { pending = false } },
