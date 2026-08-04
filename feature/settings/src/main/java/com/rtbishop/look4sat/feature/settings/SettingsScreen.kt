@@ -780,12 +780,20 @@ private fun UiSettingsCard(
                 items = subItems,
                 labels = screens,
                 moveLabel = stringResource(id = R.string.prefs_ui_move_back),
-                moveEnabled = { mainItems.size < 5 },
+                // 按钮常显; 主菜单满 5 时自动让位(最后一个非"设置"项移入更多, 交换)
+                moveEnabled = { true },
                 onMove = { name ->
-                    onUpdateMenu(
-                        (screenOrder.ifEmpty { defaultScreenOrder } + name).distinct(),
-                        subItems.filter { it != name }
-                    )
+                    val mainWithoutSettings = mainItems.filter { it != "Settings" }
+                    val needSwap = mainWithoutSettings.size >= 5
+                    val evicted = if (needSwap) mainWithoutSettings.last() else null
+                    val newMain = if (needSwap) {
+                        (mainWithoutSettings.dropLast(1) + name).distinct()
+                    } else {
+                        (mainWithoutSettings + name).distinct()
+                    }
+                    val newSub = (subItems.filter { it != name } +
+                        if (evicted != null) listOf(evicted) else emptyList()).distinct()
+                    onUpdateMenu(newMain, newSub)
                 },
                 onReorder = { sub -> onUpdateMenu(screenOrder, sub) }
             )

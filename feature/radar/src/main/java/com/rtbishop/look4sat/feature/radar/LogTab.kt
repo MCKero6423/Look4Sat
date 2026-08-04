@@ -110,8 +110,9 @@ fun LogTab(
         }
 
         // 转发器选择(下拉选择框): 选中后底下出现输入区
+        // 选中项按 uuid 从 transceivers 实时派生(多普勒频率每秒更新, 频率显示随之刷新)
         var menuExpanded by remember { mutableStateOf(false) }
-        var selectedRadio by remember { mutableStateOf<SatRadio?>(null) }
+        val selectedRadio = transceivers.firstOrNull { it.uuid == selectedUuid }
         ExposedDropdownMenuBox(
             expanded = menuExpanded,
             onExpandedChange = { menuExpanded = it }
@@ -141,7 +142,7 @@ fun LogTab(
                             )
                         },
                         onClick = {
-                            selectedRadio = radio
+                            selectedUuid = radio.uuid
                             menuExpanded = false
                         }
                     )
@@ -234,8 +235,8 @@ private fun ExpandedLogInput(
     fun submit() {
         val call = callsign.trim().uppercase()
         if (call.length < 3) return
-        // 频率直接取转发器栏的数字(不再多普勒再计算): TX = 当前调谐, RX = 下行基准
-        val tx = txBaseFrequencyHz ?: (radio.uplinkLow ?: radio.downlinkLow ?: 0L)
+        // 频率直接取转发器栏的数字(radio 每秒多普勒修正, 回车那一秒的值)
+        val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
         queue.add(
             WavelogQso(
@@ -253,8 +254,8 @@ private fun ExpandedLogInput(
         showToast(savedMsg)
     }
 
-    // 频率显示与转发器栏完全一致: TX 行 + RX 行(线性附加频段范围)
-    val txForDisplay = txBaseFrequencyHz ?: (radio.uplinkLow ?: radio.downlinkLow ?: 0L)
+    // 频率显示与转发器栏完全一致: TX 行 + RX 行(radio 来自每秒多普勒重算, 实时刷新)
+    val txForDisplay = radio.uplinkLow ?: radio.downlinkLow ?: 0L
     val rxForDisplay = radio.downlinkLow ?: radio.uplinkLow ?: 0L
     val upLow = radio.uplinkLow
     val upHigh = radio.uplinkHigh
@@ -412,9 +413,10 @@ internal fun SwipeDeleteRow(
                 )
             }
         }
-        // 内容层(跟手滑动)
+        // 内容层(跟手滑动): 不透明背景确保平时完全盖住垃圾桶, 仅左滑露出
         Box(
             modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
