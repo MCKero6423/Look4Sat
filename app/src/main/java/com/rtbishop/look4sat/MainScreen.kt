@@ -80,6 +80,7 @@ import com.rtbishop.look4sat.core.presentation.RadarDestination
 import com.rtbishop.look4sat.core.presentation.Screen
 import com.rtbishop.look4sat.core.presentation.hasEnoughHeight
 import com.rtbishop.look4sat.core.presentation.hasEnoughWidth
+import com.rtbishop.look4sat.feature.cw.CwDecodeScreen
 import com.rtbishop.look4sat.feature.map.MapDestination
 import com.rtbishop.look4sat.feature.mutual.MutualScreen
 import com.rtbishop.look4sat.feature.mutual.MutualViewModel
@@ -136,7 +137,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
     // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
-    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.Map, Screen.Settings)
+    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
             if (idx == -1) Int.MAX_VALUE else idx
@@ -162,6 +163,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         is Screen.Passes -> screen is Screen.Passes
                         is Screen.Radar -> screen is Screen.Radar
                         is Screen.Mutual -> screen is Screen.Mutual
+                        is Screen.CwDecode -> screen is Screen.CwDecode
                         is Screen.Map -> screen is Screen.Map
                         is Screen.Settings -> screen is Screen.Settings
                         else -> false
@@ -232,6 +234,9 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                         entry<Screen.Roaming> {
                             RoamingScreen()
+                        }
+                        entry<Screen.CwDecode> {
+                            CwDecodeScreen()
                         }
                         entry<Screen.Settings> {
                             SettingsDestination()

@@ -42,11 +42,14 @@ sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: Strin
     data object Roaming : Screen(R.drawable.ic_roaming, R.string.nav_roaming, "Roaming")
 
     @Serializable
+    data object CwDecode : Screen(R.drawable.ic_cw, R.string.nav_cw, "CwDecode")
+
+    @Serializable
     data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs, "Settings")
 }
 
 // UI 设置: 默认页面顺序(与 MainScreen navItems 一致)
-val defaultScreenOrder = listOf("Satellites", "Passes", "Radar", "Mutual", "Roaming", "Map", "Settings")
+val defaultScreenOrder = listOf("Satellites", "Passes", "Radar", "Mutual", "Roaming", "CwDecode", "Map", "Settings")
 
 @Serializable
 data object RadarDestination : NavKey

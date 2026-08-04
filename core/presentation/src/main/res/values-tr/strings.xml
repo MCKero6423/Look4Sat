@@ -10,6 +10,7 @@
     <string name="nav_sat">Uydular</string>
     <string name="nav_pass">Geçişler</string>
     <string name="nav_radar">Radar</string>
+    <string name="nav_cw">CW Dekoder</string>
     <string name="nav_map">Harita</string>
     <string name="nav_prefs">Ayarlar</string>
 

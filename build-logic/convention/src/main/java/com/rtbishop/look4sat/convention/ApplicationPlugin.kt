@@ -31,6 +31,7 @@ internal class ApplicationPlugin : Plugin<Project> {
             implementation(project(":core:data"))
             implementation(project(":core:domain"))
             implementation(project(":core:presentation"))
+            implementation(project(":feature:cw"))
             implementation(project(":feature:map"))
             implementation(project(":feature:mutual"))
             implementation(project(":feature:passes"))

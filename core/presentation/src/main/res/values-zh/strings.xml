@@ -11,6 +11,7 @@
     <string name="nav_radar">雷达</string>
     <string name="nav_mutual">匹配</string>
     <string name="nav_roaming">漫游</string>
+    <string name="nav_cw">CW解码</string>
     <string name="nav_map">地图</string>
     <string name="nav_prefs">设置</string>
 
