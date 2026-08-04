@@ -49,6 +49,7 @@ data class MutualUiState(
     val hoursAhead: Int = 24,
     val mutualPasses: List<MutualPass> = emptyList(),
     val isCalculating: Boolean = false,
+    val hasSearched: Boolean = false,
     val selectedPassIndex: Int = -1,
     val errorMessage: String? = null
 )
@@ -167,7 +168,15 @@ class MutualViewModel(
             return
         }
 
-        _uiState.update { it.copy(isCalculating = true, errorMessage = null, mutualPasses = emptyList()) }
+        _uiState.update {
+            it.copy(
+                isCalculating = true,
+                hasSearched = true,
+                errorMessage = null,
+                mutualPasses = emptyList(),
+                selectedPassIndex = -1
+            )
+        }
 
         viewModelScope.launch {
             val time = System.currentTimeMillis()
