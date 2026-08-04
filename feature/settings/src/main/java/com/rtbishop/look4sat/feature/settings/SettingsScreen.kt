@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
@@ -96,6 +97,8 @@ import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
 import com.rtbishop.look4sat.core.presentation.TopBar
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
+import com.rtbishop.look4sat.core.presentation.defaultScreenOrder
+import com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -327,9 +330,11 @@ private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) ->
                 UiSettingsCard(
                     hiddenScreens = uiState.otherSettings.hiddenScreens,
                     screenOrder = uiState.otherSettings.screenOrder,
+                    subMenuOrder = uiState.otherSettings.subMenuOrder,
                     onToggle = { name -> onAction(SettingsAction.ToggleScreen(name)) },
                     onReorder = { order -> onAction(SettingsAction.ReorderScreens(order)) },
-                    onResetOrder = { onAction(SettingsAction.ResetScreenOrder) }
+                    onResetOrder = { onAction(SettingsAction.ResetMenuOrder) },
+                    onUpdateMenu = { main, sub -> onAction(SettingsAction.UpdateMenuOrder(main, sub)) }
                 )
             }
             item { CardCredits() }
@@ -370,11 +375,11 @@ private fun LocationCard(
             Text(text = formatUpdateTime(updateTime = settings.stationPos.timestamp))
             Spacer(modifier = Modifier.height(2.dp))
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Lat: ${settings.stationPos.latitude}°")
-                Text(text = "Lon: ${settings.stationPos.longitude}°")
+                Text(text = stringResource(R.string.loc_lat_text, settings.stationPos.latitude))
+                Text(text = stringResource(R.string.loc_lon_text, settings.stationPos.longitude))
             }
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Qth: ${settings.stationPos.qthLocator}")
+                Text(text = stringResource(R.string.loc_qth_text, settings.stationPos.qthLocator))
             }
             Spacer(modifier = Modifier.height(1.dp))
             Row(horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -557,9 +562,11 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
 private fun UiSettingsCard(
     hiddenScreens: List<String>,
     screenOrder: List<String>,
+    subMenuOrder: List<String>,
     onToggle: (String) -> Unit,
     onReorder: (List<String>) -> Unit,
-    onResetOrder: () -> Unit
+    onResetOrder: () -> Unit,
+    onUpdateMenu: (List<String>, List<String>) -> Unit
 ) {
     val screens = listOf(
         R.string.nav_sat to "Satellites",
@@ -571,6 +578,25 @@ private fun UiSettingsCard(
         R.string.nav_map to "Map",
         R.string.nav_prefs to "Settings"
     ) // name 必须与 Screen.screenId 一致 (R8 安全)
+    // 主菜单项: 排除更多菜单项, Settings 固定最后
+    val mainItems = remember(screens, screenOrder, subMenuOrder) {
+        val sub = subMenuOrder.ifEmpty { defaultSubMenuOrder }
+        screens.map { it.second }
+            .filter { it !in sub }
+            .sortedBy { name ->
+                screenOrder.indexOf(name).let { idx ->
+                    if (idx != -1) idx else defaultScreenOrder.indexOf(name).let {
+                        if (it != -1) it else Int.MAX_VALUE
+                    }
+                }
+            }
+            .sortedWith(compareBy { if (it == "Settings") 1 else 0 })
+    }
+    // 更多菜单项
+    val subItems = remember(screens, subMenuOrder) {
+        val sub = subMenuOrder.ifEmpty { defaultSubMenuOrder }
+        sub.filter { s -> screens.any { (_, name) -> name == s } }
+    }
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -594,7 +620,45 @@ private fun UiSettingsCard(
                 text = stringResource(id = R.string.prefs_ui_order_title),
                 color = MaterialTheme.colorScheme.primary
             )
-            DragOrderList(screens = screens, screenOrder = screenOrder, onReorder = onReorder)
+            // 主菜单区(底部栏, 最多 5 项, 设置锁定最后)
+            Text(
+                text = stringResource(id = R.string.prefs_ui_main_title),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            DragOrderList(
+                items = mainItems,
+                labels = screens,
+                locked = setOf("Settings"),
+                moveLabel = stringResource(id = R.string.prefs_ui_move_out),
+                moveEnabled = { name -> name != "Settings" },
+                onMove = { name ->
+                    onUpdateMenu(
+                        mainItems.filter { it != name },
+                        (subMenuOrder.ifEmpty { defaultSubMenuOrder } + name).distinct()
+                    )
+                },
+                onReorder = { main -> onUpdateMenu(main, subMenuOrder) }
+            )
+            // 更多菜单区(进「更多」的页面)
+            Text(
+                text = stringResource(id = R.string.prefs_ui_sub_title),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            DragOrderList(
+                items = subItems,
+                labels = screens,
+                moveLabel = stringResource(id = R.string.prefs_ui_move_back),
+                moveEnabled = { mainItems.size < 5 },
+                onMove = { name ->
+                    onUpdateMenu(
+                        (screenOrder.ifEmpty { defaultScreenOrder } + name).distinct(),
+                        subItems.filter { it != name }
+                    )
+                },
+                onReorder = { sub -> onUpdateMenu(screenOrder, sub) }
+            )
             TextButton(onClick = onResetOrder) {
                 Text(text = stringResource(id = R.string.prefs_ui_order_reset))
             }
@@ -605,25 +669,18 @@ private fun UiSettingsCard(
 /** 页面顺序拖拽列表: 每行右侧抓手, 按住上下拖动实时换位, 松手持久化 */
 @Composable
 private fun DragOrderList(
-    screens: List<Pair<Int, String>>,
-    screenOrder: List<String>,
+    items: List<String>,
+    labels: List<Pair<Int, String>>,
+    locked: Set<String> = emptySet(),
+    moveLabel: String? = null,
+    moveEnabled: (String) -> Boolean = { true },
+    onMove: ((String) -> Unit)? = null,
     onReorder: (List<String>) -> Unit
 ) {
     val itemHeight = 48.dp
     val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
-    // 按 screenOrder 排序(空 = 默认顺序); remember 以 screens 参数为 key, 持久化后重组
-    val ordered = remember(screens, screenOrder) {
-        screens.sortedBy { (_, name) ->
-            // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置, 再兜底最后
-            screenOrder.indexOf(name).let {
-                if (it != -1) it else com.rtbishop.look4sat.core.presentation.defaultScreenOrder.indexOf(name).let {
-                    if (it != -1) it else Int.MAX_VALUE
-                }
-            }
-        }
-    }
     val listState = rememberLazyListState()
-    val items = remember(ordered) { mutableStateListOf<Pair<Int, String>>().apply { addAll(ordered) } }
+    val localItems = remember(items) { mutableStateListOf<String>().apply { addAll(items) } }
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragOffset by remember { mutableStateOf(0f) }
 
@@ -632,10 +689,11 @@ private fun DragOrderList(
         state = listState,
         modifier = Modifier
             .fillMaxWidth()
-            .height(itemHeight * items.size)
+            .height(itemHeight * localItems.size)
     ) {
-        itemsIndexed(items, key = { _, s -> s.second }) { index, screen ->
+        itemsIndexed(localItems, key = { _, name -> name }) { index, name ->
             val isDragging = draggingIndex == index
+            val isLocked = name in locked
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -646,46 +704,61 @@ private fun DragOrderList(
                     .animateItem()
             ) {
                 Text(
-                    text = stringResource(id = screen.first),
+                    text = stringResource(id = labels.first { it.second == name }.first),
                     modifier = Modifier.weight(1f)
                 )
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .padding(20.dp)
-                        .pointerInput(screen.second) {
-                            detectDragGestures(
-                                onDragStart = { draggingIndex = items.indexOf(screen) },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount.y
-                                    val currentIndex = draggingIndex
-                                    val target = (currentIndex + (dragOffset / itemHeightPx).roundToInt())
-                                        .coerceIn(0, items.size - 1)
-                                    if (target != currentIndex) {
-                                        items.add(target, items.removeAt(currentIndex))
-                                        dragOffset += (currentIndex - target) * itemHeightPx
-                                        draggingIndex = target
-                                    }
-                                },
-                                onDragEnd = {
-                                    onReorder(items.map { it.second })
-                                    draggingIndex = -1
-                                    dragOffset = 0f
-                                },
-                                onDragCancel = {
-                                    draggingIndex = -1
-                                    dragOffset = 0f
-                                }
-                            )
-                        }
-                ) {
-                    // 小圆点手柄(触控区 padding 20dp 居中 -> 8dp 圆点)
+                if (moveLabel != null && onMove != null && moveEnabled(name)) {
+                    TextButton(onClick = { onMove(name) }, contentPadding = PaddingValues(horizontal = 4.dp)) {
+                        Text(moveLabel, fontSize = 11.sp)
+                    }
+                }
+                if (isLocked) {
+                    // 锁定行(设置页): 无抓手, 固定最后
+                    Text(
+                        text = stringResource(id = R.string.prefs_ui_order_locked),
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                } else {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
-                    )
+                            .size(48.dp)
+                            .padding(20.dp)
+                            .pointerInput(name) {
+                                detectDragGestures(
+                                    onDragStart = { draggingIndex = localItems.indexOf(name) },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffset += dragAmount.y
+                                        val currentIndex = draggingIndex
+                                        val target = (currentIndex + (dragOffset / itemHeightPx).roundToInt())
+                                            .coerceIn(0, localItems.size - 1)
+                                        if (target != currentIndex) {
+                                            localItems.add(target, localItems.removeAt(currentIndex))
+                                            dragOffset += (currentIndex - target) * itemHeightPx
+                                            draggingIndex = target
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        onReorder(localItems.toList())
+                                        draggingIndex = -1
+                                        dragOffset = 0f
+                                    },
+                                    onDragCancel = {
+                                        draggingIndex = -1
+                                        dragOffset = 0f
+                                    }
+                                )
+                            }
+                    ) {
+                        // 小圆点手柄(触控区 padding 20dp 居中 -> 8dp 圆点)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
+                        )
+                    }
                 }
             }
         }

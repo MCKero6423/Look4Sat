@@ -70,6 +70,10 @@ sealed interface SettingsAction {
     data class ReorderScreens(val order: List<String>) : SettingsAction
     // UI 设置: 重置为默认顺序
     data object ResetScreenOrder : SettingsAction
+    // UI 设置: 更新主菜单 + 更多菜单顺序(4.5.1 折叠菜单)
+    data class UpdateMenuOrder(val mainOrder: List<String>, val subOrder: List<String>) : SettingsAction
+    // UI 设置: 重置主/子菜单为默认
+    data object ResetMenuOrder : SettingsAction
 
     // Remote control
     data class UpdateRC(val settings: RCSettings) : SettingsAction

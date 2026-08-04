@@ -461,19 +461,19 @@ private fun ExpandedRadioControl(
             if (!radioControl.txPanel.isConnected && !radioControl.rxPanel.isConnected) {
                 CardButton(
                     onClick = { onAction(RadarAction.ConnectRadios) },
-                    text = "Connect",
+                    text = stringResource(R.string.connect_radio),
                     modifier = Modifier.weight(1f)
                 )
             } else {
                 CardButton(
                     onClick = { onAction(RadarAction.DisconnectRadios) },
-                    text = "Disconnect",
+                    text = stringResource(R.string.disconnect_radio),
                     modifier = Modifier.weight(1f)
                 )
             }
             CardButton(
                 onClick = { onAction(RadarAction.ToggleTracking) },
-                text = if (radioControl.isTracking) "Stop" else "Track",
+                text = if (radioControl.isTracking) stringResource(R.string.stop_radio) else stringResource(R.string.track_radio),
                 modifier = Modifier.weight(1f)
             )
         }

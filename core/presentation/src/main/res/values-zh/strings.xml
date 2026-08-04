@@ -14,6 +14,7 @@
     <string name="nav_cw">CW解码</string>
     <string name="nav_map">地图</string>
     <string name="nav_prefs">设置</string>
+    <string name="nav_more">更多</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">类型：%s</string>
@@ -42,8 +43,8 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 转发器 CW 解码面板已接入增强解码引擎,带实时瀑布图显示
-        * CW 解码入口共用同一引擎:导航页与转发器面板</string>
+        * 底部导航改为 5 个主标签 + 更多菜单(可折叠二级菜单)
+        * UI 设置: 页面顺序分为主菜单与更多菜单,可拖拽或移动页面</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
@@ -161,9 +162,22 @@
     <string name="rc_rx_name_hint">接收电台名称</string>
     <string name="rc_enable_switch">启用 CAT 控制</string>
 
+    <string name="tracking_status">跟踪: %s</string>
+    <string name="loc_lat_text">纬度: %s°</string>
+    <string name="loc_lon_text">经度: %s°</string>
+    <string name="loc_qth_text">QTH: %s</string>
+    <string name="connect_radio">连接</string>
+    <string name="disconnect_radio">断开</string>
+    <string name="track_radio">跟踪</string>
+    <string name="stop_radio">停止</string>
     <string name="prefs_other_title">其他设置</string>
     <string name="prefs_ui_title">UI设置</string>
     <string name="prefs_ui_order_title">页面顺序</string>
+    <string name="prefs_ui_main_title">主菜单(底部栏)</string>
+    <string name="prefs_ui_sub_title">更多菜单</string>
+    <string name="prefs_ui_move_out">移入更多菜单</string>
+    <string name="prefs_ui_move_back">移回主菜单</string>
+    <string name="prefs_ui_order_locked">固定(不可移动)</string>
     <string name="prefs_ui_order_reset">重置顺序</string>
     <string name="prefs_other_switch_utc">以 UTC 时间显示</string>
     <string name="prefs_other_switch_update">启用卫星数据自动更新</string>

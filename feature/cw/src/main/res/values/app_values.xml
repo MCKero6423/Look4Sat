@@ -16,4 +16,7 @@
     <string name="premium">Get Premium Version</string>
     <string name="tap_back_again_to_close">Tap Back again to close the app</string>
     <string name="message_type">Message Type</string>
+    <string name="cw_mic_permission">Microphone permission is required for CW decoding</string>
+    <string name="cw_grant_permission">Grant permission</string>
+    <string name="cw_open_settings">Open app settings</string>
 </resources>

@@ -17,16 +17,23 @@
  */
 package com.rtbishop.look4sat
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -53,6 +60,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -137,7 +147,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
     // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
-    val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.Map, Screen.Settings)
+    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
             // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置(漫游↔地图), 再兜底最后
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
@@ -147,6 +157,17 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
             }
         }
         .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
+    // 4.5.1 折叠菜单: 主菜单(底部栏 5 槽) + 更多菜单(溢出页面)
+    val subOrder = otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder }
+    val mainNavItems = remember(allNavItems, subOrder) {
+        allNavItems.filter { it.screenId !in subOrder }.take(5)
+    }
+    val moreNavItems = remember(allNavItems, subOrder) {
+        subOrder.mapNotNull { id -> allNavItems.find { it.screenId == id } }
+    }
+    var moreExpanded by remember { mutableStateOf(false) }
+    // 更多菜单打开时拦截返回: 先关菜单
+    BackHandler(enabled = moreExpanded) { moreExpanded = false }
     // Activity-scoped so the mutual query results survive navigation to Radar and back
     val mutualViewModel: MutualViewModel = viewModel(
         viewModelStoreOwner = context as ViewModelStoreOwner,
@@ -161,7 +182,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     ) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
-                navItems.forEach { screen ->
+                mainNavItems.forEach { screen ->
                     val isSelected = when (currentKey) {
                         is Screen.Satellites -> screen is Screen.Satellites
                         is Screen.Passes -> screen is Screen.Passes
@@ -178,9 +199,24 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         selected = isSelected,
                         onClick = {
                             if (isSelected) return@item
+                            moreExpanded = false
                             while (backStack.size > 1) backStack.removeAt(backStack.size - 1)
                             if (screen !is Screen.Passes) backStack.add(screen)
                         }
+                    )
+                }
+                // 更多菜单按钮(固定第 6 槽, 子菜单非空才显示)
+                if (moreNavItems.isNotEmpty()) {
+                    item(
+                        icon = {
+                            Icon(
+                                painterResource(com.rtbishop.look4sat.R.drawable.ic_more),
+                                stringResource(com.rtbishop.look4sat.core.presentation.R.string.nav_more)
+                            )
+                        },
+                        label = { Text(stringResource(com.rtbishop.look4sat.core.presentation.R.string.nav_more)) },
+                        selected = moreExpanded,
+                        onClick = { moreExpanded = !moreExpanded }
                     )
                 }
             },
@@ -193,107 +229,129 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                 else -> NavigationSuiteType.ShortNavigationBarMedium
             }
         ) {
-            Column {
-                NavDisplay(
-                    backStack = backStack,
-                    modifier = Modifier.weight(1f),
-                    onBack = navigateBack,
-                    transitionSpec = { fadeTransition },
-                    popTransitionSpec = { fadeTransition },
-                    predictivePopTransitionSpec = { fadeTransition },
-                    entryDecorators = listOf(
-                        // Required for saving Compose state per entry
-                        rememberSaveableStateHolderNavEntryDecorator(),
-                        // Required for ViewModel scoping per entry
-                        rememberViewModelStoreNavEntryDecorator()
-                    ),
-                    entryProvider = entryProvider {
-                        entry<Screen.Satellites> {
-                            SatellitesDestination(navigateUp = navigateBack)
-                        }
-                        entry<Screen.Passes> {
-                            PassesDestination { catNum, aosTime ->
-                                container.setMutualPassData(MutualPassData())
-                                container.satelliteRepo.selectPass(catNum, aosTime)
-                                backStack.add(Screen.Radar)
-//                            navigateToRadar()
+            Box {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    NavDisplay(
+                        backStack = backStack,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        onBack = navigateBack,
+                        transitionSpec = { fadeTransition },
+                        popTransitionSpec = { fadeTransition },
+                        predictivePopTransitionSpec = { fadeTransition },
+                        entryDecorators = listOf(
+                            // Required for saving Compose state per entry
+                            rememberSaveableStateHolderNavEntryDecorator(),
+                            // Required for ViewModel scoping per entry
+                            rememberViewModelStoreNavEntryDecorator()
+                        ),
+                        entryProvider = entryProvider {
+                            entry<Screen.Satellites> {
+                                SatellitesDestination(navigateUp = navigateBack)
                             }
-                        }
-                        entry<Screen.Radar> {
-                            RadarDestination(navigateUp = navigateBack)
-                        }
-                        entry<Screen.Map> {
-                            MapDestination()
-                        }
-                        entry<Screen.Mutual> {
-                            MutualScreen(
-                                viewModel = mutualViewModel,
-                                navigateUp = navigateBack,
-                                navigateToRadar = { catNum, aosTime, pass ->
-                                    container.setMutualPassData(pass ?: MutualPassData())
+                            entry<Screen.Passes> {
+                                PassesDestination { catNum, aosTime ->
+                                    container.setMutualPassData(MutualPassData())
                                     container.satelliteRepo.selectPass(catNum, aosTime)
                                     backStack.add(Screen.Radar)
-                                }
-                            )
-                        }
-                        entry<Screen.Roaming> {
-                            RoamingScreen()
-                        }
-                        entry<Screen.CwDecode> {
-                            CwDecodeScreen()
-                        }
-                        entry<Screen.Settings> {
-                            SettingsDestination()
-                        }
-                    }
-                )
-                // Radio tracking status banner
-                if (trackingState.isActive) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "trackingPulse")
-                    val alpha by infiniteTransition.animateFloat(
-                        initialValue = 1f, targetValue = 0.4f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1000, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ), label = "pulseAlpha"
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable {
-                                val pass = trackingState.currentPass
-                                if (pass != null) {
-                                    container.setMutualPassData(MutualPassData())
-                                    container.satelliteRepo.selectPass(pass.catNum, pass.aosTime)
-                                    backStack.add(Screen.Radar)
+    //                            navigateToRadar()
                                 }
                             }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Box(
+                            entry<Screen.Radar> {
+                                RadarDestination(navigateUp = navigateBack)
+                            }
+                            entry<Screen.Map> {
+                                MapDestination()
+                            }
+                            entry<Screen.Mutual> {
+                                MutualScreen(
+                                    viewModel = mutualViewModel,
+                                    navigateUp = navigateBack,
+                                    navigateToRadar = { catNum, aosTime, pass ->
+                                        container.setMutualPassData(pass ?: MutualPassData())
+                                        container.satelliteRepo.selectPass(catNum, aosTime)
+                                        backStack.add(Screen.Radar)
+                                    }
+                                )
+                            }
+                            entry<Screen.Roaming> {
+                                RoamingScreen()
+                            }
+                            entry<Screen.CwDecode> {
+                                CwDecodeScreen()
+                            }
+                            entry<Screen.Settings> {
+                                SettingsDestination()
+                            }
+                        }
+                    )
+                    // Radio tracking status banner
+                    if (trackingState.isActive) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "trackingPulse")
+                        val alpha by infiniteTransition.animateFloat(
+                            initialValue = 1f, targetValue = 0.4f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1000, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ), label = "pulseAlpha"
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF4CAF50).copy(alpha = alpha))
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Tracking: ${trackingState.currentPass?.name ?: ""}",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.weight(1f)
-                        )
-                        val txOk = if (trackingState.txConnected) "TX" else ""
-                        val rxOk = if (trackingState.rxConnected) "RX" else ""
-                        Text(
-                            text = listOf(txOk, rxOk).filter { it.isNotBlank() }.joinToString("/"),
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable {
+                                    val pass = trackingState.currentPass
+                                    if (pass != null) {
+                                        container.setMutualPassData(MutualPassData())
+                                        container.satelliteRepo.selectPass(pass.catNum, pass.aosTime)
+                                        backStack.add(Screen.Radar)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF4CAF50).copy(alpha = alpha))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(com.rtbishop.look4sat.core.presentation.R.string.tracking_status, trackingState.currentPass?.name ?: ""),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            val txOk = if (trackingState.txConnected) "TX" else ""
+                            val rxOk = if (trackingState.rxConnected) "RX" else ""
+                            Text(
+                                text = listOf(txOk, rxOk).filter { it.isNotBlank() }.joinToString("/"),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
+                }
+                // 更多菜单弹出面板(覆盖在内容上, 底部栏上方; spring 弹跳)
+                AnimatedVisibility(
+                    visible = moreExpanded,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = expandVertically(
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                    ) + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    MoreMenuPopup(
+                        items = moreNavItems,
+                        currentKey = currentKey,
+                        onDismiss = { moreExpanded = false },
+                        onSelect = { screen ->
+                            moreExpanded = false
+                            while (backStack.size > 1) backStack.removeAt(backStack.size - 1)
+                            if (screen !is Screen.Passes) backStack.add(screen)
+                        }
+                    )
                 }
             }
         }

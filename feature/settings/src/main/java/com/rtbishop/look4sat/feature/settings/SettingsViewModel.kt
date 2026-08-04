@@ -128,6 +128,12 @@ class SettingsViewModel(
             }
             is SettingsAction.ReorderScreens -> settingsRepo.updateOtherSettings { it.copy(screenOrder = action.order) }
             SettingsAction.ResetScreenOrder -> settingsRepo.updateOtherSettings { it.copy(screenOrder = emptyList()) }
+            is SettingsAction.UpdateMenuOrder -> settingsRepo.updateOtherSettings {
+                it.copy(screenOrder = action.mainOrder, subMenuOrder = action.subOrder)
+            }
+            SettingsAction.ResetMenuOrder -> settingsRepo.updateOtherSettings {
+                it.copy(screenOrder = emptyList(), subMenuOrder = emptyList())
+            }
             // Remote control & data sources
             is SettingsAction.UpdateRC -> settingsRepo.updateRCSettings(action.settings)
             is SettingsAction.UpdateRadioControl -> settingsRepo.updateRadioControlSettings(action.settings)

@@ -15,6 +15,7 @@
     <string name="nav_cw">CW Decoder</string>
     <string name="nav_map">Map</string>
     <string name="nav_prefs">Settings</string>
+    <string name="nav_more">More</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">Type: %s</string>
@@ -54,8 +55,8 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * Transponder CW decoder panel now uses the enhanced decoding engine with a live waterfall display
-        * CW decoding pages share the same engine: navigation page and transponder panel</string>
+        * Bottom navigation now uses 5 main tabs plus a More menu (collapsible second-level menu)
+        * UI Settings: page order split into main menu and more menu; drag or move pages between them</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>
@@ -192,9 +193,22 @@
     <string name="prefs_bt_perm_error">Check your bluetooth permission</string>
     <string name="prefs_net_perm_error">Check your network permission</string>
 
+    <string name="tracking_status">Tracking: %s</string>
+    <string name="loc_lat_text">Lat: %s°</string>
+    <string name="loc_lon_text">Lon: %s°</string>
+    <string name="loc_qth_text">Qth: %s</string>
+    <string name="connect_radio">Connect</string>
+    <string name="disconnect_radio">Disconnect</string>
+    <string name="track_radio">Track</string>
+    <string name="stop_radio">Stop</string>
     <string name="prefs_other_title">Other settings</string>
     <string name="prefs_ui_title">UI Settings</string>
     <string name="prefs_ui_order_title">Page order</string>
+    <string name="prefs_ui_main_title">Main menu (bottom bar)</string>
+    <string name="prefs_ui_sub_title">More menu</string>
+    <string name="prefs_ui_move_out">Move to more menu</string>
+    <string name="prefs_ui_move_back">Move back to main menu</string>
+    <string name="prefs_ui_order_locked">Fixed (cannot be moved)</string>
     <string name="prefs_ui_order_reset">Reset order</string>
     <string name="prefs_other_switch_utc">Show pass time in UTC</string>
     <string name="prefs_other_switch_update">Enable automatic data update</string>

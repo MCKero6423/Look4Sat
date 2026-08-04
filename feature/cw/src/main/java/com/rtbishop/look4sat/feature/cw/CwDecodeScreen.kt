@@ -181,7 +181,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Microphone permission is required for CW decoding",
+                            text = stringResource(R.string.cw_mic_permission),
                             color = Color.White,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 24.dp)
@@ -190,7 +190,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                         Button(onClick = {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }) {
-                            Text("Grant permission")
+                            Text(stringResource(R.string.cw_grant_permission))
                         }
                         if (permanentlyDenied) {
                             // 勾选了"不再询问": 引导去系统设置开启
@@ -202,7 +202,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                                     )
                                 )
                             }) {
-                                Text("Open app settings")
+                                Text(stringResource(R.string.cw_open_settings))
                             }
                         }
                     }
