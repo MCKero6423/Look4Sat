@@ -21,6 +21,7 @@ include(
     ":core:presentation"
 )
 include(
+    ":feature:cw",
     ":feature:map",
     ":feature:mutual",
     ":feature:passes",

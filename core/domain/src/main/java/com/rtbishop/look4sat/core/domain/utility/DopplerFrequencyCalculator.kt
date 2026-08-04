@@ -11,6 +11,7 @@ package com.rtbishop.look4sat.core.domain.utility
 
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
+import java.util.Locale
 
 /**
  * Computes Doppler-corrected reciprocal frequencies for linear transponders.
@@ -94,5 +95,27 @@ object DopplerFrequencyCalculator {
         val downHigh = transponder.downlinkHigh
         return upLow != null && upHigh != null && downLow != null && downHigh != null
                 && upLow != upHigh && downLow != downHigh
+    }
+
+    /**
+     * True for the radio entry that should drive the standalone Calculator page.
+     *
+     * A frequency range alone is not enough: some non-user-facing or drifting data entries
+     * can also have low/high frequencies. The calculator is meant for the named linear
+     * transponder entry, e.g. "Linear Transponder", "Linear Transp.", "SSB Transponder".
+     */
+    fun isNamedLinearTransponder(transponder: SatRadio): Boolean {
+        if (!isLinearTransponder(transponder)) return false
+
+        val info = transponder.info.lowercase(Locale.ENGLISH)
+        val modes = listOfNotNull(transponder.downlinkMode, transponder.uplinkMode)
+            .joinToString(separator = " ")
+            .lowercase(Locale.ENGLISH)
+        val hasLinearName = info.contains("linear")
+        val hasTransponderName = info.contains("transponder") || info.contains("transp") ||
+                info.contains("xponder") || info.contains("xpdr")
+        val hasLinearMode = listOf("ssb", "usb", "lsb", "cw").any { modes.contains(it) }
+
+        return (hasLinearName && hasTransponderName) || (hasTransponderName && hasLinearMode)
     }
 }
