@@ -17,8 +17,10 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a")
         }
-        // 显式保留全部语言(防 shrinkResources 丢弃 in/id 印尼语配置)
-        resourceConfigurations += listOf(
+    }
+    androidResources {
+        // 显式保留全部语言(防 shrinkResources 丢弃 in/id 印尼语配置); AGP 9 用 localeFilters
+        localeFilters += listOf(
             "en", "zh", "tr", "in", "id", "es", "ru", "si", "uk"
         )
     }
