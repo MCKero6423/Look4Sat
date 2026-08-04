@@ -97,6 +97,7 @@ import com.rtbishop.look4sat.feature.mutual.MutualViewModel
 import com.rtbishop.look4sat.feature.passes.PassesDestination
 import com.rtbishop.look4sat.feature.radar.RadarDestination
 import com.rtbishop.look4sat.feature.radar.WavelogLogScreen
+import com.rtbishop.look4sat.feature.status.SatStatusScreen
 import com.rtbishop.look4sat.feature.roaming.RoamingScreen
 import com.rtbishop.look4sat.feature.satellites.SatellitesDestination
 import com.rtbishop.look4sat.feature.settings.SettingsDestination
@@ -148,7 +149,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
     // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
-    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.Map, Screen.Settings)
+    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
             // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置(漫游↔地图), 再兜底最后
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
@@ -162,6 +163,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     // 老用户迁移: 已持久化的 subMenuOrder 不含新页面 WavelogLog → 追加到子菜单尾部
     val subOrder = (otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder })
         .let { list -> if ("WavelogLog" in list) list else list + "WavelogLog" }
+        .let { list -> if ("AMSAT" in list) list else list + "AMSAT" }
     val mainNavItems = remember(allNavItems, subOrder) {
         allNavItems.filter { it.screenId !in subOrder }.take(5)
     }
@@ -193,6 +195,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         is Screen.Mutual -> screen is Screen.Mutual
                         is Screen.CwDecode -> screen is Screen.CwDecode
                         is Screen.WavelogLog -> screen is Screen.WavelogLog
+                        is Screen.AmSat -> screen is Screen.AmSat
                         is Screen.Map -> screen is Screen.Map
                         is Screen.Settings -> screen is Screen.Settings
                         else -> false
@@ -282,6 +285,9 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                             }
                             entry<Screen.CwDecode> {
                                 CwDecodeScreen()
+                            }
+                            entry<Screen.AmSat> {
+                                SatStatusScreen(container = container)
                             }
                             entry<Screen.WavelogLog> {
                                 WavelogLogScreen(queue = container.wavelogQueue)

@@ -17,6 +17,17 @@
     <string name="nav_prefs">Settings</string>
     <string name="nav_more">More</string>
     <string name="nav_log">Log</string>
+    <string name="nav_amsat">AMSAT</string>
+    <string name="amsat_title">AMSAT Satellite Status</string>
+    <string name="amsat_updated">Updated:</string>
+    <string name="amsat_active">Active</string>
+    <string name="amsat_tlm">TLM/Beacon</string>
+    <string name="amsat_not_heard">Not Heard</string>
+    <string name="amsat_conflict">Conflicting</string>
+    <string name="amsat_name">Name</string>
+    <string name="amsat_load_failed">Load failed - check network and retry</string>
+    <string name="amsat_no_reports">No reports for this period</string>
+    <string name="amsat_close">Close</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">Type: %s</string>
@@ -56,8 +67,12 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * WaveLog now supports both API v1 and v2 (auto-detected); error dialog with copy button
-        * Log frequencies match the Doppler panel; linear transponders show the full range</string>
+        * NEW: AMSAT satellite status page - live status grid (official colors), report counts, detailed reports per satellite/day
+        * Log entries grouped by satellite pass (session ID = satellite + AOS time), divider lines between sessions
+        * GPS now only reports success when a real fix is acquired (15s timeout, permission check)
+        * Data update shows a clear failure message when the satellite database cannot be downloaded
+        * Log frequencies follow the Doppler panel in real time; swipe-to-delete visuals restored
+        * Indonesian locale fix (values-id)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>

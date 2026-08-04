@@ -16,6 +16,17 @@
     <string name="nav_prefs">设置</string>
     <string name="nav_more">更多</string>
     <string name="nav_log">日志</string>
+    <string name="nav_amsat">AMSAT</string>
+    <string name="amsat_title">AMSAT 卫星状态</string>
+    <string name="amsat_updated">更新:</string>
+    <string name="amsat_active">活跃</string>
+    <string name="amsat_tlm">仅遥测</string>
+    <string name="amsat_not_heard">未听到</string>
+    <string name="amsat_conflict">矛盾</string>
+    <string name="amsat_name">Name</string>
+    <string name="amsat_load_failed">加载失败,请检查网络后重试</string>
+    <string name="amsat_no_reports">该时段无报告</string>
+    <string name="amsat_close">关闭</string>
 
     <!-- Satellites screen -->
     <string name="sat_type_hint">类型：%s</string>
@@ -44,8 +55,12 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * WaveLog 同时支持 API v1 和 v2(自动识别); 错误弹窗带一键复制
-        * 日志频率与多普勒面板一致; 线性转发器显示完整频段区间</string>
+        * 新增: AMSAT 卫星状态页 - 实时状态表格(官网配色)、报告数量、逐卫星/逐日详细报告
+        * 日志按场次分组(场次 = 卫星 + AOS 时间), 组间横线分隔
+        * GPS 真正定位成功才会提示成功(15 秒超时, 权限检查)
+        * 卫星数据库下载失败时有明确失败提示
+        * 日志频率实时跟随多普勒面板; 左滑删除视觉恢复
+        * 印尼语识别修复(values-id)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>

@@ -40,6 +40,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -179,7 +180,19 @@ fun LogTab(
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
-            entries.forEach { entry ->
+            // 按场次分组(sessionId = 卫星名-AOS 时间戳), 组间粗线分隔
+            entries.groupBy { it.sessionId.ifBlank { "un" } }.forEach { (sessionId, groupEntries) ->
+                // 组标题 + 分隔线
+                HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = if (sessionId == "un") stringResource(id = R.string.wavelog_ungrouped)
+                    else sessionId.substringBeforeLast('-'),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+                groupEntries.forEach { entry ->
                 SwipeDeleteRow(
                     onDelete = {
                         queue.remove(entry.id)
@@ -212,6 +225,7 @@ fun LogTab(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                }
                 }
             }
         }

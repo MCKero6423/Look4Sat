@@ -14,6 +14,17 @@
     <string name="nav_prefs">Pengaturan</string>
     <string name="nav_more">Lainnya</string>
     <string name="nav_log">Log</string>
+    <string name="nav_amsat">AMSAT</string>
+    <string name="amsat_title">Status Satelit AMSAT</string>
+    <string name="amsat_updated">Diperbarui:</string>
+    <string name="amsat_active">Aktif</string>
+    <string name="amsat_tlm">TLM/beacon</string>
+    <string name="amsat_not_heard">Tidak terdengar</string>
+    <string name="amsat_conflict">Konflik</string>
+    <string name="amsat_name">Name</string>
+    <string name="amsat_load_failed">Gagal memuat - periksa jaringan dan coba lagi</string>
+    <string name="amsat_no_reports">Tidak ada laporan untuk periode ini</string>
+    <string name="amsat_close">Tutup</string>
     <string name="sat_type_hint">Jenis: %s</string>
     <string name="sat_type_title">Pilih jenis satelit</string>
     <string name="sat_search_hint">Id - Nama</string>
@@ -48,9 +59,13 @@
         Pastikan Anda mengatur posisi melalui GPS, Lat/Lon atau QTH di Pengaturan.
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title">Apa yang baru di Look4Sat</string>
-    <string name="pass_whatsnew_message">
-        * WaveLog kini mendukung API v1 dan v2 (terdeteksi otomatis); dialog kesalahan dengan tombol salin
-        * Frekuensi log cocok dengan panel Doppler; transponder linier menampilkan rentang penuh</string>
+    <string name="pass_whatsnew_message" translatable="false">
+        * BARU: Halaman status satelit AMSAT - tabel status langsung (warna resmi), jumlah laporan, laporan detail per satelit/hari
+        * Log dikelompokkan per lintasan satelit (sesi = satelit + waktu AOS), garis pemisah antar sesi
+        * GPS kini hanya menampilkan sukses saat posisi benar-benar didapat (timeout 15 dtk, cek izin)
+        * Pesan kegagalan jelas saat database satelit gagal diunduh
+        * Frekuensi log mengikuti panel Doppler secara real-time; visual hapus geser dipulihkan
+        * Perbaikan bahasa Indonesia (values-id)</string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
