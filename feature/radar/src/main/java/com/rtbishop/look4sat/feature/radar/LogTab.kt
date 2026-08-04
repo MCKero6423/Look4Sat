@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
+import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQso
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
 import com.rtbishop.look4sat.core.presentation.R
@@ -86,6 +87,7 @@ fun LogTab(
     queue: WavelogQueue,
     wavelogConfigured: Boolean,
     showToast: (String) -> Unit,
+    txBaseFrequencyHz: Long? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedUuid by remember { mutableStateOf<String?>(null) }
@@ -155,6 +157,7 @@ fun LogTab(
                 satelliteName = satelliteName,
                 queue = queue,
                 showToast = showToast,
+                txBaseFrequencyHz = txBaseFrequencyHz,
                 onSaved = { refreshTick++ }
             )
         }
@@ -220,17 +223,23 @@ private fun ExpandedLogInput(
     satelliteName: String,
     queue: WavelogQueue,
     showToast: (String) -> Unit,
+    txBaseFrequencyHz: Long? = null,
     onSaved: () -> Unit
 ) {
     var callsign by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
 
-    // 回车那一刻的多普勒修正频率(UTC 时间一并采样)
+    // 回车那一刻的频率(与雷达页 Doppler 面板一致): 优先用当前调谐 TX 频率
     fun currentFreqs(): Pair<Long, Long> {
         val uplinkBase = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val downlinkBase = radio.downlinkLow ?: radio.uplinkLow ?: 0L
-        val tx = if (orbitalPos != null) orbitalPos.getUplinkFreq(uplinkBase) else uplinkBase
-        val rx = if (orbitalPos != null) orbitalPos.getDownlinkFreq(downlinkBase) else downlinkBase
+        // 调谐基准(用户在当前转发器上调的)优先; 否则转发器标称下限
+        val tx = txBaseFrequencyHz ?: (if (orbitalPos != null) orbitalPos.getUplinkFreq(uplinkBase) else uplinkBase)
+        val rx = if (orbitalPos != null) {
+            // 线性转发器: 按映射算下行; FM: 标称下行加多普勒
+            DopplerFrequencyCalculator.computeDownlinkFromUplink(tx, radio, orbitalPos)
+                ?: orbitalPos.getDownlinkFreq(downlinkBase)
+        } else downlinkBase
         return tx to rx
     }
 
@@ -257,15 +266,31 @@ private fun ExpandedLogInput(
     }
 
     val (txHz, rxHz) = currentFreqs()
+    // 线性转发器: 显示频段区间(多普勒修正); FM: 单频
+    val isLinear = DopplerFrequencyCalculator.isLinearTransponder(radio)
+    val uplinkLow = radio.uplinkLow
+    val uplinkHigh = radio.uplinkHigh
+    val downlinkLow = radio.downlinkLow
+    val downlinkHigh = radio.downlinkHigh
+    val txRange = if (isLinear && uplinkLow != null && uplinkHigh != null && orbitalPos != null) {
+        val lo = orbitalPos.getUplinkFreq(uplinkLow)
+        val hi = orbitalPos.getUplinkFreq(uplinkHigh)
+        "${formatFrequency(minOf(lo, hi))}–${formatFrequency(maxOf(lo, hi))}"
+    } else null
+    val rxRange = if (isLinear && downlinkLow != null && downlinkHigh != null && orbitalPos != null) {
+        val lo = orbitalPos.getDownlinkFreq(downlinkLow)
+        val hi = orbitalPos.getDownlinkFreq(downlinkHigh)
+        "${formatFrequency(minOf(lo, hi))}–${formatFrequency(maxOf(lo, hi))}"
+    } else null
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "TX ${formatFrequency(txHz)}",
+                text = "TX ${txRange ?: formatFrequency(txHz)}",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "RX ${formatFrequency(rxHz)}",
+                text = "RX ${rxRange ?: formatFrequency(rxHz)}",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.primary
             )

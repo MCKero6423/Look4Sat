@@ -49,8 +49,8 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message">
-        * Perbaiki kesalahan 404 unggah WaveLog (penanganan URL + percobaan jalur otomatis)
-        * Pemilih transponder kini dropdown; swipe-to-delete diperbaiki; halaman Log baru (tampilan tabel) di menu Lainnya</string>
+        * WaveLog kini mendukung API v1 dan v2 (terdeteksi otomatis); dialog kesalahan dengan tombol salin
+        * Frekuensi log cocok dengan panel Doppler; transponder linier menampilkan rentang penuh</string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
@@ -195,6 +195,7 @@
     <string name="wavelog_grid_mismatch">Grid QTH (%1$s) tidak cocok dengan grid stasiun (%2$s). Tetap unggah?</string>
     <string name="wavelog_ignore">Abaikan dan unggah</string>
     <string name="wavelog_cancel">Batal</string>
+    <string name="wavelog_copy">Salin</string>
     <string name="wavelog_delete_undo">Urungkan</string>
     <string name="wavelog_col_time">Waktu</string>
     <string name="wavelog_col_freq">Frek.</string>

@@ -232,32 +232,39 @@ class SettingsViewModel(
 
     // region WaveLog(4.5.2)
 
-    private fun testWavelogConnection() {
-        viewModelScope.launch {
-            val s = settingsRepo.otherSettings.value
-            val result = WaveLogApi.testToken(s.wavelogUrl, s.wavelogApiKey)
-            showToast(
-                when (result) {
-                    is WavelogResult.Success -> "WaveLog: 连接成功"
-                    is WavelogResult.Failure -> "WaveLog: ${result.message}"
-                }
-            )
-        }
-    }
-
     // 由 SettingsScreen 注入的共享 uploader(容器级单例)
     var pendingUploader: WavelogUploader? = null
 
     // 网格不一致确认弹窗状态(UI 观察后弹 AlertDialog)
     var gridConfirm by mutableStateOf<GridConfirmData?>(null)
 
+    // WaveLog 错误详情弹窗(UI 观察后弹 AlertDialog, 可一键复制)
+    var wavelogError by mutableStateOf<String?>(null)
+
     data class GridConfirmData(val stationGrid: String, val userGrid: String)
+
+    private fun testWavelogConnection() {
+        viewModelScope.launch {
+            val s = settingsRepo.otherSettings.value
+            val result = WaveLogApi.testToken(s.wavelogUrl, s.wavelogApiKey, s.wavelogStationId)
+            when (result) {
+                is WavelogResult.Success -> showToast("WaveLog: ${result.message}")
+                is WavelogResult.Failure -> wavelogError = result.message
+            }
+        }
+    }
 
     private fun uploadWavelogQueue() {
         viewModelScope.launch {
             val result = pendingUploader?.uploadQueue()
             when (result) {
-                is UploadOutcome.Done -> showToast("WaveLog: ${result.message}")
+                is UploadOutcome.Done -> {
+                    if (result.failedCount > 0 && result.firstError.isNotBlank()) {
+                        wavelogError = result.firstError
+                    } else {
+                        showToast("WaveLog: ${result.message}")
+                    }
+                }
                 is UploadOutcome.NeedConfirm -> {
                     gridConfirm = GridConfirmData(result.stationGrid, result.userGrid)
                 }

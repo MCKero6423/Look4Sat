@@ -13,7 +13,12 @@ import org.json.JSONObject
 
 sealed class UploadOutcome {
     data class NeedConfirm(val stationGrid: String, val userGrid: String) : UploadOutcome()
-    data class Done(val successCount: Int, val failedCount: Int, val message: String) : UploadOutcome()
+    data class Done(
+        val successCount: Int,
+        val failedCount: Int,
+        val message: String,
+        val firstError: String = ""
+    ) : UploadOutcome()
 }
 
 class WavelogUploader(
@@ -34,12 +39,13 @@ class WavelogUploader(
             return UploadOutcome.Done(0, queue.all().size, "未配置 WaveLog 服务器")
         }
 
-        // 1. 拉站点信息(拿台站网格)
-        val stationGrid = getStationGrid(url, apiKey, stationId) ?: return UploadOutcome.Done(
-            0, queue.all().size, "无法获取站点信息(检查站点 ID/密钥权限)"
-        )
+        // 1. 拉站点信息(拿台站网格); v1 无此端点时降级用用户 QTH
+        val stationGrid = getStationGrid(url, apiKey, stationId) ?: userQthGrid()
+        if (stationGrid.isNullOrBlank()) {
+            return UploadOutcome.Done(0, queue.all().size, "无法获取站点信息(检查站点 ID/密钥权限)")
+        }
 
-        // 2. 网格检测: 用户当前 QTH 前 4 位 vs 台站网格前 4 位
+        // 2. 网格检测: 用户当前 QTH 前 4 位 vs 台站网格前 4 位(v1 降级时网格相同, 跳过)
         if (!force) {
             val userGrid = userQthGrid()
             if (userGrid != null && stationGrid.take(4).lowercase() != userGrid.take(4).lowercase()) {
@@ -51,6 +57,7 @@ class WavelogUploader(
         val entries = queue.all()
         var ok = 0
         var fail = 0
+        var firstError = ""
         for (qso in entries) {
             if (qso.uploaded) { ok++; continue }
             val result = WaveLogApi.postQso(url, apiKey, stationId, qso, stationGrid)
@@ -59,10 +66,11 @@ class WavelogUploader(
                 queue.markUploaded(qso.id)
             } else {
                 fail++
+                if (firstError.isBlank()) firstError = (result as? WavelogResult.Failure)?.message ?: ""
             }
         }
         val message = if (fail == 0) "成功上传 $ok 条" else "成功 $ok 条, 失败 $fail 条(保留待重试)"
-        return UploadOutcome.Done(ok, fail, message)
+        return UploadOutcome.Done(ok, fail, message, firstError)
     }
 
     private suspend fun getStationGrid(url: String, apiKey: String, stationId: String): String? {

@@ -54,8 +54,8 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * WaveLog yükleme 404 hatası düzeltildi (URL işleme + otomatik yol denemesi)
-        * Transponder seçici artık açılır menü; kaydır-sil düzeltildi; Daha Fazla altında yeni Günlük sayfası (tablo görünümü)</string>
+        * WaveLog artık hem API v1 hem v2 destekliyor (otomatik algılama); kopyalama butonlu hata penceresi
+        * Günlük frekansları Doppler paneliyle eşleşiyor; doğrusal transponderler tam aralığı gösteriyor</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>
@@ -205,6 +205,7 @@
     <string name="wavelog_grid_mismatch">QTH ızgarası (%1$s) istasyon ızgarasıyla (%2$s) eşleşmiyor. Yine de yüklensin mi?</string>
     <string name="wavelog_ignore">Yoksay ve yükle</string>
     <string name="wavelog_cancel">İptal</string>
+    <string name="wavelog_copy">Kopyala</string>
     <string name="wavelog_delete_undo">Geri al</string>
     <string name="wavelog_col_time">Zaman</string>
     <string name="wavelog_col_freq">Frekans</string>

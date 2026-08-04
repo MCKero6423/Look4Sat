@@ -44,6 +44,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
+import android.content.Context
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.AlertDialog
@@ -140,6 +141,35 @@ fun SettingsDestination() {
             dismissButton = {
                 TextButton(onClick = { viewModel.resolveGridConfirm(false) }) {
                     Text(text = stringResource(id = R.string.wavelog_cancel))
+                }
+            }
+        )
+    }
+
+    // WaveLog 错误详情弹窗(可一键复制)
+    val wavelogError = viewModel.wavelogError
+    if (wavelogError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.wavelogError = null },
+            title = { Text(text = stringResource(id = R.string.wavelog_title)) },
+            text = {
+                Text(
+                    text = wavelogError,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("WaveLog error", wavelogError))
+                    viewModel.wavelogError = null
+                }) {
+                    Text(text = stringResource(id = R.string.wavelog_copy))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.wavelogError = null }) {
+                    Text(text = stringResource(id = R.string.btn_cancel))
                 }
             }
         )

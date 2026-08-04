@@ -275,7 +275,8 @@ private fun PagerCard(
                         satelliteName = uiState.currentPass?.name ?: "",
                         queue = wavelogQueue,
                         wavelogConfigured = wavelogConfigured,
-                        showToast = showToast
+                        showToast = showToast,
+                        txBaseFrequencyHz = uiState.radioControl.txBaseFrequencyHz
                     )
                 }
             }

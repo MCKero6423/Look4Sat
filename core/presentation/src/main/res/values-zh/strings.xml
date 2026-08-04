@@ -44,8 +44,8 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 修复 WaveLog 上传 404(URL 处理 + 自动路径重试)
-        * 转发器改为下拉选择框; 修复左滑删除; 更多菜单新增「日志」页(表格视图)</string>
+        * WaveLog 同时支持 API v1 和 v2(自动识别); 错误弹窗带一键复制
+        * 日志频率与多普勒面板一致; 线性转发器显示完整频段区间</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
@@ -188,6 +188,7 @@
     <string name="wavelog_grid_mismatch">当前 QTH 网格(%1$s)与站点网格(%2$s)不一致,仍要上传?</string>
     <string name="wavelog_ignore">忽略并上传</string>
     <string name="wavelog_cancel">取消</string>
+    <string name="wavelog_copy">复制</string>
     <string name="wavelog_delete_undo">撤销</string>
     <string name="wavelog_col_time">时间</string>
     <string name="wavelog_col_freq">频率</string>
