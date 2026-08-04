@@ -567,6 +567,7 @@ private fun UiSettingsCard(
         R.string.nav_radar to "Radar",
         R.string.nav_mutual to "Mutual",
         R.string.nav_roaming to "Roaming",
+        R.string.nav_cw to "CwDecode",
         R.string.nav_map to "Map",
         R.string.nav_prefs to "Settings"
     ) // name 必须与 Screen.screenId 一致 (R8 安全)
@@ -613,7 +614,12 @@ private fun DragOrderList(
     // 按 screenOrder 排序(空 = 默认顺序); remember 以 screens 参数为 key, 持久化后重组
     val ordered = remember(screens, screenOrder) {
         screens.sortedBy { (_, name) ->
-            screenOrder.indexOf(name).let { if (it == -1) Int.MAX_VALUE else it }
+            // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置, 再兜底最后
+            screenOrder.indexOf(name).let {
+                if (it != -1) it else com.rtbishop.look4sat.core.presentation.defaultScreenOrder.indexOf(name).let {
+                    if (it != -1) it else Int.MAX_VALUE
+                }
+            }
         }
     }
     val listState = rememberLazyListState()

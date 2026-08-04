@@ -1212,65 +1212,54 @@ public final class d {
                             }
                         }
                     } else {
-                        if (i8 == 1) {
-                            for (int i23 = i8 - 1; i23 >= 2; i23--) {
-                                int i24 = i4 + i23;
-                                float f6 = fArr[i24];
-                                int i25 = i24 - 1;
-                                fArr[i24] = fArr[i25];
-                                fArr[i25] = f6;
+                        // smali cond_22(a5==0, k=1 时运行时路径!): 单线程 FFT + 后处理
+                        // jadx 原把这段错塞进 if(i8!=1) 的 else(死代码), a5==0 的 else 是幻觉(throw null)
+                        int i26 = this.f11700a;
+                        if (i26 > 4) {
+                            j3.c.q(i26, fArr, i4, this.c, this.f11704g, this.f11703e);
+                            int i27 = this.f11706i;
+                            float[] fArr6 = this.f11703e;
+                            int i28 = this.f11704g;
+                            int i29 = i8 >> 1;
+                            int i30 = (i27 * 2) / i29;
+                            for (int i31 = 2; i31 < i29; i31 += 2) {
+                                i14 += i30;
+                                float f7 = 0.5f - fArr6[(i28 + i27) - i14];
+                                float f8 = fArr6[i28 + i14];
+                                int i32 = i4 + i31;
+                                int i33 = i4 + (i8 - i31);
+                                float f9 = fArr[i32];
+                                float f10 = f9 - fArr[i33];
+                                int i34 = i32 + 1;
+                                int i35 = i33 + 1;
+                                float f11 = fArr[i34] + fArr[i35];
+                                float f12 = (f7 * f10) - (f8 * f11);
+                                float f13 = (f8 * f10) + (f7 * f11);
+                                fArr[i32] = f9 - f12;
+                                fArr[i34] = f13 - fArr[i34];
+                                fArr[i33] = fArr[i33] + f12;
+                                fArr[i35] = f13 - fArr[i35];
                             }
-                            return;
+                            int i36 = i4 + i29 + 1;
+                            fArr[i36] = -fArr[i36];
+                        } else if (i26 == 4) {
+                            float f14 = fArr[i4];
+                            int i37 = i4 + 2;
+                            float f15 = fArr[i37];
+                            int i38 = i4 + 1;
+                            int i39 = i4 + 3;
+                            float f16 = (-fArr[i38]) + fArr[i39];
+                            fArr[i4] = f14 + f15;
+                            fArr[i38] = fArr[i38] + fArr[i39];
+                            fArr[i37] = f14 - f15;
+                            fArr[i39] = f16;
                         }
-                        float[] fArr5 = new float[i8];
-                        throw null;
+                        float f17 = fArr[i4];
+                        int i40 = i4 + 1;
+                        float f18 = fArr[i40];
+                        fArr[i4] = f17 + f18;
+                        fArr[i40] = f17 - f18;
                     }
-                } else {
-                    int i26 = this.f11700a;
-                    if (i26 > 4) {
-                        j3.c.q(i26, fArr, i4, this.c, this.f11704g, this.f11703e);
-                        int i27 = this.f11706i;
-                        float[] fArr6 = this.f11703e;
-                        int i28 = this.f11704g;
-                        int i29 = i8 >> 1;
-                        int i30 = (i27 * 2) / i29;
-                        for (int i31 = 2; i31 < i29; i31 += 2) {
-                            i14 += i30;
-                            float f7 = 0.5f - fArr6[(i28 + i27) - i14];
-                            float f8 = fArr6[i28 + i14];
-                            int i32 = i4 + i31;
-                            int i33 = i4 + (i8 - i31);
-                            float f9 = fArr[i32];
-                            float f10 = f9 - fArr[i33];
-                            int i34 = i32 + 1;
-                            int i35 = i33 + 1;
-                            float f11 = fArr[i34] + fArr[i35];
-                            float f12 = (f7 * f10) - (f8 * f11);
-                            float f13 = (f8 * f10) + (f7 * f11);
-                            fArr[i32] = f9 - f12;
-                            fArr[i34] = f13 - fArr[i34];
-                            fArr[i33] = fArr[i33] + f12;
-                            fArr[i35] = f13 - fArr[i35];
-                        }
-                        int i36 = i4 + i29 + 1;
-                        fArr[i36] = -fArr[i36];
-                    } else if (i26 == 4) {
-                        float f14 = fArr[i4];
-                        int i37 = i4 + 2;
-                        float f15 = fArr[i37];
-                        int i38 = i4 + 1;
-                        int i39 = i4 + 3;
-                        float f16 = (-fArr[i38]) + fArr[i39];
-                        fArr[i4] = f14 + f15;
-                        fArr[i38] = fArr[i38] + fArr[i39];
-                        fArr[i37] = f14 - f15;
-                        fArr[i39] = f16;
-                    }
-                    float f17 = fArr[i4];
-                    int i40 = i4 + 1;
-                    float f18 = fArr[i40];
-                    fArr[i4] = f17 + f18;
-                    fArr[i40] = f17 - f18;
                 }
             }
         }

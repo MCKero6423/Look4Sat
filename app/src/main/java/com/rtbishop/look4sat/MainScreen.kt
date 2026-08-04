@@ -139,8 +139,12 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
     val navItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
+            // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置(漫游↔地图), 再兜底最后
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
-            if (idx == -1) Int.MAX_VALUE else idx
+            if (idx != -1) idx
+            else com.rtbishop.look4sat.core.presentation.defaultScreenOrder.indexOf(screen.screenId).let {
+                if (it != -1) it else Int.MAX_VALUE
+            }
         }
         .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
     // Activity-scoped so the mutual query results survive navigation to Radar and back
