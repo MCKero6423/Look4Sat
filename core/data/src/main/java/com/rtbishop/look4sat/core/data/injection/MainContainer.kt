@@ -40,6 +40,9 @@ import com.rtbishop.look4sat.core.data.usecase.AddToCalendar
 import com.rtbishop.look4sat.core.data.usecase.AudioCapture
 import com.rtbishop.look4sat.core.data.usecase.SaveImage
 import com.rtbishop.look4sat.core.data.usecase.ShowToast
+import com.rtbishop.look4sat.core.domain.wavelog.IWavelogQueueStore
+import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
+import com.rtbishop.look4sat.core.domain.wavelog.WavelogUploader
 import com.rtbishop.look4sat.core.domain.model.RadioControlSettings
 import com.rtbishop.look4sat.core.domain.repository.IDatabaseRepo
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
@@ -95,6 +98,16 @@ class MainContainer(private val context: Context) : IMainContainer {
     override fun provideAudioCapture(): IAudioCapture = AudioCapture()
 
     override fun provideSaveImage(): ISaveImage = SaveImage(context)
+
+    // WaveLog 日志(4.5.2): 本地队列 + 上传器(共享实例)
+    override val wavelogQueue: WavelogQueue by lazy {
+        val prefs = context.getSharedPreferences("wavelog", Context.MODE_PRIVATE)
+        WavelogQueue(object : IWavelogQueueStore {
+            override fun load(): String = prefs.getString("wavelog_queue", "[]") ?: "[]"
+            override fun save(json: String) = prefs.edit().putString("wavelog_queue", json).apply()
+        })
+    }
+    override fun provideWavelogUploader(): WavelogUploader = WavelogUploader(settingsRepo, wavelogQueue)
 
     override fun provideBluetoothReporter(): IReporter {
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager

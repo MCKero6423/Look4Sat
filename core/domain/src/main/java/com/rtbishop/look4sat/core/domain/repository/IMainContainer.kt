@@ -42,6 +42,9 @@ interface IMainContainer {
     fun provideRxRadioController(): IRadioController
     fun provideAudioCapture(): IAudioCapture
     fun provideSaveImage(): ISaveImage
+    // WaveLog 日志(4.5.2)
+    val wavelogQueue: com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
+    fun provideWavelogUploader(): com.rtbishop.look4sat.core.domain.wavelog.WavelogUploader
 }
 
 data class MutualPassData(

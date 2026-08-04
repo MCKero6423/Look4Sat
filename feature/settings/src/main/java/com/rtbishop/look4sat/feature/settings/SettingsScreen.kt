@@ -46,14 +46,18 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -80,6 +84,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -111,6 +116,34 @@ fun SettingsDestination() {
     val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(container))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     SettingsScreen(uiState, viewModel::onAction)
+
+    // WaveLog 网格不一致确认弹窗(4.5.2)
+    val gridConfirm = viewModel.gridConfirm
+    if (gridConfirm != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resolveGridConfirm(false) },
+            title = { Text(text = stringResource(id = R.string.wavelog_title)) },
+            text = {
+                Text(
+                    text = stringResource(
+                        id = R.string.wavelog_grid_mismatch,
+                        gridConfirm.userGrid.take(4),
+                        gridConfirm.stationGrid.take(4)
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.resolveGridConfirm(true) }) {
+                    Text(text = stringResource(id = R.string.wavelog_ignore))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.resolveGridConfirm(false) }) {
+                    Text(text = stringResource(id = R.string.wavelog_cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -326,6 +359,7 @@ private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) ->
                 )
             }
             item { OtherCard(uiState.otherSettings, onAction) }
+            item { WavelogCard(uiState.otherSettings, onAction) }
             item {
                 UiSettingsCard(
                     hiddenScreens = uiState.otherSettings.hiddenScreens,
@@ -558,6 +592,71 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
  * 顺序固定(卫星/过境/雷达/匹配/漫游/地图/设置), 关闭后其余自动靠拢;
  * "设置"页固定显示(防止失去设置入口)。
  */
+/** WaveLog 日志服务器设置卡片(4.5.2): 照用户截图布局(深色卡片/标签左输入右/按钮行) */
+@Composable
+private fun WavelogCard(
+    settings: OtherSettings,
+    onAction: (SettingsAction) -> Unit
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.prefs_wavelog_title),
+                color = MaterialTheme.colorScheme.primary
+            )
+            OutlinedTextField(
+                value = settings.wavelogUrl,
+                onValueChange = {
+                    onAction(SettingsAction.UpdateWavelogSettings(it, settings.wavelogApiKey, settings.wavelogStationId, settings.wavelogAutoUpload))
+                },
+                label = { Text(stringResource(id = R.string.prefs_wavelog_url_hint)) },
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = settings.wavelogApiKey,
+                onValueChange = {
+                    onAction(SettingsAction.UpdateWavelogSettings(settings.wavelogUrl, it, settings.wavelogStationId, settings.wavelogAutoUpload))
+                },
+                label = { Text(stringResource(id = R.string.prefs_wavelog_key_hint)) },
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = settings.wavelogStationId,
+                onValueChange = {
+                    onAction(SettingsAction.UpdateWavelogSettings(settings.wavelogUrl, settings.wavelogApiKey, it, settings.wavelogAutoUpload))
+                },
+                label = { Text(stringResource(id = R.string.prefs_wavelog_station_hint)) },
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                modifier = Modifier.fillMaxWidth()
+            )
+            SwitchRow(R.string.prefs_wavelog_auto, settings.wavelogAutoUpload) {
+                onAction(SettingsAction.UpdateWavelogSettings(settings.wavelogUrl, settings.wavelogApiKey, settings.wavelogStationId, it))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardButton(
+                    onClick = { onAction(SettingsAction.TestWavelogConnection) },
+                    text = stringResource(id = R.string.prefs_wavelog_test),
+                    modifier = Modifier.weight(1f)
+                )
+                CardButton(
+                    onClick = { onAction(SettingsAction.UploadWavelogQueue) },
+                    text = stringResource(id = R.string.prefs_wavelog_upload),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun UiSettingsCard(
     hiddenScreens: List<String>,

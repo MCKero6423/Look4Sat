@@ -25,11 +25,18 @@ import com.rtbishop.look4sat.core.domain.repository.IDatabaseRepo
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import com.rtbishop.look4sat.core.domain.usecase.IShowToast
+import com.rtbishop.look4sat.core.domain.wavelog.UploadOutcome
+import com.rtbishop.look4sat.core.domain.wavelog.WaveLogApi
+import com.rtbishop.look4sat.core.domain.wavelog.WavelogResult
+import com.rtbishop.look4sat.core.domain.wavelog.WavelogUploader
 import com.rtbishop.look4sat.core.presentation.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 class SettingsViewModel(
     private val databaseRepo: IDatabaseRepo,
@@ -138,6 +145,17 @@ class SettingsViewModel(
             is SettingsAction.UpdateRC -> settingsRepo.updateRCSettings(action.settings)
             is SettingsAction.UpdateRadioControl -> settingsRepo.updateRadioControlSettings(action.settings)
             is SettingsAction.UpdateDataSources -> settingsRepo.updateDataSourcesSettings(action.settings)
+            // WaveLog 日志(4.5.2)
+            is SettingsAction.UpdateWavelogSettings -> settingsRepo.updateOtherSettings {
+                it.copy(
+                    wavelogUrl = action.url,
+                    wavelogApiKey = action.apiKey,
+                    wavelogStationId = action.stationId,
+                    wavelogAutoUpload = action.autoUpload
+                )
+            }
+            SettingsAction.TestWavelogConnection -> testWavelogConnection()
+            SettingsAction.UploadWavelogQueue -> uploadWavelogQueue()
             // System
             is SettingsAction.ShowToast -> showToast(action.message)
         }
@@ -212,6 +230,58 @@ class SettingsViewModel(
 
     // endregion
 
+    // region WaveLog(4.5.2)
+
+    private fun testWavelogConnection() {
+        viewModelScope.launch {
+            val s = settingsRepo.otherSettings.value
+            val result = WaveLogApi.testToken(s.wavelogUrl, s.wavelogApiKey)
+            showToast(
+                when (result) {
+                    is WavelogResult.Success -> "WaveLog: 连接成功"
+                    is WavelogResult.Failure -> "WaveLog: ${result.message}"
+                }
+            )
+        }
+    }
+
+    // 由 SettingsScreen 注入的共享 uploader(容器级单例)
+    var pendingUploader: WavelogUploader? = null
+
+    // 网格不一致确认弹窗状态(UI 观察后弹 AlertDialog)
+    var gridConfirm by mutableStateOf<GridConfirmData?>(null)
+
+    data class GridConfirmData(val stationGrid: String, val userGrid: String)
+
+    private fun uploadWavelogQueue() {
+        viewModelScope.launch {
+            val result = pendingUploader?.uploadQueue()
+            when (result) {
+                is UploadOutcome.Done -> showToast("WaveLog: ${result.message}")
+                is UploadOutcome.NeedConfirm -> {
+                    gridConfirm = GridConfirmData(result.stationGrid, result.userGrid)
+                }
+                null -> showToast("WaveLog: 上传失败")
+            }
+        }
+    }
+
+    /** 网格确认结果: 忽略并上传 / 取消 */
+    fun resolveGridConfirm(ignoreAndUpload: Boolean) {
+        val confirm = gridConfirm ?: return
+        gridConfirm = null
+        if (!ignoreAndUpload) return
+        viewModelScope.launch {
+            val result = pendingUploader?.uploadQueue(force = true)
+            when (result) {
+                is UploadOutcome.Done -> showToast("WaveLog: ${result.message}")
+                else -> showToast("WaveLog: 上传失败")
+            }
+        }
+    }
+
+    // endregion
+
     companion object {
 
         fun factory(container: IMainContainer) = viewModelFactory {
@@ -220,7 +290,7 @@ class SettingsViewModel(
                     databaseRepo = container.databaseRepo,
                     settingsRepo = container.settingsRepo,
                     showToast = container.provideShowToast()
-                )
+                ).apply { pendingUploader = container.provideWavelogUploader() }
             }
         }
     }

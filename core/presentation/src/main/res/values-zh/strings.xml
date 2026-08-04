@@ -43,8 +43,8 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 底部导航改为 5 个主标签 + 更多菜单(可折叠二级菜单)
-        * UI 设置: 页面顺序分为主菜单与更多菜单,可拖拽或移动页面</string>
+        * 新增 WaveLog 日志系统: 雷达页 Log 标签记录卫星通联日志
+        * 自动/手动上传到 WaveLog 服务器,带网格不一致检测</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
@@ -170,6 +170,23 @@
     <string name="disconnect_radio">断开</string>
     <string name="track_radio">跟踪</string>
     <string name="stop_radio">停止</string>
+    <string name="prefs_wavelog_title">WaveLog 日志服务器</string>
+    <string name="prefs_wavelog_url_hint">服务器地址</string>
+    <string name="prefs_wavelog_key_hint">API 密钥</string>
+    <string name="prefs_wavelog_station_hint">站点 ID</string>
+    <string name="prefs_wavelog_auto">自动上传</string>
+    <string name="prefs_wavelog_test">测试连接</string>
+    <string name="prefs_wavelog_upload">手动上传</string>
+    <string name="wavelog_title">日志</string>
+    <string name="wavelog_call_hint">对方呼号</string>
+    <string name="wavelog_mode_hint">模式</string>
+    <string name="wavelog_saved">已存入本地日志</string>
+    <string name="wavelog_need_config">请先在设置中配置 WaveLog</string>
+    <string name="wavelog_empty">暂无日志记录</string>
+    <string name="wavelog_grid_mismatch">当前 QTH 网格(%1$s)与站点网格(%2$s)不一致,仍要上传?</string>
+    <string name="wavelog_ignore">忽略并上传</string>
+    <string name="wavelog_cancel">取消</string>
+    <string name="wavelog_delete_undo">撤销</string>
     <string name="prefs_other_title">其他设置</string>
     <string name="prefs_ui_title">UI设置</string>
     <string name="prefs_ui_order_title">页面顺序</string>

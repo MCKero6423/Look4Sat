@@ -53,8 +53,8 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * Alt gezinme artık 5 ana sekme artı Daha Fazla menüsü kullanıyor (katlanabilir ikinci düzey menü)
-        * UI Ayarları: sayfa sırası ana menü ve daha fazla menü olarak ayrıldı; sayfalar arasında taşıma yapılabilir</string>
+        * Yeni WaveLog günlük entegrasyonu: radar sayfasından uydu temaslarını kaydedin (Günlük sekmesi)
+        * Izgara uyuşmazlığı algılamayla WaveLog sunucunuza otomatik/manuel yükleme</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>
@@ -187,6 +187,23 @@
     <string name="disconnect_radio">Bağlantıyı Kes</string>
     <string name="track_radio">Takip</string>
     <string name="stop_radio">Dur</string>
+    <string name="prefs_wavelog_title">WaveLog günlük sunucusu</string>
+    <string name="prefs_wavelog_url_hint">Sunucu adresi</string>
+    <string name="prefs_wavelog_key_hint">API anahtarı</string>
+    <string name="prefs_wavelog_station_hint">İstasyon kimliği</string>
+    <string name="prefs_wavelog_auto">Otomatik yükleme</string>
+    <string name="prefs_wavelog_test">Bağlantıyı test et</string>
+    <string name="prefs_wavelog_upload">Şimdi yükle</string>
+    <string name="wavelog_title">Günlük</string>
+    <string name="wavelog_call_hint">Çağrı işareti</string>
+    <string name="wavelog_mode_hint">Mod</string>
+    <string name="wavelog_saved">Yerel günlüğe kaydedildi</string>
+    <string name="wavelog_need_config">Önce Ayarlar\'da WaveLog\'u yapılandırın</string>
+    <string name="wavelog_empty">Henüz günlük kaydı yok</string>
+    <string name="wavelog_grid_mismatch">QTH ızgarası (%1$s) istasyon ızgarasıyla (%2$s) eşleşmiyor. Yine de yüklensin mi?</string>
+    <string name="wavelog_ignore">Yoksay ve yükle</string>
+    <string name="wavelog_cancel">İptal</string>
+    <string name="wavelog_delete_undo">Geri al</string>
     <string name="prefs_other_title">Diğer ayarlar</string>
     <string name="prefs_ui_title">UI Ayarları</string>
     <string name="prefs_ui_order_title">Sayfa sırası</string>

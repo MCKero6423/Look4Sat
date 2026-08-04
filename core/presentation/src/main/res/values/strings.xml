@@ -55,8 +55,8 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * Bottom navigation now uses 5 main tabs plus a More menu (collapsible second-level menu)
-        * UI Settings: page order split into main menu and more menu; drag or move pages between them</string>
+        * New WaveLog logbook integration: log satellite contacts from the radar page (Log tab)
+        * Auto/manual upload to your WaveLog server with grid mismatch detection</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>
@@ -201,6 +201,23 @@
     <string name="disconnect_radio">Disconnect</string>
     <string name="track_radio">Track</string>
     <string name="stop_radio">Stop</string>
+    <string name="prefs_wavelog_title">WaveLog log server</string>
+    <string name="prefs_wavelog_url_hint">Server address</string>
+    <string name="prefs_wavelog_key_hint">API key</string>
+    <string name="prefs_wavelog_station_hint">Station ID</string>
+    <string name="prefs_wavelog_auto">Auto upload</string>
+    <string name="prefs_wavelog_test">Test connection</string>
+    <string name="prefs_wavelog_upload">Upload now</string>
+    <string name="wavelog_title">Log</string>
+    <string name="wavelog_call_hint">Callsign</string>
+    <string name="wavelog_mode_hint">Mode</string>
+    <string name="wavelog_saved">Saved to local log</string>
+    <string name="wavelog_need_config">Configure WaveLog in Settings first</string>
+    <string name="wavelog_empty">No log entries yet</string>
+    <string name="wavelog_grid_mismatch">QTH grid (%1$s) does not match station grid (%2$s). Upload anyway?</string>
+    <string name="wavelog_ignore">Ignore and upload</string>
+    <string name="wavelog_cancel">Cancel</string>
+    <string name="wavelog_delete_undo">Undo</string>
     <string name="prefs_other_title">Other settings</string>
     <string name="prefs_ui_title">UI Settings</string>
     <string name="prefs_ui_order_title">Page order</string>

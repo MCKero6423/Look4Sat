@@ -48,8 +48,8 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message">
-        * Navigasi bawah kini menggunakan 5 tab utama plus menu Lainnya (menu tingkat kedua yang dapat dilipat)
-        * Pengaturan UI: urutan halaman dipisah menjadi menu utama dan menu lainnya; pindahkan halaman di antara keduanya</string>
+        * Integrasi logbook WaveLog baru: catat kontak satelit dari halaman radar (tab Log)
+        * Unggah otomatis/manual ke server WaveLog Anda dengan deteksi ketidakcocokan grid</string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
@@ -177,6 +177,23 @@
     <string name="disconnect_radio">Putuskan</string>
     <string name="track_radio">Lacak</string>
     <string name="stop_radio">Berhenti</string>
+    <string name="prefs_wavelog_title">Server log WaveLog</string>
+    <string name="prefs_wavelog_url_hint">Alamat server</string>
+    <string name="prefs_wavelog_key_hint">Kunci API</string>
+    <string name="prefs_wavelog_station_hint">ID stasiun</string>
+    <string name="prefs_wavelog_auto">Unggah otomatis</string>
+    <string name="prefs_wavelog_test">Uji koneksi</string>
+    <string name="prefs_wavelog_upload">Unggah sekarang</string>
+    <string name="wavelog_title">Log</string>
+    <string name="wavelog_call_hint">Tanda panggil</string>
+    <string name="wavelog_mode_hint">Mode</string>
+    <string name="wavelog_saved">Tersimpan ke log lokal</string>
+    <string name="wavelog_need_config">Konfigurasikan WaveLog di Pengaturan terlebih dahulu</string>
+    <string name="wavelog_empty">Belum ada entri log</string>
+    <string name="wavelog_grid_mismatch">Grid QTH (%1$s) tidak cocok dengan grid stasiun (%2$s). Tetap unggah?</string>
+    <string name="wavelog_ignore">Abaikan dan unggah</string>
+    <string name="wavelog_cancel">Batal</string>
+    <string name="wavelog_delete_undo">Urungkan</string>
     <string name="prefs_other_title">Pengaturan lainnya</string>
     <string name="prefs_ui_title">Pengaturan UI</string>
     <string name="prefs_ui_order_title">Urutan halaman</string>

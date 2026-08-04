@@ -94,6 +94,11 @@ class SettingsRepo(
     private val keyUseCustomTransceivers = "useCustomTransceivers"
     private val keyTleUrl = "tleUrl"
     private val keyTransceiversUrl = "transceiversUrl"
+    private val keySubMenuOrder = "subMenuOrder"
+    private val keyWavelogUrl = "wavelogUrl"
+    private val keyWavelogApiKey = "wavelogApiKey"
+    private val keyWavelogStationId = "wavelogStationId"
+    private val keyWavelogAutoUpload = "wavelogAutoUpload"
     private val separatorComma = ","
 
     //region # Satellites selection settings
@@ -361,6 +366,11 @@ class SettingsRepo(
                 putLong(keyHighElevation, new.highElevation.toRawBits())
                 putStringSet(keyHiddenScreens, new.hiddenScreens.toSet())
                 putString(keyScreenOrder, new.screenOrder.joinToString(","))
+                putString(keySubMenuOrder, new.subMenuOrder.joinToString(","))
+                putString(keyWavelogUrl, new.wavelogUrl)
+                putString(keyWavelogApiKey, new.wavelogApiKey)
+                putString(keyWavelogStationId, new.wavelogStationId)
+                putBoolean(keyWavelogAutoUpload, new.wavelogAutoUpload)
             }
             new
         }
@@ -378,8 +388,13 @@ class SettingsRepo(
         sstvMode = preferences.getString(keySstvMode, null) ?: "Auto",
         hiddenScreens = preferences.getStringSet(keyHiddenScreens, emptySet())?.toList() ?: emptyList(),
         screenOrder = preferences.getString(keyScreenOrder, null)?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
+        subMenuOrder = preferences.getString(keySubMenuOrder, null)?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
         lowElevation = Double.fromBits(preferences.getLong(keyLowElevation, 15.0.toRawBits())),
-        highElevation = Double.fromBits(preferences.getLong(keyHighElevation, 45.0.toRawBits()))
+        highElevation = Double.fromBits(preferences.getLong(keyHighElevation, 45.0.toRawBits())),
+        wavelogUrl = preferences.getString(keyWavelogUrl, null) ?: "",
+        wavelogApiKey = preferences.getString(keyWavelogApiKey, null) ?: "",
+        wavelogStationId = preferences.getString(keyWavelogStationId, null) ?: "",
+        wavelogAutoUpload = preferences.getBoolean(keyWavelogAutoUpload, false)
     )
     //endregion
 

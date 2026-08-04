@@ -68,7 +68,12 @@ data class OtherSettings(
     // UI 设置: 页面顺序(空 = 默认顺序: 卫星/过境/雷达/地图/设置)
     val screenOrder: List<String> = emptyList(),
     // UI 设置: 更多菜单顺序(空 = 默认: 匹配/漫游/CW解码)
-    val subMenuOrder: List<String> = emptyList()
+    val subMenuOrder: List<String> = emptyList(),
+    // WaveLog 日志系统(4.5.2): 服务器配置
+    val wavelogUrl: String = "",
+    val wavelogApiKey: String = "",
+    val wavelogStationId: String = "",
+    val wavelogAutoUpload: Boolean = false
 )
 
 data class DataSourcesSettings(
