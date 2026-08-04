@@ -227,6 +227,7 @@
     <string name="wavelog_col_sat">Satellite</string>
     <string name="wavelog_col_call">Call</string>
     <string name="wavelog_col_uploaded">Sent</string>
+    <string name="wavelog_ungrouped">Ungrouped</string>
     <string name="prefs_other_title">Other settings</string>
     <string name="prefs_ui_title">UI Settings</string>
     <string name="prefs_ui_order_title">Page order</string>

@@ -213,6 +213,7 @@
     <string name="wavelog_col_sat">Uydu</string>
     <string name="wavelog_col_call">Çağrı</string>
     <string name="wavelog_col_uploaded">Gönderildi</string>
+    <string name="wavelog_ungrouped">Gruplanmamış</string>
     <string name="prefs_other_title">Diğer ayarlar</string>
     <string name="prefs_ui_title">UI Ayarları</string>
     <string name="prefs_ui_order_title">Sayfa sırası</string>

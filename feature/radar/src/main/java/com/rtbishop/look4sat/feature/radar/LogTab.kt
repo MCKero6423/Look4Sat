@@ -88,6 +88,7 @@ fun LogTab(
     wavelogConfigured: Boolean,
     showToast: (String) -> Unit,
     txBaseFrequencyHz: Long? = null,
+    aosTimeMs: Long = 0L,
     modifier: Modifier = Modifier
 ) {
     var selectedUuid by remember { mutableStateOf<String?>(null) }
@@ -159,6 +160,7 @@ fun LogTab(
                 queue = queue,
                 showToast = showToast,
                 txBaseFrequencyHz = txBaseFrequencyHz,
+                aosTimeMs = aosTimeMs,
                 onSaved = { refreshTick++ }
             )
         }
@@ -225,6 +227,7 @@ private fun ExpandedLogInput(
     queue: WavelogQueue,
     showToast: (String) -> Unit,
     txBaseFrequencyHz: Long? = null,
+    aosTimeMs: Long = 0L,
     onSaved: () -> Unit
 ) {
     var callsign by remember { mutableStateOf("") }
@@ -246,7 +249,8 @@ private fun ExpandedLogInput(
                 mode = mode.trim().ifBlank { "FM" }.uppercase(),
                 freqTxHz = tx,
                 freqRxHz = rx,
-                satName = satelliteName
+                satName = satelliteName,
+                sessionId = buildSessionId(satelliteName, aosTimeMs)
             )
         )
         callsign = ""
@@ -447,4 +451,15 @@ private fun formatLocalTime(utcMs: Long): String {
     val cal = Calendar.getInstance(TimeZone.getDefault())
     cal.timeInMillis = utcMs
     return "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+}
+
+/** 场次 ID: 卫星名-AOS 时间戳(UTC yyyyMMdd-HHmm); 无 AOS 时用回车时刻 */
+private fun buildSessionId(satName: String, aosTimeMs: Long): String {
+    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+    cal.timeInMillis = if (aosTimeMs > 0) aosTimeMs else System.currentTimeMillis()
+    val stamp = "%04d%02d%02d-%02d%02d".format(
+        cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH),
+        cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)
+    )
+    return "$satName-$stamp"
 }

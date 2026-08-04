@@ -95,7 +95,27 @@ fun WavelogLogScreen(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp)
                 )
             } else {
-                entries.forEachIndexed { index, entry ->
+                // 按场次分组(sessionId = 卫星名-AOS 时间戳); 空 sessionId 归"未分组"放最后
+                val groups = entries.groupBy { it.sessionId.ifBlank { UNGROUPED } }
+                    .toSortedMap(compareByDescending<String> { id ->
+                        entries.filter { it.sessionId.ifBlank { UNGROUPED } == id }.minOfOrNull { it.timeUtcMs } ?: 0L
+                    }.thenByDescending { it })
+                groups.forEach { (sessionId, groupEntries) ->
+                    // 组标题(场次名 + 本地时间)
+                    val (satPart, timePart) = parseSession(sessionId)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (sessionId == UNGROUPED) stringResource(id = R.string.wavelog_ungrouped)
+                            else "$satPart - ${formatSessionTime(timePart)}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+                    // 组间横线(md --- 效果)
+                    HorizontalDivider(thickness = 1.5.dp, color = GridLineColor)
+                    groupEntries.forEach { entry ->
                     SwipeDeleteRow(
                         onDelete = {
                             queue.remove(entry.id)
@@ -132,6 +152,7 @@ fun WavelogLogScreen(
                             HorizontalDivider(thickness = 1.dp, color = GridLineColor)
                         }
                     }
+                }
                 }
             }
         }
@@ -171,6 +192,38 @@ private fun RowScope.Cell(text: String, width: Dp, weight: Float = 0f) {
         maxLines = 1,
         modifier = mod.padding(horizontal = 6.dp)
     )
+}
+
+private const val UNGROUPED = "__ungrouped__"
+
+/** 解析场次 ID: "ASRTU-1-20260804-2014" → (卫星名, "20260804-2014") */
+private fun parseSession(sessionId: String): Pair<String, String> {
+    val parts = sessionId.split('-')
+    if (parts.size < 3) return sessionId to ""
+    val timePart = parts.takeLast(2).joinToString("-")
+    val satPart = parts.dropLast(2).joinToString("-")
+    return satPart to timePart
+}
+
+/** 场次时间(UTC "20260804-2014") → 本地 "MM-dd HH:mm" */
+private fun formatSessionTime(timePart: String): String {
+    if (timePart.length != 13 || timePart[8] != '-') return timePart
+    return try {
+        val year = timePart.substring(0, 4).toInt()
+        val month = timePart.substring(4, 6).toInt()
+        val day = timePart.substring(6, 8).toInt()
+        val hour = timePart.substring(9, 11).toInt()
+        val minute = timePart.substring(11, 13).toInt()
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        cal.set(year, month - 1, day, hour, minute, 0)
+        cal.timeInMillis = cal.timeInMillis + TimeZone.getDefault().getOffset(cal.timeInMillis)
+        "%02d-%02d %02d:%02d".format(
+            cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH),
+            cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)
+        )
+    } catch (_: Exception) {
+        timePart
+    }
 }
 
 private fun formatLocalTime(utcMs: Long): String {

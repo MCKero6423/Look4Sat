@@ -25,6 +25,7 @@ data class WavelogQso(
     val freqTxHz: Long,          // 上行(回车那一秒多普勒修正)
     val freqRxHz: Long,          // 下行
     val satName: String,
+    val sessionId: String = "",  // 场次 ID: 卫星名-AOS 时间戳(过境仰角 0 秒), 空=未分组(旧数据)
     val uploaded: Boolean = false // 是否已成功上传(4.5.2 修复: 成功后保留标记, 表格打勾)
 )
 
@@ -46,6 +47,7 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
                     freqTxHz = o.optLong("freqTxHz"),
                     freqRxHz = o.optLong("freqRxHz"),
                     satName = o.optString("satName"),
+                    sessionId = o.optString("sessionId"),
                     uploaded = o.optBoolean("uploaded", false)
                 )
             }
@@ -89,6 +91,7 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
                 put("id", q.id); put("timeUtcMs", q.timeUtcMs); put("call", q.call)
                 put("mode", q.mode); put("freqTxHz", q.freqTxHz)
                 put("freqRxHz", q.freqRxHz); put("satName", q.satName)
+                put("sessionId", q.sessionId)
                 put("uploaded", q.uploaded)
             })
         }

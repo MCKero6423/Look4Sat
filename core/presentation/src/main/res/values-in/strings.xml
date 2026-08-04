@@ -203,6 +203,7 @@
     <string name="wavelog_col_sat">Satelit</string>
     <string name="wavelog_col_call">Panggilan</string>
     <string name="wavelog_col_uploaded">Terkirim</string>
+    <string name="wavelog_ungrouped">Tidak dikelompokkan</string>
     <string name="prefs_other_title">Pengaturan lainnya</string>
     <string name="prefs_ui_title">Pengaturan UI</string>
     <string name="prefs_ui_order_title">Urutan halaman</string>

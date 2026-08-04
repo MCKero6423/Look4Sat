@@ -299,7 +299,8 @@ private fun PagerCard(
                         queue = wavelogQueue,
                         wavelogConfigured = wavelogConfigured,
                         showToast = showToast,
-                        txBaseFrequencyHz = uiState.radioControl.txBaseFrequencyHz
+                        txBaseFrequencyHz = uiState.radioControl.txBaseFrequencyHz,
+                        aosTimeMs = uiState.currentPass?.aosTime ?: 0L
                     )
                 }
             }

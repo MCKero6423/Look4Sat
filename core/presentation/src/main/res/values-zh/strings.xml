@@ -196,6 +196,7 @@
     <string name="wavelog_col_sat">卫星</string>
     <string name="wavelog_col_call">呼号</string>
     <string name="wavelog_col_uploaded">已传</string>
+    <string name="wavelog_ungrouped">未分组</string>
     <string name="prefs_other_title">其他设置</string>
     <string name="prefs_ui_title">UI设置</string>
     <string name="prefs_ui_order_title">页面顺序</string>
