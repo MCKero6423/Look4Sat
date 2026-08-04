@@ -59,7 +59,7 @@
         \n\n* Ayarlar: "İçe aktar" düğmesi "Özel URL" olarak yeniden adlandırıldı - TLE/alıcı-verici kaynak URL\'leri doğrudan düzenlenebilir
         \n\n* Özel kaynak anahtarları varsayılan olarak KAPALI; eski örnek URL\'ler gerçek varsayılanlara sıfırlanır
         \n\n* Yeni UI Ayarları kartı: alt gezinme sayfalarını göster/gizle (sıra sabit, Ayarlar her zaman görünür)
-        \n\n* Sayfa sırası: UI Ayarları'nda her sayfanın yanındaki tutamacı sürükleyerek alt gezinmeyi yeniden sıralayın, tek dokunuşla varsayılana sıfırlayın
+        \n\n* Sayfa sırası: UI Ayarları\'nda her sayfanın yanındaki tutamacı sürükleyerek alt gezinmeyi yeniden sıralayın, tek dokunuşla varsayılana sıfırlayın
     </string>
 
     <!-- Radar screen -->
