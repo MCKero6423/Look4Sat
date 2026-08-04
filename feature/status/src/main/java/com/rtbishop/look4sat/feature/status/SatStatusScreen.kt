@@ -209,7 +209,7 @@ private fun HeaderRow(statuses: List<SatStatus>) {
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1.4f).padding(start = 4.dp)
+            modifier = Modifier.weight(2f).padding(start = 4.dp)
         )
         dates.forEach { date ->
             Text(
@@ -218,7 +218,7 @@ private fun HeaderRow(statuses: List<SatStatus>) {
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(0.8f)
             )
         }
     }
@@ -238,13 +238,13 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
             fontSize = 11.sp,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1.4f).padding(start = 4.dp)
+            modifier = Modifier.weight(2f).padding(start = 4.dp)
         )
         status.days.forEach { day ->
             val slot = day.slots.firstOrNull { it.statusColor != NoReportGray.value.toInt().toLong() } ?: day.slots.first()
             DayCell(
                 slot = slot,
-                modifier = Modifier.weight(1f).padding(horizontal = 1.dp),
+                modifier = Modifier.weight(0.8f).padding(horizontal = 1.dp),
                 onClick = { onClickDay(day) }
             )
         }
@@ -257,7 +257,7 @@ private fun DayCell(slot: SatSlot, modifier: Modifier, onClick: () -> Unit) {
     val color = Color(slot.statusColor)
     Box(
         modifier = modifier
-            .height(26.dp)
+            .height(24.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(color)
             .clickable(onClick = onClick),
