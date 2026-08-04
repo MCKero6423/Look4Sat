@@ -1,4 +1,4 @@
-/* 
+/*
  * Look4Sat. Amateur radio satellite tracker and pass predictor.
  * Copyright (C) 2019-2026 Arty Bishop and contributors.
  *
@@ -45,6 +45,9 @@ object DopplerFrequencyCalculator {
      * Given a downlink frequency, compute the Doppler-corrected uplink frequency
      * with an offset applied to the downlink (in Hz).
      * Returns null if the transponder is not a linear passband type.
+     *
+     * The user-entered downlink frequency already includes the offset, so subtract
+     * it before mapping the downlink passband position back to the uplink.
      */
     fun computeUplinkFromDownlinkWithOffset(
         downlinkHz: Long,
@@ -53,7 +56,7 @@ object DopplerFrequencyCalculator {
         offsetHz: Long
     ): Long? {
         if (!isLinearTransponder(transponder)) return null
-        val baseUplink = TransponderMapper.mapDownlinkToUplink(downlinkHz + offsetHz, transponder) ?: return null
+        val baseUplink = TransponderMapper.mapDownlinkToUplink(downlinkHz - offsetHz, transponder) ?: return null
         return orbitalPos.getUplinkFreq(baseUplink)
     }
 

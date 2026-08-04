@@ -618,7 +618,7 @@ private fun DopplerFrequencyCalculator(
             },
             label = { Text(stringResource(R.string.radar_doppler_offset_hint)) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             modifier = Modifier.fillMaxWidth()
         )
 

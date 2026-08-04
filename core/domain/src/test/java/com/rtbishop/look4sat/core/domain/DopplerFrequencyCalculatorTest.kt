@@ -119,6 +119,53 @@ class DopplerFrequencyCalculatorTest {
     }
 
     @Test
+    fun computeDownlinkFromUplink_withPositiveOffset_addsOffsetToDownlink() {
+        val xpdr = linearTransponder()
+        val orbitalPos = pos(0.0)
+        val downlink = DopplerFrequencyCalculator.computeDownlinkFromUplinkWithOffset(
+            uplinkHz = 145_200_000L,
+            transponder = xpdr,
+            orbitalPos = orbitalPos,
+            offsetHz = 2_500L
+        )
+        assertEquals(435_202_500L, downlink)
+    }
+
+    @Test
+    fun computeUplinkFromDownlink_withPositiveOffset_subtractsOffsetBeforeMapping() {
+        val xpdr = linearTransponder()
+        val orbitalPos = pos(0.0)
+        val uplink = DopplerFrequencyCalculator.computeUplinkFromDownlinkWithOffset(
+            downlinkHz = 435_202_500L,
+            transponder = xpdr,
+            orbitalPos = orbitalPos,
+            offsetHz = 2_500L
+        )
+        assertEquals(145_200_000L, uplink)
+    }
+
+    @Test
+    fun computeOffsetRoundTrip_handlesNegativeOffset() {
+        val xpdr = linearTransponder()
+        val orbitalPos = pos(0.0)
+        val downlink = DopplerFrequencyCalculator.computeDownlinkFromUplinkWithOffset(
+            uplinkHz = 145_200_000L,
+            transponder = xpdr,
+            orbitalPos = orbitalPos,
+            offsetHz = -2_500L
+        )
+        assertEquals(435_197_500L, downlink)
+
+        val uplink = DopplerFrequencyCalculator.computeUplinkFromDownlinkWithOffset(
+            downlinkHz = downlink!!,
+            transponder = xpdr,
+            orbitalPos = orbitalPos,
+            offsetHz = -2_500L
+        )
+        assertEquals(145_200_000L, uplink)
+    }
+
+    @Test
     fun computeUplinkFromDownlink_invertedTransponder() {
         val xpdr = linearTransponder(inverted = true, downHigh = 435_500_000L)
         val orbitalPos = pos(0.0)
