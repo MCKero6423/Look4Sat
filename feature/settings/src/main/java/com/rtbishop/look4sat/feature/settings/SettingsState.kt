@@ -66,6 +66,10 @@ sealed interface SettingsAction {
     data class ToggleNightMode(val value: Boolean) : SettingsAction
     // UI 设置: 切换底部导航栏页面的隐藏状态(Screen simpleName)
     data class ToggleScreen(val screenName: String) : SettingsAction
+    // UI 设置: 更新页面顺序
+    data class ReorderScreens(val order: List<String>) : SettingsAction
+    // UI 设置: 重置为默认顺序
+    data object ResetScreenOrder : SettingsAction
 
     // Remote control
     data class UpdateRC(val settings: RCSettings) : SettingsAction

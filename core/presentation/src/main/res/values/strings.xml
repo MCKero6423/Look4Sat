@@ -61,6 +61,7 @@
         \n\n* Settings: "Import" button renamed to "Custom URL" - edit TLE/transceiver source URLs directly
         \n\n* Custom source toggles default OFF; legacy placeholder URLs are reset to the real defaults
         \n\n* New UI Settings card: show/hide bottom navigation pages (order fixed, Settings always visible)
+        \n\n* Page order: drag the handle next to each page in UI Settings to reorder the bottom navigation, one-tap reset to default
     </string>
 
     <!-- Radar screen -->
@@ -200,6 +201,8 @@
 
     <string name="prefs_other_title">Other settings</string>
     <string name="prefs_ui_title">UI Settings</string>
+    <string name="prefs_ui_order_title">Page order</string>
+    <string name="prefs_ui_order_reset">Reset order</string>
     <string name="prefs_other_switch_utc">Show pass time in UTC</string>
     <string name="prefs_other_switch_update">Enable automatic data update</string>
     <string name="prefs_other_switch_sweep">Enable radar sweep animation</string>

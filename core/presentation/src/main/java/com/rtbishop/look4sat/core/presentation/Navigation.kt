@@ -45,6 +45,9 @@ sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: Strin
     data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs, "Settings")
 }
 
+// UI 设置: 默认页面顺序(与 MainScreen navItems 一致)
+val defaultScreenOrder = listOf("Satellites", "Passes", "Radar", "Mutual", "Roaming", "Map", "Settings")
+
 @Serializable
 data object RadarDestination : NavKey
 

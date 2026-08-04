@@ -64,7 +64,9 @@ data class OtherSettings(
     val lowElevation: Double = 15.0,
     val highElevation: Double = 45.0,
     // UI 设置: 底部导航栏隐藏的页面(Screen simpleName 列表, 默认空 = 全部显示)
-    val hiddenScreens: List<String> = emptyList()
+    val hiddenScreens: List<String> = emptyList(),
+    // UI 设置: 页面顺序(空 = 默认顺序: 卫星/过境/雷达/匹配/漫游/地图/设置)
+    val screenOrder: List<String> = emptyList()
 )
 
 data class DataSourcesSettings(

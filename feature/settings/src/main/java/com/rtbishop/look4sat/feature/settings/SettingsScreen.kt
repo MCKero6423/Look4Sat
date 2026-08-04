@@ -32,6 +32,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -41,15 +47,28 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlin.math.roundToInt
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -303,7 +322,10 @@ private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) ->
             item {
                 UiSettingsCard(
                     hiddenScreens = uiState.otherSettings.hiddenScreens,
-                    onToggle = { name -> onAction(SettingsAction.ToggleScreen(name)) }
+                    screenOrder = uiState.otherSettings.screenOrder,
+                    onToggle = { name -> onAction(SettingsAction.ToggleScreen(name)) },
+                    onReorder = { order -> onAction(SettingsAction.ReorderScreens(order)) },
+                    onResetOrder = { onAction(SettingsAction.ResetScreenOrder) }
                 )
             }
             item { CardCredits() }
@@ -528,7 +550,13 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
  * "设置"页固定显示(防止失去设置入口)。
  */
 @Composable
-private fun UiSettingsCard(hiddenScreens: List<String>, onToggle: (String) -> Unit) {
+private fun UiSettingsCard(
+    hiddenScreens: List<String>,
+    screenOrder: List<String>,
+    onToggle: (String) -> Unit,
+    onReorder: (List<String>) -> Unit,
+    onResetOrder: () -> Unit
+) {
     val screens = listOf(
         R.string.nav_sat to "Satellites",
         R.string.nav_pass to "Passes",
@@ -556,6 +584,87 @@ private fun UiSettingsCard(hiddenScreens: List<String>, onToggle: (String) -> Un
                         onToggle(name)
                     }
                 }
+            }
+            Text(
+                text = stringResource(id = R.string.prefs_ui_order_title),
+                color = MaterialTheme.colorScheme.primary
+            )
+            DragOrderList(screens = screens, screenOrder = screenOrder, onReorder = onReorder)
+            TextButton(onClick = onResetOrder) {
+                Text(text = stringResource(id = R.string.prefs_ui_order_reset))
+            }
+        }
+    }
+}
+
+/** 页面顺序拖拽列表: 每行右侧抓手, 按住上下拖动实时换位, 松手持久化 */
+@Composable
+private fun DragOrderList(
+    screens: List<Pair<Int, String>>,
+    screenOrder: List<String>,
+    onReorder: (List<String>) -> Unit
+) {
+    val itemHeight = 48.dp
+    val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
+    // 按 screenOrder 排序(空 = 默认顺序); remember 以 screens 参数为 key, 持久化后重组
+    val ordered = remember(screens, screenOrder) {
+        screens.sortedBy { (_, name) ->
+            screenOrder.indexOf(name).let { if (it == -1) Int.MAX_VALUE else it }
+        }
+    }
+    val listState = rememberLazyListState()
+    val items = remember(ordered) { mutableStateListOf<Pair<Int, String>>().apply { addAll(ordered) } }
+    var draggingIndex by remember { mutableIntStateOf(-1) }
+    var dragOffset by remember { mutableStateOf(0f) }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
+        itemsIndexed(items, key = { _, s -> s.second }) { index, screen ->
+            val isDragging = draggingIndex == index
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(itemHeight)
+                    .zIndex(if (isDragging) 1f else 0f)
+                    .graphicsLayer { translationY = if (isDragging) dragOffset else 0f }
+                    .animateItem()
+            ) {
+                Text(
+                    text = stringResource(id = screen.first),
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_drag),
+                    contentDescription = stringResource(id = R.string.prefs_ui_order_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .pointerInput(screen.second) {
+                            detectDragGestures(
+                                onDragStart = { draggingIndex = index },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount.y
+                                    val target = (index + (dragOffset / itemHeightPx).roundToInt())
+                                        .coerceIn(0, items.size - 1)
+                                    if (target != index) {
+                                        items.add(target, items.removeAt(index))
+                                        dragOffset += (index - target) * itemHeightPx
+                                        draggingIndex = target
+                                    }
+                                },
+                                onDragEnd = {
+                                    onReorder(items.map { it.second })
+                                    draggingIndex = -1
+                                    dragOffset = 0f
+                                },
+                                onDragCancel = {
+                                    draggingIndex = -1
+                                    dragOffset = 0f
+                                }
+                            )
+                        }
+                )
             }
         }
     }

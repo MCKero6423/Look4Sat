@@ -59,6 +59,7 @@
         \n\n* Ayarlar: "İçe aktar" düğmesi "Özel URL" olarak yeniden adlandırıldı - TLE/alıcı-verici kaynak URL\'leri doğrudan düzenlenebilir
         \n\n* Özel kaynak anahtarları varsayılan olarak KAPALI; eski örnek URL\'ler gerçek varsayılanlara sıfırlanır
         \n\n* Yeni UI Ayarları kartı: alt gezinme sayfalarını göster/gizle (sıra sabit, Ayarlar her zaman görünür)
+        \n\n* Sayfa sırası: UI Ayarları'nda her sayfanın yanındaki tutamacı sürükleyerek alt gezinmeyi yeniden sıralayın, tek dokunuşla varsayılana sıfırlayın
     </string>
 
     <!-- Radar screen -->
@@ -186,6 +187,8 @@
 
     <string name="prefs_other_title">Diğer ayarlar</string>
     <string name="prefs_ui_title">UI Ayarları</string>
+    <string name="prefs_ui_order_title">Sayfa sırası</string>
+    <string name="prefs_ui_order_reset">Sıralamayı sıfırla</string>
     <string name="prefs_other_switch_utc">Geçiş saatini UTC olarak göster</string>
     <string name="prefs_other_switch_update">Otomatik veri güncellemeyi etkinleştir</string>
     <string name="prefs_other_switch_sweep">Radar taramasını etkinleştir</string>
