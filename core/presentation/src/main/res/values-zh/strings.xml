@@ -40,17 +40,8 @@
     <string name="pass_welcome_title">欢迎来到 Look4Sat\!</string>
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
-    <string name="pass_whatsnew_message">
-        * 漫游页完整移植 QTH定位器 2.0：8 位网格、3x3 九宫格、红点查表定位、实时 GPS
-        \n\n* 修复内容被系统状态栏/导航栏遮挡；九宫格列宽与原版一致
-        \n\n* 漫游页配色跟随应用主题，红色夜间模式下清晰可见
-        \n\n* 设置：修复开关行挤压与感谢列表间距
-        \n\n* 应用名现为 Look4Sat Pro
-        \n\n* 设置：导入文件按钮更名为自定义URL，可直接编辑 TLE/收发机数据源地址
-        \n\n* 自定义数据源开关默认关闭；旧版占位 URL 自动重置为真实默认地址
-        \n\n* 新增 UI设置 卡片：可显示/隐藏底部菜单栏页面（顺序固定，设置页始终显示）
-        \n\n* 新增 页面顺序：在 UI设置 中拖动每页右侧抓手可调整底部菜单栏顺序，一键重置为默认顺序
-    </string>
+    <string name="pass_whatsnew_message" translatable="false">
+        * 修复设置页滑动时闪退的问题（页面顺序列表高度）</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>

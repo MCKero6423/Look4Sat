@@ -617,7 +617,13 @@ private fun DragOrderList(
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragOffset by remember { mutableStateOf(0f) }
 
-    LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
+    // 固定高度: 嵌套在 LazyVerticalGrid 内必须给有界高度, 否则无限高度约束崩溃
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(itemHeight * items.size)
+    ) {
         itemsIndexed(items, key = { _, s -> s.second }) { index, screen ->
             val isDragging = draggingIndex == index
             Row(

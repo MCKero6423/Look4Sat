@@ -53,16 +53,7 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
-        * Roaming page ported verbatim from QTH定位器 2.0: 8-char locator, 3x3 grid, red marker lookup, live GPS
-        \n\n* Fixed content overlapping the system status/navigation bars; grid columns now match the reference layout
-        \n\n* Roaming page colors follow the app theme - fully visible in red night mode
-        \n\n* Settings: fixed squeezed toggle rows and credits spacing
-        \n\n* App name is now Look4Sat Pro
-        \n\n* Settings: "Import" button renamed to "Custom URL" - edit TLE/transceiver source URLs directly
-        \n\n* Custom source toggles default OFF; legacy placeholder URLs are reset to the real defaults
-        \n\n* New UI Settings card: show/hide bottom navigation pages (order fixed, Settings always visible)
-        \n\n* Page order: drag the handle next to each page in UI Settings to reorder the bottom navigation, one-tap reset to default
-    </string>
+        * Fixed a crash when scrolling the Settings page (page-order list height)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>
