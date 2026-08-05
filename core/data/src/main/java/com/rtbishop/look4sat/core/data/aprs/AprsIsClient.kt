@@ -59,13 +59,33 @@ class AprsIsClient(
         }
     }
 
-    /** 发送一个 APRS 包(一行) */
-    fun sendPacket(packetLine: String): Boolean {
+    /**
+     * 发送一个 APRS 包(一行)并尝试读服务器确认。
+     * 返回 null=发送失败;Pair(ok, detail)=发送结果(服务器错误原文在 detail)
+     */
+    fun sendPacket(packetLine: String): Pair<Boolean, String>? {
         synchronized(lock) {
-            val w = writer ?: return false
+            val w = writer ?: return null
             w.println(packetLine)
-            return !w.checkError()
+            if (w.checkError()) return Pair(false, "write failed")
         }
+        // 尝试读服务器响应(短超时 3s;APRS-IS 对格式错误会回错误行)
+        return runCatching {
+            val s = socket ?: return@runCatching Pair(true, "OK")
+            val oldTimeout = s.soTimeout
+            s.soTimeout = 3000
+            try {
+                val resp = reader?.readLine()
+                if (resp != null && (resp.contains("Invalid", ignoreCase = true) ||
+                        resp.contains("error", ignoreCase = true))) {
+                    Pair(false, resp.trim())
+                } else {
+                    Pair(true, if (resp.isNullOrBlank()) "OK" else resp.trim())
+                }
+            } finally {
+                s.soTimeout = oldTimeout
+            }
+        }.getOrElse { Pair(true, "OK") }
     }
 
     /** 读一行(服务器响应,超时抛异常) */

@@ -99,9 +99,10 @@ class AprsReporter(
 
             val pos = positionProvider()
             val packetLine = buildPositionPacket(cfg, pos?.first, pos?.second)
-            val ok = c.sendPacket(packetLine)
-            onReport(AprsReport(System.currentTimeMillis(), packetLine, ok,
-                if (ok) "OK" else "send failed"))
+            val result = c.sendPacket(packetLine)
+            val ok = result?.first == true
+            val detail = result?.second ?: "no connection"
+            onReport(AprsReport(System.currentTimeMillis(), packetLine, ok, detail))
             if (ok) onState(AprsState.Connected) else onState(AprsState.Error)
         } catch (e: Exception) {
             runCatching { client?.disconnect() }

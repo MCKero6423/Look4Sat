@@ -39,6 +39,10 @@
     <string name="prefs_aprs_calc_passcode">Parolayı hesapla</string>
     <string name="aprs_toast_ok">APRS: rapor gönderildi</string>
     <string name="aprs_toast_fail">APRS: rapor başarısız - %1$s</string>
+    <string name="aprs_toast_not_configured">APRS yapılandırılmadı - önce çağrı girin</string>
+    <string name="prefs_aprs_last_report">Son rapor: %1$s %2$s</string>
+    <string name="prefs_aprs_last_ok">OK</string>
+    <string name="prefs_aprs_last_fail">başarısız - %1$s</string>
     <string name="nav_more">Daha Fazla</string>
     <string name="nav_log">Günlük</string>
     <string name="nav_amsat">AMSAT</string>

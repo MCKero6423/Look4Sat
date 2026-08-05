@@ -12,6 +12,7 @@ import android.widget.Toast
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import com.rtbishop.look4sat.MainApplication
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.data.aprs.AprsConfig
 import com.rtbishop.look4sat.core.data.aprs.AprsStore
@@ -50,7 +51,13 @@ class AprsForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> stopReporting()
-            ACTION_REPORT_NOW -> reporter?.reportNow()
+            ACTION_REPORT_NOW -> {
+                if (reporter == null) {
+                    // 服务没在跑:先启动(未配置会 Toast 提示)
+                    startReporting()
+                }
+                reporter?.reportNow()
+            }
             else -> startReporting()
         }
         return START_STICKY
@@ -59,24 +66,29 @@ class AprsForegroundService : Service() {
     private fun startReporting() {
         val cfg = AprsStore.loadConfig(this)
         if (!cfg.enabled || cfg.callsign.isBlank()) {
+            runCatching {
+                Toast.makeText(this, getString(R.string.aprs_toast_not_configured), Toast.LENGTH_SHORT).show()
+            }
             stopSelf()
             return
         }
         startForegroundWithNotification(cfg)
         val rep = AprsReporter(
             configProvider = { AprsStore.loadConfig(this) },
-            positionProvider = { lastKnownPosition() },
+            positionProvider = { stationPosition() },
             onState = { lastState = it },
             onReport = { report ->
+                AprsStore.saveLastReport(this, report.ok, report.detail)
                 updateNotification(cfg)
-                // 手动上报/失败时给即时反馈(前台可见)
-                if (report.timestamp > System.currentTimeMillis() - 60_000L) {
-                    val msg = if (report.ok) {
-                        getString(R.string.aprs_toast_ok)
-                    } else {
-                        getString(R.string.aprs_toast_fail, report.detail)
-                    }
-                    runCatching { Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
+                // 上报结果必达:成功 Toast 短显,失败 Toast 长显+原因
+                val msg = if (report.ok) {
+                    getString(R.string.aprs_toast_ok)
+                } else {
+                    getString(R.string.aprs_toast_fail, report.detail)
+                }
+                runCatching {
+                    Toast.makeText(this, msg,
+                        if (report.ok) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
                 }
             }
         )
@@ -134,8 +146,17 @@ class AprsForegroundService : Service() {
         nm.notify(NOTIF_ID, buildNotification(cfg))
     }
 
-    /** 取最近已知位置(APRSdroid PeriodicGPS 同思路,无权限时返回 null) */
-    private fun lastKnownPosition(): Pair<Double, Double>? {
+    /** 上报位置:优先用设置里的站位(用户拍板);站位无效时实时 GPS 兜底 */
+    private fun stationPosition(): Pair<Double, Double>? {
+        // ① 站位(设置页设置的位置)
+        val station = runCatching {
+            val container = (application as MainApplication).getMainContainer()
+            container.settingsRepo.stationPosition.value
+        }.getOrNull()
+        if (station != null && (station.latitude != 0.0 || station.longitude != 0.0)) {
+            return Pair(station.latitude, station.longitude)
+        }
+        // ② 兜底:实时 GPS 最后位置
         return runCatching {
             val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
             val providers = listOf(

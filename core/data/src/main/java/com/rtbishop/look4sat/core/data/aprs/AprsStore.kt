@@ -24,6 +24,9 @@ object AprsStore {
     private const val KEY_STATUS = "status"
     private const val KEY_SYMBOL_TABLE = "symbol_table"
     private const val KEY_SYMBOL_CODE = "symbol_code"
+    private const val KEY_LAST_TIME = "last_report_time"
+    private const val KEY_LAST_OK = "last_report_ok"
+    private const val KEY_LAST_DETAIL = "last_report_detail"
 
     /** 读取配置(填入即保存,无需每次打开重填) */
     fun loadConfig(context: Context): AprsConfig {
@@ -40,6 +43,26 @@ object AprsStore {
             symbolTable = p.getString(KEY_SYMBOL_TABLE, "/") ?: "/",
             symbolCode = p.getString(KEY_SYMBOL_CODE, ">") ?: ">"
         )
+    }
+
+    /** 上次上报结果(供设置卡片显示) */
+    data class LastReport(val time: Long = 0L, val ok: Boolean = false, val detail: String = "")
+
+    fun loadLastReport(context: Context): LastReport {
+        val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return LastReport(
+            time = p.getLong(KEY_LAST_TIME, 0L),
+            ok = p.getBoolean(KEY_LAST_OK, false),
+            detail = p.getString(KEY_LAST_DETAIL, "") ?: ""
+        )
+    }
+
+    fun saveLastReport(context: Context, ok: Boolean, detail: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_LAST_TIME, System.currentTimeMillis())
+            .putBoolean(KEY_LAST_OK, ok)
+            .putString(KEY_LAST_DETAIL, detail)
+            .apply()
     }
 
     /** 保存配置 */

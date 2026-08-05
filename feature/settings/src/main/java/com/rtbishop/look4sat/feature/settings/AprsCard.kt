@@ -44,6 +44,8 @@ fun AprsCard() {
     val context = LocalContext.current
     var config by remember { mutableStateOf(AprsStore.loadConfig(context)) }
     var showDialog by remember { mutableStateOf(false) }
+    var lastReport by remember { mutableStateOf(AprsStore.loadLastReport(context)) }
+    var reportPing by remember { mutableStateOf(0) }
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
@@ -98,6 +100,23 @@ fun AprsCard() {
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            // 上次上报状态行
+            val lr = lastReport
+            if (lr.time > 0L) {
+                val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+                    .format(java.util.Date(lr.time))
+                Text(
+                    text = stringResource(
+                        id = R.string.prefs_aprs_last_report,
+                        timeStr,
+                        if (lr.ok) stringResource(R.string.prefs_aprs_last_ok)
+                        else stringResource(R.string.prefs_aprs_last_fail, lr.detail)
+                    ),
+                    fontSize = 13.sp,
+                    color = if (lr.ok) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error
+                )
+            }
             // 手动上报按钮
             CardButton(
                 onClick = {
@@ -105,10 +124,18 @@ fun AprsCard() {
                         .setClassName(context.packageName, AprsStore.SERVICE_CLASS)
                         .setAction(AprsStore.ACTION_REPORT_NOW)
                     context.startForegroundService(intent)
+                    reportPing++
                 },
                 text = stringResource(id = R.string.prefs_aprs_report_now),
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+    // 上报后延迟刷新状态行(等结果落盘)
+    androidx.compose.runtime.LaunchedEffect(reportPing) {
+        if (reportPing > 0) {
+            kotlinx.coroutines.delay(6000)
+            lastReport = AprsStore.loadLastReport(context)
         }
     }
     if (showDialog) {
