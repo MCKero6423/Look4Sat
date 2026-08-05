@@ -46,6 +46,8 @@ interface IMainContainer {
     // WaveLog 日志(4.5.2)
     val wavelogQueue: com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
     fun provideWavelogUploader(): com.rtbishop.look4sat.core.domain.wavelog.WavelogUploader
+
+    fun provideLotwSatellitesRepo(): com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
 }
 
 data class MutualPassData(

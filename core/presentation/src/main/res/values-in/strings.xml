@@ -226,6 +226,7 @@
     <string name="prefs_wavelog_station_hint">ID stasiun</string>
     <string name="prefs_wavelog_auto">Unggah otomatis</string>
     <string name="prefs_wavelog_test">Uji koneksi</string>
+    <string name="prefs_wavelog_update_sats">Perbarui satelit</string>
     <string name="prefs_wavelog_upload">Unggah sekarang</string>
     <string name="wavelog_title">Log</string>
     <string name="wavelog_select_transponder">Pilih transponder</string>
@@ -237,6 +238,9 @@
     <string name="wavelog_grid_mismatch">Grid QTH (%1$s) tidak cocok dengan grid stasiun (%2$s). Tetap unggah?</string>
     <string name="wavelog_ignore">Abaikan dan unggah</string>
     <string name="wavelog_cancel">Batal</string>
+    <string name="prefs_wavelog_qrz_title">QRZ Cookie</string>
+    <string name="prefs_wavelog_qrz_hint">Tempel cookie login QRZ Anda di sini (ekspor EditThisCookie atau string "k=v; k=v"). Digunakan untuk mengambil grid square stasiun lawan saat unggah.</string>
+    <string name="prefs_wavelog_qrz_label">Cookie</string>
     <string name="wavelog_copy">Salin</string>
     <string name="wavelog_delete_undo">Urungkan</string>
     <string name="wavelog_col_time">Waktu</string>

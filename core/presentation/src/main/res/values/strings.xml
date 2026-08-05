@@ -250,6 +250,7 @@
     <string name="prefs_wavelog_station_hint">Station ID</string>
     <string name="prefs_wavelog_auto">Auto upload</string>
     <string name="prefs_wavelog_test">Test connection</string>
+    <string name="prefs_wavelog_update_sats">Update sats</string>
     <string name="prefs_wavelog_upload">Upload now</string>
     <string name="wavelog_title">Log</string>
     <string name="wavelog_select_transponder">Select transponder</string>
@@ -261,6 +262,9 @@
     <string name="wavelog_grid_mismatch">QTH grid (%1$s) does not match station grid (%2$s). Upload anyway?</string>
     <string name="wavelog_ignore">Ignore and upload</string>
     <string name="wavelog_cancel">Cancel</string>
+    <string name="prefs_wavelog_qrz_title">QRZ Cookie</string>
+    <string name="prefs_wavelog_qrz_hint">Paste your QRZ login cookies here (EditThisCookie export or "k=v; k=v" string). Used to fetch the other station grid square for uploads.</string>
+    <string name="prefs_wavelog_qrz_label">Cookie</string>
     <string name="wavelog_copy">Copy</string>
     <string name="wavelog_delete_undo">Undo</string>
     <string name="wavelog_col_time">Time</string>

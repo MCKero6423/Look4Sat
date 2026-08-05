@@ -236,6 +236,7 @@
     <string name="prefs_wavelog_station_hint">İstasyon kimliği</string>
     <string name="prefs_wavelog_auto">Otomatik yükleme</string>
     <string name="prefs_wavelog_test">Bağlantıyı test et</string>
+    <string name="prefs_wavelog_update_sats">Uydu güncelle</string>
     <string name="prefs_wavelog_upload">Şimdi yükle</string>
     <string name="wavelog_title">Günlük</string>
     <string name="wavelog_select_transponder">Transponder seç</string>
@@ -247,6 +248,9 @@
     <string name="wavelog_grid_mismatch">QTH ızgarası (%1$s) istasyon ızgarasıyla (%2$s) eşleşmiyor. Yine de yüklensin mi?</string>
     <string name="wavelog_ignore">Yoksay ve yükle</string>
     <string name="wavelog_cancel">İptal</string>
+    <string name="prefs_wavelog_qrz_title">QRZ Cookie</string>
+    <string name="prefs_wavelog_qrz_hint">QRZ giriş çerezlerinizi buraya yapıştırın (EditThisCookie dışa aktarımı veya "k=v; k=v" biçimi). Yükleme için karşı istasyonun grid karesini getirmekte kullanılır.</string>
+    <string name="prefs_wavelog_qrz_label">Çerez</string>
     <string name="wavelog_copy">Kopyala</string>
     <string name="wavelog_delete_undo">Geri al</string>
     <string name="wavelog_col_time">Zaman</string>

@@ -26,6 +26,7 @@ data class WavelogQso(
     val freqRxHz: Long,          // 下行
     val satName: String,
     val sessionId: String = "",  // 场次 ID: 卫星名-AOS 时间戳(过境仰角 0 秒), 空=未分组(旧数据)
+    val gridsquare: String = "", // 对方网格(QRZ 爬虫填入, 4.5.5), 空=未查到
     val uploaded: Boolean = false // 是否已成功上传(4.5.2 修复: 成功后保留标记, 表格打勾)
 )
 
@@ -76,6 +77,11 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
     @Synchronized
     fun markUploaded(id: String) {
         save(all().map { if (it.id == id) it.copy(uploaded = true) else it })
+    }
+
+    /** 更新某条 QSO 的对方网格(QRZ 爬虫异步回填, 4.5.5) */
+    fun updateGridsquare(id: String, grid: String) {
+        save(all().map { if (it.id == id) it.copy(gridsquare = grid) else it })
     }
 
     /** 移除所有已上传条目(可选项, 保持队列精简) */

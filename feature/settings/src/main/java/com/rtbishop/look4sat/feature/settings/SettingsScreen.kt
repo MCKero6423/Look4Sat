@@ -50,6 +50,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -64,6 +65,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -109,6 +111,7 @@ import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsDestination() {
@@ -116,7 +119,7 @@ fun SettingsDestination() {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(container))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreen(uiState, viewModel::onAction)
+    SettingsScreen(uiState, viewModel::onAction, container.provideLotwSatellitesRepo())
 
     // WaveLog 网格不一致确认弹窗(4.5.2)
     val gridConfirm = viewModel.gridConfirm
@@ -177,7 +180,11 @@ fun SettingsDestination() {
 }
 
 @Composable
-private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) -> Unit) {
+private fun SettingsScreen(
+    uiState: SettingsState,
+    onAction: (SettingsAction) -> Unit,
+    lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
+) {
     val dialogs = rememberDialogVisibility()
     val pendingCustomSourcesGrant = remember { mutableStateOf<(() -> Unit)?>(null) }
     val pendingCustomSourcesDeny = remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -392,7 +399,7 @@ private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) ->
                 )
             }
             item { OtherCard(uiState.otherSettings, onAction) }
-            item { WavelogCard(uiState.otherSettings, onAction) }
+            item { WavelogCard(uiState.otherSettings, onAction, lotwRepo) }
             item {
                 UiSettingsCard(
                     hiddenScreens = uiState.otherSettings.hiddenScreens,
@@ -629,17 +636,35 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
 @Composable
 private fun WavelogCard(
     settings: OtherSettings,
-    onAction: (SettingsAction) -> Unit
+    onAction: (SettingsAction) -> Unit,
+    lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
 ) {
+    val qrzContext = LocalContext.current
+    var showQrzDialog by remember { mutableStateOf(false) }
+    var qrzCookie by remember {
+        mutableStateOf(
+            qrzContext.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)
+                .getString("cookie", "") ?: ""
+        )
+    }
+    var qrzTestResult by remember { mutableStateOf<String?>(null) }
+    var qrzTesting by remember { mutableStateOf(false) }
+    val qrzScope = rememberCoroutineScope()
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.prefs_wavelog_title),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(id = R.string.prefs_wavelog_title),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { showQrzDialog = true }) {
+                    Text("\u2699")
+                }
+            }
             OutlinedTextField(
                 value = settings.wavelogUrl,
                 onValueChange = {
@@ -681,12 +706,88 @@ private fun WavelogCard(
                     modifier = Modifier.weight(1f)
                 )
                 CardButton(
+                    onClick = { onAction(SettingsAction.UpdateLotwSatellites) },
+                    text = stringResource(id = R.string.prefs_wavelog_update_sats),
+                    modifier = Modifier.weight(1f)
+                )
+                CardButton(
                     onClick = { onAction(SettingsAction.UploadWavelogQueue) },
                     text = stringResource(id = R.string.prefs_wavelog_upload),
                     modifier = Modifier.weight(1f)
                 )
             }
         }
+    }
+    if (showQrzDialog) {
+        AlertDialog(
+            onDismissRequest = { showQrzDialog = false },
+            title = { Text(text = stringResource(id = R.string.prefs_wavelog_qrz_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = stringResource(id = R.string.prefs_wavelog_qrz_hint),
+                        fontSize = 12.sp
+                    )
+                    OutlinedTextField(
+                        value = qrzCookie,
+                        onValueChange = { qrzCookie = it },
+                        label = { Text(stringResource(id = R.string.prefs_wavelog_qrz_label)) },
+                        minLines = 3,
+                        maxLines = 8,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (qrzTestResult != null) {
+                        Text(
+                            text = qrzTestResult!!,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            qrzTesting = true
+                            qrzTestResult = null
+                            qrzScope.launch {
+                                val header = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.parseCookies(qrzCookie)
+                                if (header.isBlank()) {
+                                    qrzTestResult = "Cookie 为空, 请先粘贴"
+                                    qrzTesting = false
+                                    return@launch
+                                }
+                                val own = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.fetchOwnCallsign(header)
+                                if (own == null) {
+                                    qrzTestResult = "Cookie 无效或已过期(无法识别登录呼号)"
+                                } else {
+                                    val grid = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.lookupGrid(own, header)
+                                    qrzTestResult = if (grid != null) {
+                                        "登录呼号: $own  网格: $grid ✅"
+                                    } else {
+                                        "登录呼号: $own  网格: 未填写"
+                                    }
+                                }
+                                qrzTesting = false
+                            }
+                        },
+                        enabled = !qrzTesting
+                    ) {
+                        Text(text = if (qrzTesting) "测试中…" else "测试查询")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    qrzContext.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)
+                        .edit().putString("cookie", qrzCookie.trim()).apply()
+                    showQrzDialog = false
+                }) { Text(text = stringResource(id = R.string.btn_accept)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showQrzDialog = false }) {
+                    Text(text = stringResource(id = R.string.wavelog_cancel))
+                }
+            }
+        )
     }
 }
 

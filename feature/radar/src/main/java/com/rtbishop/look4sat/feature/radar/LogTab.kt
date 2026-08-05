@@ -45,11 +45,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +74,7 @@ import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.formatFrequency
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.UUID
@@ -92,6 +95,8 @@ fun LogTab(
     aosTimeMs: Long = 0L,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     var selectedUuid by remember { mutableStateOf<String?>(null) }
     var refreshTick by remember { mutableIntStateOf(0) }
     val entries = remember(refreshTick) { queue.all() }
@@ -244,6 +249,8 @@ private fun ExpandedLogInput(
     aosTimeMs: Long = 0L,
     onSaved: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     var callsign by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
 
@@ -255,9 +262,10 @@ private fun ExpandedLogInput(
         // 频率直接取转发器栏的数字(radio 每秒多普勒修正, 回车那一秒的值)
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
+        val qsoId = UUID.randomUUID().toString()
         queue.add(
             WavelogQso(
-                id = UUID.randomUUID().toString(),
+                id = qsoId,
                 timeUtcMs = System.currentTimeMillis(),
                 call = call,
                 mode = mode.trim().ifBlank { "FM" }.uppercase(),
@@ -270,6 +278,17 @@ private fun ExpandedLogInput(
         callsign = ""
         onSaved()
         showToast(savedMsg)
+        // QRZ 对方网格异步回填(4.5.5): 设置页填了 Cookie 才查, 失败静默
+        scope.launch {
+            val prefs = context.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)
+            val rawCookie = prefs.getString("cookie", "") ?: ""
+            if (rawCookie.isNotBlank()) {
+                val grid = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.lookupGrid(
+                    call, com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.parseCookies(rawCookie)
+                )
+                if (grid != null) queue.updateGridsquare(qsoId, grid)
+            }
+        }
     }
 
     // 频率显示与转发器栏完全一致: TX 行 + RX 行(radio 来自每秒多普勒重算, 实时刷新)

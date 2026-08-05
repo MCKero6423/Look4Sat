@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
+import com.rtbishop.look4sat.core.data.wavelog.LotwSatellitesRepo
 
 class MainContainer(private val context: Context) : IMainContainer {
 
@@ -111,6 +112,12 @@ class MainContainer(private val context: Context) : IMainContainer {
         })
     }
     override fun provideWavelogUploader(): WavelogUploader = WavelogUploader(settingsRepo, wavelogQueue)
+
+    private val lotwRepo: LotwSatellitesRepo by lazy {
+        LotwSatellitesRepo(context).also { it.restore() }
+    }
+
+    override fun provideLotwSatellitesRepo(): com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo = lotwRepo
 
     override fun provideBluetoothReporter(): IReporter {
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager

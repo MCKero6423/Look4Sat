@@ -219,6 +219,7 @@
     <string name="prefs_wavelog_station_hint">站点 ID</string>
     <string name="prefs_wavelog_auto">自动上传</string>
     <string name="prefs_wavelog_test">测试连接</string>
+    <string name="prefs_wavelog_update_sats">更新卫星列表</string>
     <string name="prefs_wavelog_upload">手动上传</string>
     <string name="wavelog_title">日志</string>
     <string name="wavelog_select_transponder">选择转发器</string>
@@ -230,6 +231,9 @@
     <string name="wavelog_grid_mismatch">当前 QTH 网格(%1$s)与站点网格(%2$s)不一致,仍要上传?</string>
     <string name="wavelog_ignore">忽略并上传</string>
     <string name="wavelog_cancel">取消</string>
+    <string name="prefs_wavelog_qrz_title">QRZ Cookie</string>
+    <string name="prefs_wavelog_qrz_hint">在此粘贴 QRZ 登录 Cookie(EditThisCookie 导出 或 "k=v; k=v" 格式)。用于上传时查询对方网格。</string>
+    <string name="prefs_wavelog_qrz_label">Cookie</string>
     <string name="wavelog_copy">复制</string>
     <string name="wavelog_delete_undo">撤销</string>
     <string name="wavelog_col_time">时间</string>

@@ -45,7 +45,8 @@ class WavelogUploader(
             return UploadOutcome.Done(0, queue.all().size, "无法获取站点信息(检查站点 ID/密钥权限)")
         }
 
-        // 2. 网格检测: 用户当前 QTH 前 4 位 vs 台站网格前 4 位(v1 降级时网格相同, 跳过)
+        // 2. 网格检测: 云端站点网格前 4 位 vs 当前站位网格前 4 位
+        //   (防站点配置错误; 与 QSO 对方网格无关 — 用户澄清)
         if (!force) {
             val userGrid = userQthGrid()
             if (userGrid != null && stationGrid.take(4).lowercase() != userGrid.take(4).lowercase()) {
@@ -53,14 +54,14 @@ class WavelogUploader(
             }
         }
 
-        // 3. 逐条上传(成功后标记 uploaded, 保留在本地供日志页打勾)
+        // 3. 逐条上传。ADIF 网格字段 = 对方网格(通联对象), 爬虫接入前留空
         val entries = queue.all()
         var ok = 0
         var fail = 0
         var firstError = ""
         for (qso in entries) {
             if (qso.uploaded) { ok++; continue }
-            val result = WaveLogApi.postQso(url, apiKey, stationId, qso, stationGrid)
+            val result = WaveLogApi.postQso(url, apiKey, stationId, qso, qso.gridsquare)
             if (result is WavelogResult.Success) {
                 ok++
                 queue.markUploaded(qso.id)

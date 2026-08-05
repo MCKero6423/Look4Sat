@@ -111,12 +111,21 @@ object WaveLogApi {
         val main = raw.substringBefore('(').trim()
             .ifBlank { raw.trim() }
             .uppercase(Locale.ENGLISH)
-        // ISS 特判: 主名是 ISS/ZARYA/ARISS 变体 → ISS(LoTW 认可名)
-        return when {
-            main == "ZARYA" || main.startsWith("ISS") -> "ISS"
-            main == "ARISS" -> "ISS"
-            else -> main
-        }
+        // 匹配逻辑(仿 WaveLog 卫星表 name/displayname 匹配 + LoTW 列表):
+        // 1. 已在 LoTW 列表(常见 TLE 名 == 通用名) → 原样返回
+        // 2. 不在 → 查 Celestrak 别名映射(SAUDISAT 1C → SO-50 等) → 映射后必须在 LoTW 列表
+        // 3. 仍不匹配 → 原样返回(不阻塞上传, QSO 仍保存)
+        val commonName = mapOf(
+            "ZARYA" to "ARISS",
+            "ARISS" to "ARISS",
+            "FUNCUBE-1" to "AO-73",
+            "DIWATA-2B" to "PO-101",
+            "SAUDISAT-1C" to "SO-50",
+            "SAUDISAT 1C" to "SO-50",
+            "DIWATA-2A" to "PO-101"
+        )
+        val candidate = commonName[main] ?: main
+        return if (candidate in LotwSatellites.names) candidate else main
     }
 
     /** 创建 QSO: 优先 v2, 404 降级 v1(ADIF) */
@@ -143,6 +152,8 @@ object WaveLogApi {
             put("freq", qso.freqTxHz)
             put("freq_rx", qso.freqRxHz)
             put("gridsquare", gridsquare)
+            put("rst_sent", "59")
+            put("rst_rcvd", "59")
             put("sat_name", satName)
         }
         val (code, resp) = httpRequest("$base/index.php/api/v2/qso", "POST", apiKey, v2Body.toString())
@@ -182,6 +193,8 @@ object WaveLogApi {
             }
             append(field("qso_date", utcDateCompact(qso.timeUtcMs)))
             append(field("time_on", utcTimeCompact(qso.timeUtcMs)))
+            append(field("rst_sent", "59"))
+            append(field("rst_rcvd", "59"))
             if (gridsquare.isNotBlank()) append(field("gridsquare", gridsquare.take(4)))
             if (satName.isNotBlank()) {
                 append(field("sat_name", satName))

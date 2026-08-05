@@ -82,6 +82,8 @@ sealed interface SettingsAction {
     data object TestWavelogConnection : SettingsAction
     // WaveLog: 手动上传队列
     data object UploadWavelogQueue : SettingsAction
+    // WaveLog: 更新 LoTW 卫星列表
+    data object UpdateLotwSatellites : SettingsAction
 
     // Remote control
     data class UpdateRC(val settings: RCSettings) : SettingsAction

@@ -41,7 +41,8 @@ import androidx.compose.runtime.setValue
 class SettingsViewModel(
     private val databaseRepo: IDatabaseRepo,
     private val settingsRepo: ISettingsRepo,
-    private val showToast: IShowToast
+    private val showToast: IShowToast,
+    private val lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
 ) : ViewModel() {
 
     private val defaultPosSettings = PositionSettings(false, settingsRepo.stationPosition.value, 0)
@@ -156,6 +157,7 @@ class SettingsViewModel(
             }
             SettingsAction.TestWavelogConnection -> testWavelogConnection()
             SettingsAction.UploadWavelogQueue -> uploadWavelogQueue()
+            SettingsAction.UpdateLotwSatellites -> updateLotwSatellites()
             // System
             is SettingsAction.ShowToast -> showToast(action.message)
         }
@@ -264,6 +266,17 @@ class SettingsViewModel(
         }
     }
 
+    private fun updateLotwSatellites() {
+        viewModelScope.launch {
+            when (val r = lotwRepo.refresh()) {
+                is com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo.RefreshResult.Ok ->
+                    showToast("LoTW 卫星列表已更新: ${r.count} 个")
+                is com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo.RefreshResult.Error ->
+                    wavelogError = "LoTW 卫星列表更新失败: ${r.message}"
+            }
+        }
+    }
+
     private fun uploadWavelogQueue() {
         viewModelScope.launch {
             val result = pendingUploader?.uploadQueue()
@@ -306,7 +319,8 @@ class SettingsViewModel(
                 SettingsViewModel(
                     databaseRepo = container.databaseRepo,
                     settingsRepo = container.settingsRepo,
-                    showToast = container.provideShowToast()
+                    showToast = container.provideShowToast(),
+                    lotwRepo = container.provideLotwSatellitesRepo()
                 ).apply { pendingUploader = container.provideWavelogUploader() }
             }
         }
