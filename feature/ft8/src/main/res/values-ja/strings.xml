@@ -146,35 +146,56 @@
     <string name="spp_device">BluetoothSPPデバイス</string>
 
     <string name="headset_device">Bluetoothヘッドホン</string>
+    >
     <string name="disconnect_rig">無線機との接続が遮断された</string>
+    >
     <string name="connected_rig">無線機との接続に成功した</string>
+    >
     <string name="current_frequency">運用周波数:　%s</string>
+    >
     <string name="radio_communication_error">rigとの接続にエラー発生：%s</string>
+    >
     <string name="does_not_support_recording">Bluetoothデバイスにマイク機能がありません</string>
+    >
     <string name="bluetooth_headset_mode">Bluetoothヘッドホンモード</string>
+    >
     <string name="bluetooth_Headset_mode_cancelled">Bluetoothヘッドホンモードから切断</string>
-    <string name="version_info">FT8CNバージョン %1$s\nBG7YOZ\n%2$s</string>
+    >
+    <string name="version_info">FT8CNバージョン %s\nBG7YOZ\n%s</string>
+    >
     <string name="exit">アプリを終了</string>
+    >
     <string name="cancel">キャンセル</string>
+    >
     <string name="exit_confirmation">終了しますか？</string>
+    >
     <!-- FT8メッセージ -->
 
 
     <string name="std_msg">定形文</string>
+    >
     <string name="none_std_msg">非標準メッセージ</string>
+    >
     <string name="free_text">自由文</string>
+    >
     <string name="dXpedition">DXペディション</string>
+    >
     <string name="field_day">フィールドデー</string>
+    >
     <string name="telemetry">テレメトリー</string>
+    >
     <!-- 設定バー -->
 
 
     <string name="offset_time_sec">%.1f秒</string>
+    >
     <!-- テレメトリー　グラフ -->
 
 
     <string name="decoding_takes_milliseconds">デコード時間%dミリ秒</string>
+    >
     <string name="sound_frequency_is_set_to">受信周波数を%dHzにする</string>
+    >
     <string name="de_noise">ノイズ抑制</string>
 
     <string name="raw_spectrum_data">オリジナルテレメトリー</string>
@@ -214,7 +235,7 @@
     <!-- ログ　エクスポート　バー -->
 
 
-    <string name="export_info">本機と同じLANでほかのデバイスのウェブブラウザーを利用しエクスポートする\nウェブブラウザーのアドレスバーで：\nhttp://%1$s:%2$dを入力</string>
+    <string name="export_info">本機と同じLANでほかのデバイスのウェブブラウザーを利用しエクスポートする\nウェブブラウザーのアドレスバーで：\nhttp://%s:%dを入力</string>
 
     <!-- 送信ウオッチドッグ -->
 
@@ -239,7 +260,7 @@
     <!-- デコード　バー -->
 
 
-    <string name="message_count_count">メッセージ(%1$d/%2$d)</string>
+    <string name="message_count_count">メッセージ(%d/%d)</string>
 
     <string name="average_offset_seconds">平均時刻ずれ：%.2f秒</string>
 
@@ -248,15 +269,15 @@
     <!-- デコード　リスト -->
 
 
-    <string name="tracking_receiver">相手局を追跡 %1$s(%2$s)</string>
+    <string name="tracking_receiver">相手局を追跡 %s(%s)</string>
 
-    <string name="calling_receiver">相手局をコール %1$s(%2$s)</string>
+    <string name="calling_receiver">相手局をコール %s(%s)</string>
 
-    <string name="reply_to">応答 %1$s(%2$s)</string>
+    <string name="reply_to">応答 %s(%s)</string>
 
-    <string name="tracking">追跡 %1$s(%2$s)</string>
+    <string name="tracking">追跡 %s(%s)</string>
 
-    <string name="calling">コール %1$s(%2$s)</string>
+    <string name="calling">コール %s(%s)</string>
 
     <!-- グリッド距離 -->
 
@@ -353,7 +374,7 @@
 
     <string name="html_return">戻る</string>
 
-    <string name="html_import_count">ADIファイル中のレコード数：%1$d，%2$d件のレコードをインポート。%3$d件のログのフォーマットが正しくありません。</string>
+    <string name="html_import_count">ADIファイル中のレコード数：%d，%d件のレコードをインポート。%d件のログのフォーマットが正しくありません。</string>
 
     <string name="html_import_failed">インポートに失敗しました%s</string>
 
@@ -527,29 +548,29 @@
 
     <string name="count_completed">達成済み</string>
 
-    <string name="count_total_itu">ITUゾーン総数:%1$d\n達成数:%2$d(%3$.1f%%)</string>
+    <string name="count_total_itu">ITUゾーン総数:%d\n達成数:%d(%.1f%%)</string>
 
     <string name="count_itu_completed_scale">ITUゾーン達成比率</string>
 
     <string name="count_cqzone_completed">CQゾーン達成比率の統計</string>
 
-    <string name="count_total_cqzone">CQゾーン総数:%1$d\n達成数:%2$d(%3$.1f%%)</string>
+    <string name="count_total_cqzone">CQゾーン総数:%d\n達成数:%d(%.1f%%)</string>
 
     <string name="count_cqzone_proportion">CQゾーン達成比率</string>
 
     <string name="dxcc_completion_statistics">DXCCゾーン達成比率の統計</string>
 
-    <string name="count_total_dxcc">DXCCゾーン総数:%1$d\n達成数:%2$d(%3$.1f%%)</string>
+    <string name="count_total_dxcc">DXCCゾーン総数:%d\n達成数:%d(%.1f%%)</string>
 
     <string name="count_dxcc_proportion">DXCCゾーン達成比率</string>
 
-    <string name="callsign_info">コールサイン:%1$s\nロケーション:%2$s\nCQゾーン:%3$d\nITUゾーン:%4$d\n大陸:%5$s\n経度と緯度:%7$.2f,%8$.2f\nタイムゾーン:%9$.0f\n　DXCCのプリフィックス:%6$s</string>
+    <string name="callsign_info">コールサイン:%s\nロケーション:%s\nCQゾーン:%d\nITUゾーン:%d\n大陸:%s\n経度と緯度:%.2f,%.2f\nタイムゾーン:%.0f\n　DXCCのプリフィックス:%s</string>
 
     <string name="maximum_distance">Max距離\n\n%s</string>
 
     <string name="minimum_distance">Min距離\n\n%s</string>
 
-    <string name="count_distance_info">Max距離：%3$.0f km (%1$s)\n　Min距離：%4$.0f km (%2$s)</string>
+    <string name="count_distance_info">Max距離：%.0f km (%s)\n　Min距離：%.0f km (%s)</string>
 
     <string name="distance_statistics">距離の統計</string>
 
@@ -592,7 +613,7 @@
     <string name="flex_connect_failed">FlexRadio %s の接続に失敗しました</string>
     <string name="init_flex_operation">%s の初期化中です</string>
     <string name="html_max_message_cache">キャッシュされたメッセージの最大数</string>
-    <string name="instruction_failed">%1$s の実行に失敗しました: %2$s</string>
+    <string name="instruction_failed">%s の実行に失敗しました: %s</string>
     <string name="instruction_success">%s は正常に実行されました</string>
     <string name="flex_ip_addr">IP</string>
     <string name="pl_input_flex_ip">IPアドレスを入力してください</string>
@@ -610,7 +631,7 @@
     <string name="show_password">パスワードを表示する</string>
     <string name="connect_icom_ip">IComの無線機　%s に接続する</string>
     <string name="connect_xiegu_ip">XIEGUの無線機　%s に接続する</string>
-    <string name="network_exception">%1$s : ネットワーク送信例外 : %2$s</string>
+    <string name="network_exception">%s : ネットワーク送信例外 : %s</string>
     <string name="login_succeed">ログイン成功</string>
     <string name="loging_failed">ログイン失敗　無効なユーザー名もしくはパスワード</string>
     <string name="data_stream">データストリーム</string>
@@ -764,7 +785,7 @@
     <string name="xiegu_atu_off">ATU Off</string>
     <string name="xiegu_band_str">バンド: %s</string>
     <string name="alc_low_alert">警告！ALCが低すぎます</string>
-    <string name="xiegu_meter_info">S.Meter: %3$.1f dBm\nSWR: %1$s\nALC: %4$.1f\nVolt: %5$.1fV\nTX power: %6$.1f W\nMax tx power: %7$.1f\nTX volume:%2$d%%</string>
+    <string name="xiegu_meter_info">S.Meter: %.1f dBm\nSWR: %s\nALC: %.1f\nVolt: %.1fV\nTX power: %.1f W\nMax tx power: %.1f\nTX volume:%d%%</string>
     <string name="serial_connect_no_access">シリアルポートに接続できません。USBデバイスへのアクセス権限があるか確認してください！</string>
     <string name="serial_connect_failed">シリアルポートのオープンに失敗しました</string>
     <string name="serial_no_driver">シリアルポートを接続できません、ドライブがないかシリアルポートが存在しません！</string>

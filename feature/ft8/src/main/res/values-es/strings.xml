@@ -26,7 +26,7 @@
     <string name="sendFreq">TX Freq</string>
     <string name="sendDefaultFreq">Audio freq</string>
     <string name="pl_sendFreq">Audio freq rango 0~2900</string>
-    <string name="transmitting">TX …</string>
+    <string name="transmitting">TX …</string>address 
     <string name="synFrequency">bloqueado TX=RX</string>
     <string name="spectrum">Espectro</string>
     <string name="pl_trans_delay">Tx demora timpo (MS)</string>
@@ -73,37 +73,37 @@
     <string name="pl_select_bluetooth">por favor, seleccione un dispositivo bluetooth disponible</string>
     <string name="bluetooth_set">Bluetooth ajustes</string>
     <string name="spp_device">Bluetooth spp equipo</string>
-    <string name="headset_device">Bluetooth auriculares</string>
-    <string name="disconnect_rig">Error en la conexion del equipo</string>
-    <string name="connected_rig">Conexión del equipo es OK</string>
-    <string name="current_frequency">Frecuencia actual es :%s</string>
-    <string name="radio_communication_error">Error de comunicación con el equipo：%s</string>
-    <string name="does_not_support_recording">El dispositivo Bluetooth no admite la grabación</string>
-    <string name="bluetooth_headset_mode">Ingrese al modo de auriculares Bluetooth</string>
-    <string name="bluetooth_Headset_mode_cancelled">Exit Bluetooth headset mode</string>
+    <string name="headset_device">Bluetooth auriculares</string>>
+    <string name="disconnect_rig">Error en la conexion del equipo</string>>
+    <string name="connected_rig">Conexión del equipo es OK</string>>
+    <string name="current_frequency">Frecuencia actual es :%s</string>>
+    <string name="radio_communication_error">Error de comunicación con el equipo：%s</string>>
+    <string name="does_not_support_recording">El dispositivo Bluetooth no admite la grabación</string>>
+    <string name="bluetooth_headset_mode">Ingrese al modo de auriculares Bluetooth</string>>
+    <string name="bluetooth_Headset_mode_cancelled">Exit Bluetooth headset mode</string>>
 
-    <string name="version_info">FT8CN Ver %1$s\nBG7YOZ\n%2$s</string>
+    <string name="version_info">FT8CN Ver %s\nBG7YOZ\n%s</string>>
 
 
-    <string name="exit">Salida</string>
-    <string name="cancel">Cancelar</string>
-    <string name="exit_confirmation">Seguro que quieres salir ?</string>
+    <string name="exit">Salida</string>>
+    <string name="cancel">Cancelar</string>>
+    <string name="exit_confirmation">Seguro que quieres salir ?</string>>
 
     <!--   FT8Message-->
-    <string name="std_msg">Mensaje estándar</string>
-    <string name="none_std_msg">Indicativo no estándar</string>
-    <string name="free_text">Texto libre</string>
-    <string name="dXpedition">DXpedition</string>
-    <string name="field_day">Dia di campo</string>
-    <string name="telemetry">telemetría</string>
+    <string name="std_msg">Mensaje estándar</string>>
+    <string name="none_std_msg">Indicativo no estándar</string>>
+    <string name="free_text">Texto libre</string>>
+    <string name="dXpedition">DXpedition</string>>
+    <string name="field_day">Dia di campo</string>>
+    <string name="telemetry">telemetría</string>>
 
 
     <!--   配置栏-->
-    <string name="offset_time_sec">%.1f Secs</string>
+    <string name="offset_time_sec">%.1f Secs</string>>
 
     <!--   频谱图-->
-    <string name="decoding_takes_milliseconds">Descifrado : %d ms</string>
-    <string name="sound_frequency_is_set_to">La frecuencia del sonido es %d Hz</string>
+    <string name="decoding_takes_milliseconds">Descifrado : %d ms</string>>
+    <string name="sound_frequency_is_set_to">La frecuencia del sonido es %d Hz</string>>
     <string name="de_noise">Eliminar ruido</string>
     <string name="raw_spectrum_data">Original</string>
     <string name="markMessage">Mostrar mensaje</string>
@@ -125,7 +125,7 @@
     <string name="message_count">Messajes(%d)</string>
 
     <!--   日志导出栏栏-->
-    <string name="export_info">Utilice el navegador web de otros dispositivos para exportar desde el fondo en la misma LAN que este dispositivo.\nIntroduzca la URL en el navegador:\nhttp://%1$s:%2$d</string>
+    <string name="export_info">Utilice el navegador web de otros dispositivos para exportar desde el fondo en la misma LAN que este dispositivo.\nIntroduzca la URL en el navegador:\nhttp://%s:%d</string>
     <!--   发射监管-->
     <string name="minutes">%d Mins</string>
 
@@ -138,16 +138,16 @@
     <string name="do_not_call_the_following_callsign">No indicativo rastreado</string>
 
     <!--   解码栏-->
-    <string name="message_count_count">Mensajes(%1$d/%2$d)</string>
+    <string name="message_count_count">Mensajes(%d/%d)</string>
     <string name="average_offset_seconds">Compensar promedio : %.2f Sec</string>
     <string name="my_grid">Cuadrícula : %s</string>
 
     <!--   解码列表-->
-    <string name="tracking_receiver">Receptor de seguimiento %1$s(%2$s)</string>
-    <string name="calling_receiver">Receptor de llamadas %1$s(%2$s)</string>
-    <string name="reply_to">Responder %1$s(%2$s)</string>
-    <string name="tracking">seguimiento %1$s(%2$s)</string>
-    <string name="calling">Llamada %1$s(%2$s)</string>
+    <string name="tracking_receiver">Receptor de seguimiento %s(%s)</string>
+    <string name="calling_receiver">Receptor de llamadas %s(%s)</string>
+    <string name="reply_to">Responder %s(%s)</string>
+    <string name="tracking">seguimiento %s(%s)</string>
+    <string name="calling">Llamada %s(%s)</string>
 
     <!--   网格距离计算-->
     <string name="distance">%.0f km</string>
@@ -204,7 +204,7 @@
     <string name="html_return">Devolver</string>
 
 
-    <string name="html_import_count">Existen %1$d registros en el ADI archivo es %2$d registros importados. El formato de %3$d registros no es correcto.</string>
+    <string name="html_import_count">Existen %d registros en el ADI archivo es %d registros importados. El formato de %d registros no es correcto.</string>
     <string name="html_import_failed">Importación falló! %s</string>
     <string name="html_illegal_command">Comando ilegal, la carga falló!</string>
     <string name="html_callsign">Indicativo</string>
@@ -302,18 +302,18 @@
     <string name="itu_completion_statistics">ITU completion statistics</string>
     <string name="count_incomplete">Incompleto</string>
     <string name="count_completed">Completo</string>
-    <string name="count_total_itu">Total ITU : %1$d\nCompleted %2$d(%3$.1f%%)</string>
+    <string name="count_total_itu">Total ITU : %d\nCompleted %d(%.1f%%)</string>
     <string name="count_itu_completed_scale">ITU statistics</string>
     <string name="count_cqzone_completed">CQ Zone Statistics</string>
-    <string name="count_total_cqzone">Total CQ Zone : %1$d \n Completed : %2$d(%3$.1f%%)</string>
+    <string name="count_total_cqzone">Total CQ Zone : %d \n Completed : %d(%.1f%%)</string>
     <string name="count_cqzone_proportion">CQ Zone Statistics</string>
     <string name="dxcc_completion_statistics">DXCC statistics</string>
-    <string name="count_total_dxcc">Total DXCC : %1$d \nCompleted : %2$d(%3$.1f%%)</string>
+    <string name="count_total_dxcc">Total DXCC : %d \nCompleted : %d(%.1f%%)</string>
     <string name="count_dxcc_proportion">DXCC statistics</string>
-    <string name="callsign_info">Callsign:%1$s\nLocation:%2$s\nCQ zone:%3$d\nITU zone:%4$d\nContinent:%5$s\nLongitude and latitude:%7$.2f,%8$.2f\nTime zone:%9$.0f\nDxcc prefix:%6$s</string>
+    <string name="callsign_info">Callsign:%s\nLocation:%s\nCQ zone:%d\nITU zone:%d\nContinent:%s\nLongitude and latitude:%.2f,%.2f\nTime zone:%.0f\nDxcc prefix:%s</string>
     <string name="maximum_distance">Maximum distance\n\n%s</string>
     <string name="minimum_distance">Nearest distance\n\n%s</string>
-    <string name="count_distance_info">Maximum distance:%3$.0f km (%1$s)\nNearest distance:%4$.0f km (%2$s)</string>
+    <string name="count_distance_info">Maximum distance:%.0f km (%s)\nNearest distance:%.0f km (%s)</string>
     <string name="distance_statistics">Distance statistics</string>
     <string name="dxcc_image">dxcc</string>
     <string name="cqzone">cq zone</string>
@@ -330,7 +330,7 @@
     <string name="flex_connect_failed">FlexRadio %s connect failed !</string>
     <string name="init_flex_operation">%s  is initializing the operation .</string>
     <string name="html_max_message_cache">Maximum number of cached messages</string>
-    <string name="instruction_failed">The instruction %1$s failed to execute . message : %2$s</string>
+    <string name="instruction_failed">The instruction %s failed to execute . message : %s</string>
     <string name="instruction_success">The instruction %s was executed successfully .</string>
     <string name="flex_ip_addr">Ip</string>
     <string name="pl_input_flex_ip">Please input ip address</string>
@@ -348,7 +348,7 @@
     <string name="show_password">Password is visibility</string>
     <string name="connect_icom_ip">Connect ICom Radio %s ...</string>
     <string name="connect_xiegu_ip">Connect XIEGU Radio %s ...</string>
-    <string name="network_exception">%1$s : Network transmission exception : %2$s</string>
+    <string name="network_exception">%s : Network transmission exception : %s</string>
     <string name="login_succeed">Login succeeded !</string>
     <string name="loging_failed">Login failed, invalid user name or password.</string>
     <string name="data_stream">Data stream</string>
@@ -502,7 +502,7 @@
     <string name="xiegu_atu_off">ATU Off</string>
     <string name="xiegu_band_str">Band: %s</string>
     <string name="alc_low_alert">Warning ! ALC is too low .</string>
-    <string name="xiegu_meter_info">S.Meter: %3$.1f dBm\nSWR: %1$s\nALC: %4$.1f\nVolt: %5$.1fV\nTX power: %6$.1f W\nMax tx power: %7$.1f\nTX volume:%2$d%%</string>
+    <string name="xiegu_meter_info">S.Meter: %.1f dBm\nSWR: %s\nALC: %.1f\nVolt: %.1fV\nTX power: %.1f W\nMax tx power: %.1f\nTX volume:%d%%</string>
     <string name="serial_connect_no_access">Unable to connect to the serial port, please confirm if you have access to the USB device!</string>
     <string name="serial_connect_failed">Serial port opening failed</string>
     <string name="serial_no_driver">Unable to connect to serial port, no driver or serial port not present!</string>
@@ -545,7 +545,6 @@
     <string name="config_enable_qrz">Enable QRZ sync</string>
     <string name="qrz_help">qrz_en.txt</string>
     <string name="alram_switch">Interruptor de alarma</string>
-    <!--    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <!--    <string name="hello_blank_fragment">Hello blank fragment</string>-->
 
--->
 </resources>
