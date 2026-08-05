@@ -41,5 +41,5 @@ dependencies {
     implementation(files("libs/MPAndroidChartv_3.1.0.jar"))
     implementation(files("libs/commons-net-3.6.jar"))
     implementation(files("libs/nanohttpd-2.2.0.jar"))
-    implementation(files("libs/osmdroid-android-6.1.14.aar"))
+    implementation(libs.other.osmdroid)
 }
