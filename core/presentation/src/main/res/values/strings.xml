@@ -15,6 +15,29 @@
     <string name="nav_cw">CW Decoder</string>
     <string name="nav_map">Map</string>
     <string name="nav_prefs">Settings</string>
+    <string name="prefs_aprs_title">APRS Reporting</string>
+    <string name="prefs_aprs_enable">Enable APRS reporting</string>
+    <string name="prefs_aprs_summary">Server: %1$s:%2$d  Callsign: %3$s</string>
+    <string name="prefs_aprs_report_now">Report Now</string>
+    <string name="prefs_aprs_settings_title">APRS Settings</string>
+    <string name="prefs_aprs_server">Server</string>
+    <string name="prefs_aprs_port">Port</string>
+    <string name="prefs_aprs_callsign">Callsign</string>
+    <string name="prefs_aprs_ssid">SSID</string>
+    <string name="prefs_aprs_passcode">Passcode</string>
+    <string name="prefs_aprs_passcode_hint">Passcode empty = auto-computed from callsign</string>
+    <string name="prefs_aprs_interval">Interval (min)</string>
+    <string name="prefs_aprs_status">Status text</string>
+    <string name="prefs_aprs_symbol_table">Symbol table</string>
+    <string name="prefs_aprs_symbol_code">Symbol code</string>
+    <string name="prefs_aprs_save">Save</string>
+    <string name="prefs_aprs_cancel">Cancel</string>
+    <string name="aprs_notif_channel">APRS service</string>
+    <string name="aprs_notif_title">APRS: %1$s</string>
+    <string name="aprs_notif_running">Reporting running</string>
+    <string name="aprs_notif_connected">Connected to APRS-IS</string>
+    <string name="aprs_notif_error">Connection error</string>
+    <string name="aprs_notif_stop">Stop</string>
     <string name="nav_more">More</string>
     <string name="nav_log">Log</string>
     <string name="nav_amsat">AMSAT</string>
@@ -72,7 +95,8 @@
         * GPS now only reports success when a real fix is acquired (15s timeout, permission check)
         * Data update shows a clear failure message when the satellite database cannot be downloaded
         * Log frequencies follow the Doppler panel in real time; swipe-to-delete visuals restored
-        * Indonesian locale fix (values-id)</string>
+        * Indonesian locale fix (values-id)
+        * NEW: APRS reporting (APRS-IS network, foreground service with notification, configurable interval)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>

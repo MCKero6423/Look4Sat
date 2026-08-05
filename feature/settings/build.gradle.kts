@@ -5,3 +5,7 @@ plugins {
 android {
     namespace = "com.rtbishop.look4sat.feature.settings"
 }
+
+dependencies {
+    implementation(project(":core:data"))
+}

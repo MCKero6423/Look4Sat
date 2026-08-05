@@ -382,6 +382,9 @@ private fun SettingsScreen(uiState: SettingsState, onAction: (SettingsAction) ->
                 )
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
+                AprsCard()
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 OutputCard(
                     onNetworkClick = permissions.launchNetwork,
                     onBluetoothClick = permissions.launchBluetooth,

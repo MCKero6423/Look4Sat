@@ -14,6 +14,29 @@
     <string name="nav_cw">CW解码</string>
     <string name="nav_map">地图</string>
     <string name="nav_prefs">设置</string>
+    <string name="prefs_aprs_title">APRS 上报</string>
+    <string name="prefs_aprs_enable">启用 APRS 上报</string>
+    <string name="prefs_aprs_summary">服务器: %1$s:%2$d  呼号: %3$s</string>
+    <string name="prefs_aprs_report_now">立即上报</string>
+    <string name="prefs_aprs_settings_title">APRS 设置</string>
+    <string name="prefs_aprs_server">服务器</string>
+    <string name="prefs_aprs_port">端口</string>
+    <string name="prefs_aprs_callsign">呼号</string>
+    <string name="prefs_aprs_ssid">SSID</string>
+    <string name="prefs_aprs_passcode">验证码</string>
+    <string name="prefs_aprs_passcode_hint">验证码留空 = 按呼号自动计算</string>
+    <string name="prefs_aprs_interval">周期(分钟)</string>
+    <string name="prefs_aprs_status">状态文本</string>
+    <string name="prefs_aprs_symbol_table">符号表</string>
+    <string name="prefs_aprs_symbol_code">符号码</string>
+    <string name="prefs_aprs_save">保存</string>
+    <string name="prefs_aprs_cancel">取消</string>
+    <string name="aprs_notif_channel">APRS 服务</string>
+    <string name="aprs_notif_title">APRS: %1$s</string>
+    <string name="aprs_notif_running">上报运行中</string>
+    <string name="aprs_notif_connected">已连接 APRS-IS</string>
+    <string name="aprs_notif_error">连接错误</string>
+    <string name="aprs_notif_stop">停止</string>
     <string name="nav_more">更多</string>
     <string name="nav_log">日志</string>
     <string name="nav_amsat">AMSAT</string>
@@ -60,7 +83,8 @@
         * GPS 真正定位成功才会提示成功(15 秒超时, 权限检查)
         * 卫星数据库下载失败时有明确失败提示
         * 日志频率实时跟随多普勒面板; 左滑删除视觉恢复
-        * 印尼语识别修复(values-id)</string>
+        * 印尼语识别修复(values-id)
+        * 新增: APRS 网络上报(APRS-IS,前台服务+通知保活,周期可调)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>

@@ -13,6 +13,29 @@
     <string name="nav_cw">CW Dekoder</string>
     <string name="nav_map">Harita</string>
     <string name="nav_prefs">Ayarlar</string>
+    <string name="prefs_aprs_title">APRS Raporlama</string>
+    <string name="prefs_aprs_enable">APRS raporlamayı etkinleştir</string>
+    <string name="prefs_aprs_summary">Sunucu: %1$s:%2$d  Çağrı: %3$s</string>
+    <string name="prefs_aprs_report_now">Şimdi Raporla</string>
+    <string name="prefs_aprs_settings_title">APRS Ayarları</string>
+    <string name="prefs_aprs_server">Sunucu</string>
+    <string name="prefs_aprs_port">Port</string>
+    <string name="prefs_aprs_callsign">Çağrı işareti</string>
+    <string name="prefs_aprs_ssid">SSID</string>
+    <string name="prefs_aprs_passcode">Parola</string>
+    <string name="prefs_aprs_passcode_hint">Parola boş = çağrıdan otomatik hesaplanır</string>
+    <string name="prefs_aprs_interval">Aralık (dakika)</string>
+    <string name="prefs_aprs_status">Durum metni</string>
+    <string name="prefs_aprs_symbol_table">Sembol tablosu</string>
+    <string name="prefs_aprs_symbol_code">Sembol kodu</string>
+    <string name="prefs_aprs_save">Kaydet</string>
+    <string name="prefs_aprs_cancel">İptal</string>
+    <string name="aprs_notif_channel">APRS hizmeti</string>
+    <string name="aprs_notif_title">APRS: %1$s</string>
+    <string name="aprs_notif_running">Raporlama çalışıyor</string>
+    <string name="aprs_notif_connected">APRS-IS bağlı</string>
+    <string name="aprs_notif_error">Bağlantı hatası</string>
+    <string name="aprs_notif_stop">Durdur</string>
     <string name="nav_more">Daha Fazla</string>
     <string name="nav_log">Günlük</string>
     <string name="nav_amsat">AMSAT</string>
@@ -70,7 +93,8 @@
         * GPS artık yalnızca gerçek konum alındığında başarı gösterir (15 sn zaman aşımı, izin kontrolü)
         * Uydu veritabanı indirilemediğinde net hata mesajı gösterilir
         * Günlük frekansları Doppler panelini gerçek zamanlı takip eder; kaydırarak silme görselleri düzeltildi
-        * Endonezya dili düzeltmesi (values-id)</string>
+        * Endonezya dili düzeltmesi (values-id)
+        * YENİ: APRS raporlama (APRS-IS ağı, bildirimli ön plan hizmeti, ayarlanabilir aralık)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>

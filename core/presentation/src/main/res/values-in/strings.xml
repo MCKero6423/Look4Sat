@@ -12,6 +12,29 @@
     <string name="nav_cw">Dekoder CW</string>
     <string name="nav_map">Peta</string>
     <string name="nav_prefs">Pengaturan</string>
+    <string name="prefs_aprs_title">Pelaporan APRS</string>
+    <string name="prefs_aprs_enable">Aktifkan pelaporan APRS</string>
+    <string name="prefs_aprs_summary">Server: %1$s:%2$d  Panggilan: %3$s</string>
+    <string name="prefs_aprs_report_now">Lapor Sekarang</string>
+    <string name="prefs_aprs_settings_title">Pengaturan APRS</string>
+    <string name="prefs_aprs_server">Server</string>
+    <string name="prefs_aprs_port">Port</string>
+    <string name="prefs_aprs_callsign">Tanda panggilan</string>
+    <string name="prefs_aprs_ssid">SSID</string>
+    <string name="prefs_aprs_passcode">Kode sandi</string>
+    <string name="prefs_aprs_passcode_hint">Kosong = otomatis dari panggilan</string>
+    <string name="prefs_aprs_interval">Interval (menit)</string>
+    <string name="prefs_aprs_status">Teks status</string>
+    <string name="prefs_aprs_symbol_table">Tabel simbol</string>
+    <string name="prefs_aprs_symbol_code">Kode simbol</string>
+    <string name="prefs_aprs_save">Simpan</string>
+    <string name="prefs_aprs_cancel">Batal</string>
+    <string name="aprs_notif_channel">Layanan APRS</string>
+    <string name="aprs_notif_title">APRS: %1$s</string>
+    <string name="aprs_notif_running">Pelaporan berjalan</string>
+    <string name="aprs_notif_connected">Terhubung ke APRS-IS</string>
+    <string name="aprs_notif_error">Kesalahan koneksi</string>
+    <string name="aprs_notif_stop">Berhenti</string>
     <string name="nav_more">Lainnya</string>
     <string name="nav_log">Log</string>
     <string name="nav_amsat">AMSAT</string>
@@ -65,7 +88,8 @@
         * GPS kini hanya menampilkan sukses saat posisi benar-benar didapat (timeout 15 dtk, cek izin)
         * Pesan kegagalan jelas saat database satelit gagal diunduh
         * Frekuensi log mengikuti panel Doppler secara real-time; visual hapus geser dipulihkan
-        * Perbaikan bahasa Indonesia (values-id)</string>
+        * Perbaikan bahasa Indonesia (values-id)
+        * BARU: Pelaporan APRS (jaringan APRS-IS, layanan latar depan dengan notifikasi, interval dapat diatur)</string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
