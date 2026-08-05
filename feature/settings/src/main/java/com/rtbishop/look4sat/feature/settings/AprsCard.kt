@@ -38,7 +38,7 @@ import com.rtbishop.look4sat.core.data.aprs.AprsStore
 import com.rtbishop.look4sat.core.presentation.CardButton
 import com.rtbishop.look4sat.core.presentation.R
 
-/** APRS 卡片:卫星数据容器与数据输出容器之间;设置键弹窗收纳,不挤 */
+/** APRS card: sits between the satellite-data and data-output containers; settings live in a gear dialog to save space */
 @Composable
 fun AprsCard() {
     val context = LocalContext.current
@@ -63,7 +63,7 @@ fun AprsCard() {
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // 标题行:标题 + 设置键(弹窗,省空间)
+            // Title row: title + gear key (dialog, space-saving)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -80,7 +80,7 @@ fun AprsCard() {
                     )
                 }
             }
-            // 启用开关
+            // Enable switch
             AprsSwitchRow(R.string.prefs_aprs_enable, config.enabled) { enabled ->
                 config = config.copy(enabled = enabled)
                 AprsStore.saveConfig(context, config)
@@ -90,7 +90,7 @@ fun AprsCard() {
                     .setAction(if (enabled) AprsStore.ACTION_START else AprsStore.ACTION_STOP)
                 if (enabled) context.startForegroundService(intent) else context.startService(intent)
             }
-            // 简洁信息行(不挤)
+            // Compact info row (not crowded)
             Text(
                 text = stringResource(
                     id = R.string.prefs_aprs_summary,
@@ -100,7 +100,7 @@ fun AprsCard() {
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            // 上次上报状态行
+            // Last-report status row
             val lr = lastReport
             if (lr.time > 0L) {
                 val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
@@ -117,7 +117,7 @@ fun AprsCard() {
                     else MaterialTheme.colorScheme.error
                 )
             }
-            // 手动上报按钮
+            // Manual report button
             CardButton(
                 onClick = {
                     val intent = Intent()
@@ -131,7 +131,7 @@ fun AprsCard() {
             )
         }
     }
-    // 上报后延迟刷新状态行(等结果落盘)
+    // Refresh the status row after reporting (wait for the result to persist)
     androidx.compose.runtime.LaunchedEffect(reportPing) {
         if (reportPing > 0) {
             kotlinx.coroutines.delay(6000)
@@ -145,7 +145,7 @@ fun AprsCard() {
             onSave = { newConfig ->
                 config = newConfig
                 AprsStore.saveConfig(context, newConfig)
-                // 已启用时应用新配置(重启服务)
+                // Apply new config when enabled (restart the service)
                 if (newConfig.enabled) {
                     context.startService(
                         Intent().setClassName(context.packageName, AprsStore.SERVICE_CLASS)
@@ -162,7 +162,7 @@ fun AprsCard() {
     }
 }
 
-/** APRS 设置弹窗(空间充裕,配置项齐全) */
+/** APRS settings dialog (plenty of room, full config) */
 @Composable
 private fun AprsSettingsDialog(
     config: AprsConfig,
@@ -207,7 +207,7 @@ private fun AprsSettingsDialog(
                     singleLine = true,
                     textStyle = textStyle
                 )
-                // 计算验证码按钮(用户要求:让用户算出结果)
+                // Passcode compute button (user request: let the user see the computed result)
                 TextButton(
                     onClick = {
                         val call = callsign.trim().uppercase()
@@ -302,7 +302,7 @@ private fun AprsSettingsDialog(
     )
 }
 
-/** 本文件内开关行(与 SettingsScreen 的私有 SwitchRow 一致) */
+/** Switch row local to this file (same as SettingsScreen's private SwitchRow) */
 @Composable
 private fun AprsSwitchRow(labelResId: Int, checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?) {
     Row(

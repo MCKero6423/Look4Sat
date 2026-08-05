@@ -187,9 +187,9 @@ class SettingsRepo(
         return true
     }
 
-    /** GPS 定位: 一次性 getCurrentLocation(GPS 优先, 15 秒超时), 拿到位置才返回 true */
+    /** GPS fix: one-shot getCurrentLocation (GPS first, 15 s timeout); returns true only with a fix */
     override suspend fun setStationPosition(): Boolean {
-        // 权限前置: 无定位权限直接失败(不吞异常)
+        // Permission gate: fail fast without location permission (no swallowed exceptions)
         if (androidx.core.content.ContextCompat.checkSelfPermission(
                 context, android.Manifest.permission.ACCESS_FINE_LOCATION
             ) != android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -202,7 +202,7 @@ class SettingsRepo(
             val signal = android.os.CancellationSignal()
             val handler = android.os.Handler(android.os.Looper.getMainLooper())
             val executor = java.util.concurrent.Executor { handler.post(it) }
-            // 15 秒超时
+            // 15 s timeout
             val timeout = handler.postDelayed({
                 signal.cancel()
                 if (cont.isActive) cont.resume(false) { }
@@ -432,8 +432,8 @@ class SettingsRepo(
     }
 
     private fun getDataSourcesSettings(): DataSourcesSettings {
-        // 4.4.8 修复: 旧版 example.com 占位 URL 视为未配置 -> 替换为真实默认 URL 且开关强制关闭,
-        // 否则在线更新的 All/SatNOGS 源会指向错误地址导致更新失败
+        // 4.4.8 fix: legacy example.com placeholder URLs count as unconfigured -> replaced with the real default URL and the switch forced off,
+        // otherwise the online All/SatNOGS sources would point at the wrong address and fail to update
         val storedTleUrl = preferences.getString(keyTleUrl, Sources.defaultTleUrl) ?: Sources.defaultTleUrl
         val storedTxUrl = preferences.getString(keyTransceiversUrl, Sources.defaultTransceiversUrl) ?: Sources.defaultTransceiversUrl
         val tleUrl = if (storedTleUrl == "https://example.com/tle.txt") Sources.defaultTleUrl else storedTleUrl

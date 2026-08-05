@@ -73,19 +73,19 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 漫游页 —— 原样照搬自 QTH定位器 2.0 (com.us1pm.gridsquarelocator)。
- * UI: res/layout/main.xml (结构/尺寸/颜色逐项照搬, 不做任何更改)
- * 逻辑: MainActivity.showLocation() / checkEnabled() / GPS 实时监听
- * 红线: UI 与逻辑均不更改, 与成品截图逐像素对齐。
+ * Roaming page - ported verbatim from QTH Locator 2.0 (com.us1pm.gridsquarelocator).
+ * UI: res/layout/main.xml (structure/size/colors copied item by item, no changes)
+ * Logic: MainActivity.showLocation() / checkEnabled() / live GPS listening
+ * Hard rule: UI and logic unchanged, pixel-aligned with the original screenshots.
  */
 @Composable
 fun RoamingScreen() {
     val context = LocalContext.current
     var state by remember { mutableStateOf(RoamingState()) }
-    // 照搬 onCreate: 日期固定文本 + 小时前缀(定位时拼接分钟)
+    // Ported from onCreate: fixed date text + hour prefix (minutes appended on locate)
     val dateText = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date()) }
     var hourPrefix by remember { mutableStateOf("") }
-    // 照搬 onCreate: 初始 checkEnabled() -> 红点+设置按钮, 日期隐藏
+    // Ported from onCreate: initial checkEnabled() -> red dot + settings button, date hidden
     var hasPermission by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -102,25 +102,25 @@ fun RoamingScreen() {
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         } else {
-            // 照搬 onResume: 绿点+进度条+提示+日期显示, 红点/按钮隐藏
+            // Ported from onResume: green dot + progress + hint + date shown, red dot/button hidden
             state = state.copy(gpsOn = true, gpsOff = false, showSettings = false, showProgress = true, showNotice = true, showDate = true)
         }
     }
-    // 照搬 onResume/onPause: GPS + network 监听, 10 秒 / 10 米
+    // Ported from onResume/onPause: GPS + network listeners, 10 s / 10 m
     val locationManager = remember { context.getSystemService(Context.LOCATION_SERVICE) as LocationManager }
     DisposableEffect(locationManager, hasPermission) {
         if (hasPermission) {
             @SuppressLint("MissingPermission")
             val listener = object : LocationListener {
                 override fun onLocationChanged(location: Location) {
-                    // 照搬 showLocation 开头: 只接受 gps / network provider
+                    // Ported from showLocation start: accept only gps / network providers
                     if (location.provider != "gps" && location.provider != "network") return
                     state = roamingStateFromLocation(location.latitude, location.longitude, location.time, hourPrefix)
                         .copy(date = dateText)
                 }
 
                 override fun onProviderDisabled(provider: String) {
-                    // 照搬 checkEnabled: 红点+按钮, 日期隐藏
+                    // Ported from checkEnabled: red dot + button, date hidden
                     state = state.copy(gpsOn = false, gpsOff = true, showSettings = true, showProgress = false, showNotice = false, showDate = false)
                 }
 
@@ -141,15 +141,15 @@ fun RoamingScreen() {
             onDispose { }
         }
     }
-    // 照搬 res/layout/main.xml: 浅色页面, 蓝色信息区, 43sp 定位码, 3x3 九宫格, 底部版权
-    // 按用户要求: 上下往内缩进系统栏安全区, 避免内容被状态栏/导航栏遮挡
+    // Ported from res/layout/main.xml: light page, blue info area, 43sp locator, 3x3 grid, bottom credit
+    // Per user request: inset from system bars top/bottom so content is not covered
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.systemBars)
     ) {
-        // relativeLayout7: 顶部 GPS 状态条, 25dp 高, holo_blue_bright
+        // relativeLayout7: top GPS status bar, 25dp high, holo_blue_bright
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -158,16 +158,16 @@ fun RoamingScreen() {
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                // tvTitleGPS: "GPS" 14sp 黑, 左 8dp
+                // tvTitleGPS: "GPS" 14sp black, left 8dp
                 Text(
                     text = "GPS",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp)
                 )
-                // imGps: toRightOf tvTitleGPS + marginLeft 15dp (成品 main.xml)
+                // imGps: toRightOf tvTitleGPS + marginLeft 15dp (original main.xml)
                 Spacer(modifier = Modifier.width(15.dp))
-                // imGps: 绿点 (15dp, 主题色 primary -> 夜间滤镜下可见)
+                // imGps: green dot (15dp, theme primary -> visible under night filter)
                 if (state.gpsOn) {
                     Box(
                         modifier = Modifier
@@ -175,7 +175,7 @@ fun RoamingScreen() {
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
                     )
                 }
-                // imGpsOff: 红点叠层 (15dp, 主题色 error)
+                // imGpsOff: red dot overlay (15dp, theme error)
                 if (state.gpsOff) {
                     Box(
                         modifier = Modifier
@@ -184,12 +184,12 @@ fun RoamingScreen() {
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                // tvDate: 14sp 黑, 居中
+                // tvDate: 14sp black, centered
                 if (state.showDate) {
                     Text(text = state.date.ifEmpty { dateText }, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                // tvTime: 14sp 黑, 右对齐
+                // tvTime: 14sp black, right-aligned
                 Text(
                     text = state.time,
                     fontSize = 14.sp,
@@ -197,8 +197,8 @@ fun RoamingScreen() {
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
-            // btnLocationSettings: 黄色按钮, 居中
-            // btnLocationSettings: 成品 #faf8f54a 半透明黄, 14sp 黑字, 居中
+            // btnLocationSettings: yellow button, centered
+            // btnLocationSettings: original #faf8f54a translucent yellow, 14sp black text, centered
             if (state.showSettings) {
                 Box(
                     modifier = Modifier
@@ -212,27 +212,27 @@ fun RoamingScreen() {
                 }
             }
         }
-        // linearLayout4: 经纬度区, holo_blue_bright
+        // linearLayout4: lat/lon area, holo_blue_bright
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 2.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            // 纬度行: tvLati 16sp 黑 左 8dp | tvLat 右对齐 3dp
+            // Lat row: tvLati 16sp black left 8dp | tvLat right-aligned 3dp
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(text = state.latLabel, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp))
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = state.latValue, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 3.dp))
             }
-            // 经度行
+            // Lon row
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(text = state.lonLabel, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp))
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = state.lonValue, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 3.dp))
             }
         }
-        // relativeLayout6: 定位码区, 43sp bold 黑居中
+        // relativeLayout6: locator area, 43sp bold black centered
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -247,7 +247,7 @@ fun RoamingScreen() {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            // progressBar: 加载中, 居中
+            // progressBar: loading, centered
             if (state.showProgress) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp).align(Alignment.Center),
@@ -255,7 +255,7 @@ fun RoamingScreen() {
                     strokeWidth = 2.dp
                 )
             }
-            // tvNotice: 提示文字, 居中顶部
+            // tvNotice: hint text, centered top
             if (state.showNotice) {
                 Text(
                     text = "请稍等，加载可能需要几分钟的时间。",
@@ -266,19 +266,19 @@ fun RoamingScreen() {
                 )
             }
         }
-        // relativeLayout: 九宫格, 占满剩余, 底部 15dp
-        // 用 Box 等价 RelativeLayout 布局: 左格贴左 / 中格水平居中 / 右格贴右 (成品 main.xml)
+        // relativeLayout: 3x3 grid, fills remaining space, bottom 15dp
+        // Box as RelativeLayout equivalent: left cell left / middle cell centered / right cell right (original main.xml)
         Column(modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 15.dp)) {
-            // 行1: relativeLayout5 (上排: 纬度 +1)
+            // Row 1: relativeLayout5 (top row: lat +1)
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 GridCell(text = state.grids[0], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterStart))
                 GridCell(text = state.grids[1], modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center))
                 GridCell(text = state.grids[2], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
-            // 行2: relativeLayout4, 205dp 高 (中排: 中央)
+            // Row 2: relativeLayout4, 205dp high (middle row: center)
             Box(modifier = Modifier.fillMaxWidth().height(205.dp)) {
                 GridCell(text = state.grids[3], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterStart))
-                // 中央列: tv22 (100x80dp centerInParent) 叠在 linearLayout3 (200x200dp) 之上
+                // Center column: tv22 (100x80dp centerInParent) overlaid on linearLayout3 (200x200dp)
                 Box(modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center)) {
                     // linearLayout3: 200x200dp, marginTop 2dp, holo_blue_bright
                     Box(
@@ -288,7 +288,7 @@ fun RoamingScreen() {
                             .size(width = 200.dp, height = 200.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        // iv: 红点 10x10dp, top|left, leftMargin/topMargin 查表绝对定位
+                        // iv: red dot 10x10dp, top|left, leftMargin/topMargin from lookup tables
                         Image(
                             painter = painterResource(R.drawable.roam_pnt),
                             contentDescription = null,
@@ -297,7 +297,7 @@ fun RoamingScreen() {
                                 .offset(x = state.markerLeft.dp, y = state.markerTop.dp)
                         )
                     }
-                    // tv22: 100x80dp centerInParent, 30sp bold, textColorHighlight(白)
+                    // tv22: 100x80dp centerInParent, 30sp bold, textColorHighlight (white)
                     Text(
                         text = state.grids[4],
                         fontSize = 30.sp,
@@ -311,14 +311,14 @@ fun RoamingScreen() {
                 }
                 GridCell(text = state.grids[5], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
-            // 行3: relativeLayout3 (下排: 纬度 -1)
+            // Row 3: relativeLayout3 (bottom row: lat -1)
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 GridCell(text = state.grids[6], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterStart))
                 GridCell(text = state.grids[7], modifier = Modifier.width(200.dp).fillMaxHeight().align(Alignment.Center))
                 GridCell(text = state.grids[8], modifier = Modifier.width(80.dp).fillMaxHeight().align(Alignment.CenterEnd))
             }
         }
-        // tv4: 底部版权, 10sp 黑 (往上拉, 底部预留空间避免被导航栏遮挡)
+        // tv4: bottom credit, 10sp black (raised; bottom space kept clear of nav bar)
         Text(
             text = "制作：US1PM  汉化：BA7LCE",
             fontSize = 10.sp,
@@ -329,7 +329,7 @@ fun RoamingScreen() {
     }
 }
 
-// 周边格: 60/200/60dp, #0BACF1, bold 居中, 2dp margin (照搬 tv11/tv13/tv21/tv23/tv31/tv33)
+// Surrounding cells: 60/200/60dp, #0BACF1, bold centered, 2dp margin (ported tv11/tv13/tv21/tv23/tv31/tv33)
 @Composable
 private fun GridCell(text: String, modifier: Modifier) {
     Box(
@@ -349,8 +349,8 @@ private fun GridCell(text: String, modifier: Modifier) {
 }
 
 /**
- * 照搬 MainActivity.showLocation() 的状态。
- * 网格/九宫格/红点查表与成品逐行一致。
+ * Ported state from MainActivity.showLocation().
+ * Grid / 3x3 / red-dot lookup tables match the original line by line.
  */
 data class RoamingState(
     val date: String = "",
@@ -361,9 +361,9 @@ data class RoamingState(
     val lonValue: String = "",
     val loc: String = "",
     val grids: List<String> = List(9) { "" },
-    /** 红点 leftMargin(dp), 经度第 3 对字符查表 */
+    /** Red dot leftMargin (dp), looked up by the 3rd char pair of longitude */
     val markerLeft: Int = 0,
-    /** 红点 topMargin(dp), 纬度第 3 对字符查表(屏幕 Y 反转) */
+    /** Red dot topMargin (dp), looked up by the 3rd char pair of latitude (screen Y inverted) */
     val markerTop: Int = 0,
     val gpsOn: Boolean = false,
     val gpsOff: Boolean = true,
@@ -374,16 +374,16 @@ data class RoamingState(
 )
 
 /**
- * 照搬 showLocation() 的完整计算: 时间/经纬度 DMS/8 位网格/九宫格/红点查表。
+ * Ported full showLocation() computation: time / lat-lon DMS / 8-char grid / 3x3 / red-dot lookup.
  */
 fun roamingStateFromLocation(lat: Double, lon: Double, fixTime: Long, hourPrefix: String): RoamingState {
-    // 照搬: tvTime = 缓存小时前缀 + 定位时间分钟
+    // Ported: tvTime = cached hour prefix + locate time minutes
     val minute = SimpleDateFormat("mm", Locale.getDefault()).format(Date(fixTime))
     val time = hourPrefix + minute
-    // 方向字符
+    // Direction chars
     val ew = if (lon >= 0.0) "E" else "W"
     val ns = if (lat >= 0.0) "N" else "S"
-    // 照搬: 纬度 DMS (String.valueOf 无补零)
+    // Ported: latitude DMS (String.valueOf, no zero padding)
     val latAbs = if (lat < 0.0) -lat else lat
     val latDeg = latAbs.toInt()
     val latMinFull = (latAbs - latDeg) * 60.0
@@ -391,7 +391,7 @@ fun roamingStateFromLocation(lat: Double, lon: Double, fixTime: Long, hourPrefix
     val latSec = ((latMinFull - latMin) * 60.0).toInt()
     val latLabel = "纬度  $latDeg° $latMin' $latSec\" $ns"
     val latValue = "$lat° "
-    // 照搬: 经度 DMS
+    // Ported: longitude DMS
     val lonAbs = if (lon < 0.0) -lon else lon
     val lonDeg = lonAbs.toInt()
     val lonMinFull = (lonAbs - lonDeg) * 60.0
@@ -399,13 +399,13 @@ fun roamingStateFromLocation(lat: Double, lon: Double, fixTime: Long, hourPrefix
     val lonSec = ((lonMinFull - lonMin) * 60.0).toInt()
     val lonLabel = "经度 $lonDeg° $lonMin' $lonSec\" $ew"
     val lonValue = "$lon° "
-    // 照搬: 8 位网格编码 (区间查表)
+    // Ported: 8-char grid encoding (range lookup)
     val (str, str2, str3, str4) = encodeLon(lon)
     val (str5, str6, str38, str9) = encodeLat(lat)
     val loc = str + str5 + str2 + str6 + str3 + str38 + str4 + str9
-    // 照搬: 九宫格 parseInt3 五分支
+    // Ported: 3x3 parseInt3 five-branch logic
     val grids = buildGrids(str, str5, str2, str6, str3, str38)
-    // 照搬: 红点查表 (第 3 对字符)
+    // Ported: red-dot lookup (3rd char pair)
     val markerLeft = lonMargin[str3.firstOrNull()] ?: 0
     val markerTop = latMargin[str38.firstOrNull()] ?: 0
     return RoamingState(
@@ -427,21 +427,21 @@ fun roamingStateFromLocation(lat: Double, lon: Double, fixTime: Long, hourPrefix
     )
 }
 
-// 红点 leftMargin 查表 (MainActivity 1286-1386 行): 经度第 3 对 a..x -> -2..190 dp
+// Red-dot leftMargin lookup (MainActivity lines 1286-1386): lon 3rd pair a..x -> -2..190 dp
 private val lonMargin = mapOf(
     'a' to -2, 'b' to 8, 'c' to 16, 'd' to 24, 'e' to 32, 'f' to 40, 'g' to 48, 'h' to 56,
     'i' to 65, 'j' to 74, 'k' to 83, 'l' to 92, 'm' to 101, 'n' to 110, 'o' to 119, 'p' to 128,
     'q' to 137, 'r' to 146, 's' to 155, 't' to 163, 'u' to 171, 'v' to 179, 'w' to 184, 'x' to 190
 )
 
-// 红点 topMargin 查表 (MainActivity 1315-1363 行): 纬度第 3 对 a..x -> 190..-2 dp (屏幕 Y 反转)
+// Red-dot topMargin lookup (MainActivity lines 1315-1363): lat 3rd pair a..x -> 190..-2 dp (screen Y inverted)
 private val latMargin = mapOf(
     'a' to 190, 'b' to 182, 'c' to 174, 'd' to 169, 'e' to 163, 'f' to 155, 'g' to 146, 'h' to 137,
     'i' to 128, 'j' to 119, 'k' to 110, 'l' to 101, 'm' to 92, 'n' to 83, 'o' to 74, 'p' to 65,
     'q' to 56, 'r' to 48, 's' to 40, 't' to 32, 'u' to 24, 'v' to 16, 'w' to 8, 'x' to -2
 )
 
-// 照搬 311-611 行: 经度 -> (20°区字母, 2°数字, 2'字母, 30"数字)
+// Ported lines 311-611: longitude -> (20 deg zone letter, 2 deg digit, 2' letter, 30" digit)
 private fun encodeLon(inputLon: Double): List<String> {
     var longitude = inputLon
     var d = 0.0
@@ -522,7 +522,7 @@ private fun encodeLon(inputLon: Double): List<String> {
     return listOf(str, str2, str3, str4)
 }
 
-// 照搬 612-914 行: 纬度 -> (10°区字母, 1°数字, 1'字母, 15"数字)
+// Ported lines 612-914: latitude -> (10 deg zone letter, 1 deg digit, 1' letter, 15" digit)
 private fun encodeLat(inputLat: Double): List<String> {
     var latitude = inputLat
     var d2 = 0.0
@@ -605,8 +605,8 @@ private fun encodeLat(inputLat: Double): List<String> {
 }
 
 /**
- * 照搬 917-1283 行: 九宫格 parseInt3 五分支(内部/西界/东界/北界/南界 + 四角)。
- * 返回 9 格文本: [上左, 上中, 上右, 左中, 中央, 右中, 下左, 下中, 下右]。
+ * Ported lines 917-1283: 3x3 parseInt3 five-branch (interior / west / east / north / south edges + corners).
+ * Returns 9 cell texts: [top-left, top-center, top-right, mid-left, center, mid-right, bottom-left, bottom-center, bottom-right].
  */
 private fun buildGrids(str: String, str5: String, str2: String, str6: String, str3: String, str38: String): List<String> {
     val parseInt = str2.toInt()
@@ -618,7 +618,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
     val g = MutableList(9) { "" }
     fun fmt2(n: Int) = if (n <= 9) "0$n" else n.toString()
     if ((parseInt > 0) && (parseInt < 9) && (parseInt2 > 0) && (parseInt2 < 9)) {
-        // 内部: 数字对 ±1
+        // Interior: digit pairs +-1
         val i7 = parseInt3 + 1
         val i8 = i7 - 10
         val valueOf9 = fmt2(i8)
@@ -642,7 +642,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str39 + str14
         g[8] = str39 + str15
     } else if ((parseInt == 0) && (parseInt2 > 0) && (parseInt2 < 9)) {
-        // 西边界: 经度 0 -> 9, 经度字母 -1
+        // West edge: lon digit 0 -> 9, lon letter -1
         val str43 = (str[0] - 1).toString() + str5
         val str44 = "9" + (parseInt2 + 1)
         val i12 = parseInt3 + 1
@@ -664,7 +664,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str39 + valueOf8
         g[8] = str39 + str15
     } else if ((parseInt == 9) && (parseInt2 > 0) && (parseInt2 < 9)) {
-        // 东边界: 经度 9 -> 0, 经度字母 +1
+        // East edge: lon digit 9 -> 0, lon letter +1
         val str47 = (str[0] + 1).toString() + str5
         val i14 = parseInt3 + 1
         val valueOf21 = (i14 - 10).toString()
@@ -686,7 +686,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str39 + valueOf25
         g[8] = str47 + str15
     } else if ((parseInt < 9) && (parseInt > 0) && (parseInt2 == 9)) {
-        // 北边界: 纬度 9 -> 0, 纬度字母 +1
+        // North edge: lat digit 9 -> 0, lat letter +1
         val str50 = str + (str5[0] + 1).toString()
         val i16 = parseInt3 - 9
         val i17 = i16 - 10
@@ -711,7 +711,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str39 + str14
         g[8] = str39 + str15
     } else if ((parseInt < 9) && (parseInt > 0) && (parseInt2 == 0)) {
-        // 南边界: 纬度 0 -> 9, 纬度字母 -1
+        // South edge: lat digit 0 -> 9, lat letter -1
         val str52 = str + (str5[0] - 1).toString()
         val i21 = parseInt3 + 1
         val i22 = i21 - 10
@@ -735,7 +735,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str52 + str14
         g[8] = str52 + str15
     } else if (parseInt3 == 0) {
-        // 四角 00: 经纬度数字均 -1 进位
+        // Corner 00: both digits -1 with carry
         val v32 = (str[0] - 1).toString()
         val v33 = (str5[0] - 1).toString()
         g[0] = v32 + str5 + "91"
@@ -748,7 +748,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str + v33 + "09"
         g[8] = str + v33 + "19"
     } else if (parseInt3 == 9) {
-        // 四角 09: 经度 -1, 纬度 +1
+        // Corner 09: lon -1, lat +1
         val v34 = (str[0] - 1).toString()
         val v35 = (str5[0] + 1).toString()
         g[0] = v34 + v35 + "90"
@@ -761,7 +761,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = v34 + str5 + "08"
         g[8] = v34 + str5 + "18"
     } else if (parseInt3 == 99) {
-        // 四角 99: 经纬度数字均 +1 进位
+        // Corner 99: both digits +1 with carry
         val v36 = (str[0] + 1).toString()
         val v37 = (str5[0] + 1).toString()
         g[0] = str + v37 + "80"
@@ -774,7 +774,7 @@ private fun buildGrids(str: String, str5: String, str2: String, str6: String, st
         g[7] = str39 + "98"
         g[8] = v36 + str5 + "08"
     } else if (parseInt3 == 90) {
-        // 四角 90: 经度 +1, 纬度 -1
+        // Corner 90: lon +1, lat -1
         val v38 = (str[0] + 1).toString()
         val v39 = (str5[0] - 1).toString()
         g[0] = str39 + "81"

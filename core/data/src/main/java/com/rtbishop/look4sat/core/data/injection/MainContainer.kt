@@ -103,7 +103,7 @@ class MainContainer(private val context: Context) : IMainContainer {
 
     override fun provideSaveImage(): ISaveImage = SaveImage(context)
 
-    // WaveLog 日志(4.5.2): 本地队列 + 上传器(共享实例)
+    // WaveLog logging (4.5.2): local queue + uploader (shared instance)
     override val wavelogQueue: WavelogQueue by lazy {
         val prefs = context.getSharedPreferences("wavelog", Context.MODE_PRIVATE)
         WavelogQueue(object : IWavelogQueueStore {

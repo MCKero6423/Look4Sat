@@ -455,13 +455,13 @@ public abstract class c {
             if (z3) {
                 i4 ^= 2;
             }
-            // smali 证实: f() = sin(象限 switch!):
+            // smali-verified: f() = sin (quadrant switch!):
             //   case 0 -> g(d5,0)(sin(0-π/2))
-            //   case 1 -> c(d5,0)(sin(π/2-π) = cos(余角))
-            //   case 2 -> -g(d5,0)(sin(π-3π/2) = -sin(余角))
-            //   case 3 -> -c(d5,0)(sin(3π/2-2π) = -cos(余角))
-            // jadx 畸形嵌套 if 把 case 0 还原成 return NaN(小角度全 NaN!),
-            // 且 case 1/2/3 全走 g() —— 旋转因子表 329 个 NaN + 频谱错乱的根源!
+            //   case 1 -> c(d5,0) (sin(pi/2-pi) = cos of the complement)
+            //   case 2 -> -g(d5,0) (sin(pi-3pi/2) = -sin of the complement)
+            //   case 3 -> -c(d5,0) (sin(3pi/2-2pi) = -cos of the complement)
+            // jadx's malformed nested if reconstructed case 0 as return NaN (all small angles NaN!),
+            // and routed cases 1/2/3 all through g() - root cause of 329 NaNs in the twiddle table and the scrambled spectrum!
             if (i4 == 0) {
                 return g(d5, d7);
             }
@@ -474,8 +474,8 @@ public abstract class c {
             return -c(d5, d7);
         }
         d7 = d6;
-        // jadx 还原不完整(smali 650 行, jadx 只还原 63 行); f() 未被任何代码调用(死代码),
-        // 按 smali 尾部语义补 return(cond_0: v22 = v22 + v14; return v22)
+        // jadx's reconstruction is incomplete (650 smali lines vs 63 reconstructed); f() is dead code called by nothing,
+        // return restored per smali tail semantics (cond_0: v22 = v22 + v14; return v22)
         return d7;
     }
 

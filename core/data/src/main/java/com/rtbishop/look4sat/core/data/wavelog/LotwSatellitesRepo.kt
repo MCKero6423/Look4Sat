@@ -1,7 +1,7 @@
-/* LotwSatellitesRepo.kt — LoTW 卫星列表运行时刷新(4.5.5)。
- * 下载 ARRL 官方 config.tq6(gzip XML), 解析 <satellite name="...">,
- * 更新 LotwSatellites 动态表 + SharedPreferences 持久化(重启不丢)。
- * 触发: 设置页 WaveLog 区「更新卫星列表」按钮(用户拍板: 手动触发)。
+/* LotwSatellitesRepo.kt - runtime refresh of the LoTW satellite list (4.5.5).
+ * Downloads ARRL's official config.tq6 (gzip XML), parses <satellite name="...">,
+ * updates the LotwSatellites dynamic set + persists to SharedPreferences (survives restarts).
+ * Trigger: the "Update sats" button in the settings WaveLog section (user decided: manual).
  */
 package com.rtbishop.look4sat.core.data.wavelog
 
@@ -20,7 +20,7 @@ class LotwSatellitesRepo(private val context: Context) : ILotwSatellitesRepo {
 
     private val prefs = context.getSharedPreferences("lotw_satellites", Context.MODE_PRIVATE)
 
-    /** 从 SharedPreferences 恢复上次下载的表(进程启动时调用) */
+    /** Restore the last downloaded list from SharedPreferences (call at process start) */
     override fun restore() {
         val saved = prefs.getString(KEY_NAMES, null)
         if (!saved.isNullOrBlank()) {
@@ -28,7 +28,7 @@ class LotwSatellitesRepo(private val context: Context) : ILotwSatellitesRepo {
         }
     }
 
-    /** 下载 config.tq6 → 解析 → 更新内存 + 持久化。返回结果供 UI 提示 */
+    /** Download config.tq6 -> parse -> update memory + persist. Result is surfaced in the UI */
     override suspend fun refresh(): ILotwSatellitesRepo.RefreshResult = withContext(Dispatchers.IO) {
         try {
             val url = URL("https://lotw.arrl.org/lotw/config.tq6")
@@ -39,7 +39,7 @@ class LotwSatellitesRepo(private val context: Context) : ILotwSatellitesRepo {
             val raw = conn.getInputStream()
             val reader = BufferedReader(InputStreamReader(GZIPInputStream(raw), Charsets.UTF_8))
             val text = reader.use { it.readText() }
-            // 解析 <satellite name="XXX" ...> — 格式固定(ARRL 官方 XML)
+            // Parse <satellite name="XXX" ...> - fixed format (official ARRL XML)
             val names = Regex("""<satellite name="([^"]+)""").findAll(text)
                 .map { it.groupValues[1].uppercase() }
                 .toSet()

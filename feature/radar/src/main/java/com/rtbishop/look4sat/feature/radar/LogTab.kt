@@ -1,11 +1,11 @@
 /*
- * LogTab.kt — 雷达页「Log」标签(4.5.2 WaveLog 日志)。
+ * LogTab.kt - "Log" tab of the radar page (4.5.2 WaveLog logging).
  *
- * 布局: 转发器列表(点开选一个, 边看频率边填) → 呼号输入回车存本地 →
- * 下方本地记录列表(时间/频率/呼号)。记录支持自绘左滑删除:
- * 滑动中显示黄色垃圾桶, 滑过 75% 变撤销键, 5 秒内不点撤销则删除。
+ * Layout: transponder list (tap to select, watch frequency while typing) -> callsign input, Enter saves locally ->
+ * local records list below (time/freq/callsign). Records support custom swipe-to-delete:
+ * yellow trash icon shows while swiping; past 75% it becomes an undo key; not undone within 5 s means deleted.
  *
- * 回车只存本地(WavelogQueue), 上传由 10 分钟周期/手动触发(防抄收错误)。
+ * Enter only saves locally (WavelogQueue); upload is triggered by the 10-min cycle or manually (avoids mis-copied calls).
  */
 package com.rtbishop.look4sat.feature.radar
 
@@ -116,8 +116,8 @@ fun LogTab(
             )
         }
 
-        // 转发器选择(下拉选择框): 选中后底下出现输入区
-        // 选中项按 uuid 从 transceivers 实时派生(多普勒频率每秒更新, 频率显示随之刷新)
+        // Transponder picker (dropdown): input area appears below once selected
+        // Selected item derived live from transceivers by uuid (Doppler freq updates every second, display refreshes with it)
         var menuExpanded by remember { mutableStateOf(false) }
         val selectedRadio = transceivers.firstOrNull { it.uuid == selectedUuid }
         ExposedDropdownMenuBox(
@@ -157,7 +157,7 @@ fun LogTab(
             }
         }
 
-        // 选中转发器后: 输入区(实时频率 + 呼号 + 模式)
+        // After selecting a transponder: input area (live freq + callsign + mode)
         selectedRadio?.let { radio ->
             ExpandedLogInput(
                 radio = radio,
@@ -171,7 +171,7 @@ fun LogTab(
             )
         }
 
-        // 本地记录列表(时间/频率/呼号)
+        // Local records list (time / freq / callsign)
         Text(
             text = stringResource(id = R.string.wavelog_saved),
             fontSize = 12.sp,
@@ -185,9 +185,9 @@ fun LogTab(
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
-            // 按场次分组(sessionId = 卫星名-AOS 时间戳), 组间粗线分隔
+            // Grouped by pass session (sessionId = satName-AOS timestamp), thick line between groups
             entries.groupBy { it.sessionId.ifBlank { "un" } }.forEach { (sessionId, groupEntries) ->
-                // 组标题 + 分隔线
+                // Group title + divider
                 HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
                 Text(
                     text = if (sessionId == "un") stringResource(id = R.string.wavelog_ungrouped)
@@ -237,7 +237,7 @@ fun LogTab(
     }
 }
 
-/** 转发器展开输入区: 实时频率 + 呼号(回车存本地) + 模式修正 */
+/** Expanded transponder input: live freq + callsign (Enter saves locally) + mode override */
 @Composable
 private fun ExpandedLogInput(
     radio: SatRadio,
@@ -259,7 +259,7 @@ private fun ExpandedLogInput(
     fun submit() {
         val call = callsign.trim().uppercase()
         if (call.length < 3) return
-        // 频率直接取转发器栏的数字(radio 每秒多普勒修正, 回车那一秒的值)
+        // Freq taken directly from the transponder bar (radio Doppler-corrected each second; value at the Enter moment)
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
         val qsoId = UUID.randomUUID().toString()
@@ -278,7 +278,7 @@ private fun ExpandedLogInput(
         callsign = ""
         onSaved()
         showToast(savedMsg)
-        // QRZ 对方网格异步回填(4.5.5): 设置页填了 Cookie 才查, 失败静默
+        // QRZ counterpart grid async backfill (4.5.5): only queried when Cookie is set; silent on failure
         scope.launch {
             val prefs = context.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)
             val rawCookie = prefs.getString("cookie", "") ?: ""
@@ -291,7 +291,7 @@ private fun ExpandedLogInput(
         }
     }
 
-    // 频率显示与转发器栏完全一致: TX 行 + RX 行(radio 来自每秒多普勒重算, 实时刷新)
+    // Freq display matches the transponder bar: TX row + RX row (radio from per-second Doppler recompute, live)
     val txForDisplay = radio.uplinkLow ?: radio.downlinkLow ?: 0L
     val rxForDisplay = radio.downlinkLow ?: radio.uplinkLow ?: 0L
     val upLow = radio.uplinkLow
@@ -300,7 +300,7 @@ private fun ExpandedLogInput(
     val downHigh = radio.downlinkHigh
     val isLinearRange = upLow != null && upHigh != null && upLow != upHigh
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        // TX 行
+        // TX row
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "TX: ",
@@ -321,7 +321,7 @@ private fun ExpandedLogInput(
                 )
             }
         }
-        // RX 行(与转发器栏 RX 一致)
+        // RX row (same as transponder bar RX)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "RX: ",
@@ -364,9 +364,9 @@ private fun ExpandedLogInput(
 }
 
 /**
- * 自绘左滑删除行(用户定制交互):
- * 左滑 → 右侧黄色垃圾桶; 滑过 75% → 变撤销键(待删除, 不立即删);
- * 5 秒倒计时内点撤销恢复, 不点自动删除。
+ * Custom swipe-to-delete row (user-requested interaction):
+ * swipe left -> yellow trash on the right; past 75% -> becomes undo key (pending delete, not immediate);
+ * tap undo within the 5 s countdown to restore; otherwise auto-deleted.
  */
 @Composable
 internal fun SwipeDeleteRow(
@@ -379,14 +379,14 @@ internal fun SwipeDeleteRow(
     var rowWidth by remember { mutableIntStateOf(0) }
     val threshold = rowWidth * 0.75f
 
-    // 平滑弹回/滑入(动画)
+    // Smooth spring back / slide in (animation)
     val animatedOffset by animateFloatAsState(
         targetValue = offsetX,
         animationSpec = if (pending) tween(200) else spring(dampingRatio = Spring.DampingRatioNoBouncy),
         label = "swipeOffset"
     )
 
-    // 倒计时: 进入待删除后 5 秒自动删
+    // Countdown: auto-delete 5 s after entering pending state
     LaunchedEffect(pending) {
         if (pending) {
             countdown = 5
@@ -407,7 +407,7 @@ internal fun SwipeDeleteRow(
             .fillMaxWidth()
             .onSizeChanged { rowWidth = it.width }
     ) {
-        // 背景层(右侧图标: 垃圾桶 / 撤销+倒计时)
+        // Background layer (right-side icons: trash / undo + countdown)
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -442,7 +442,7 @@ internal fun SwipeDeleteRow(
                     )
                 }
             } else {
-                // 垃圾桶(滑动过程中一直显示, 黄色)
+                // Trash icon (always visible while swiping, yellow)
                 Text(
                     text = "🗑",
                     fontSize = 20.sp,
@@ -450,8 +450,8 @@ internal fun SwipeDeleteRow(
                 )
             }
         }
-        // 内容层(跟手滑动): 背景在 offset 内侧(随内容移动)!
-        // 平时盖住垃圾桶, 左滑时内容带背景移开 → 右侧露出黄色垃圾桶/撤销倒计时
+        // Content layer (follows finger): background sits inside the offset (moves with content)!
+        // Normally covers the trash; swiping moves content+background away -> yellow trash / undo countdown revealed
         Box(
             modifier = Modifier
                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
@@ -486,7 +486,7 @@ private fun formatLocalTime(utcMs: Long): String {
     return "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
 }
 
-/** 场次 ID: 卫星名-AOS 时间戳(UTC yyyyMMdd-HHmm); 无 AOS 时用回车时刻 */
+/** Pass session ID: satName-AOS timestamp (UTC yyyyMMdd-HHmm); falls back to Enter time without AOS */
 private fun buildSessionId(satName: String, aosTimeMs: Long): String {
     val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
     cal.timeInMillis = if (aosTimeMs > 0) aosTimeMs else System.currentTimeMillis()

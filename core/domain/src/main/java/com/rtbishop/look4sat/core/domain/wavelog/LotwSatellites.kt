@@ -1,7 +1,7 @@
-/* LotwSatellites.kt — LoTW 支持的卫星名列表(112 个, 静态内置)。
- * 来源: https://lotw.arrl.org/lotw/config.tq6 (gzip XML, ARRL 官方!)
- * WaveLog 用同一来源更新 satellite 表 lotw 字段(Update_model.php lotw_sats())。
- * 运行时可由 LotwSatellitesRepo 手动刷新(设置页 WaveLog 区按钮触发)。
+/* LotwSatellites.kt - LoTW-supported satellite name list (112, statically embedded).
+ * Source: https://lotw.arrl.org/lotw/config.tq6 (gzip XML, official ARRL!)
+ * WaveLog updates its satellite table's lotw field from the same source (Update_model.php lotw_sats()).
+ * At runtime LotwSatellitesRepo can refresh it manually (settings WaveLog section button).
  */
 package com.rtbishop.look4sat.core.domain.wavelog
 
@@ -11,11 +11,11 @@ object LotwSatellites {
     @Volatile
     private var dynamicNames: Set<String> = emptySet()
 
-    /** 当前生效的卫星名: 静态内置 ∪ 运行时更新 */
+    /** Effective satellite names: static embedded set union runtime updates */
     val names: Set<String>
         get() = if (dynamicNames.isEmpty()) staticNames else staticNames + dynamicNames
 
-    /** 运行时更新(设置页按钮 → LotwSatellitesRepo.refresh() 后调用) */
+    /** Runtime update (settings button -> called after LotwSatellitesRepo.refresh()) */
     fun updateNames(newNames: Set<String>) {
         if (newNames.isNotEmpty()) dynamicNames = newNames
     }

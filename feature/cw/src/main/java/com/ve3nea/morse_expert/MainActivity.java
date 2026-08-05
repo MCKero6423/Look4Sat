@@ -52,8 +52,8 @@ public class MainActivity {
     }
 
     /**
-     * applyImmersive=false 用于嵌入小容器(如转发器 CW 面板):
-     * 不触碰宿主窗口的系统栏标志(避免影响整个 Activity)。
+     * applyImmersive=false is used when embedding in a small container (e.g. the transponder CW panel):
+     * does not touch the host window's system-bar flags (avoids affecting the whole Activity).
      */
     public void onCreate(android.app.Activity activity, ConstraintLayout constraintLayout, boolean applyImmersive) {
         this.mActivity = activity;

@@ -148,10 +148,10 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
-    // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
+    // UI settings: sort by screenOrder (empty = default order), then filter by hiddenScreens (Settings always kept)
     val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
-            // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置(漫游↔地图), 再兜底最后
+            // Unknown pages (e.g. CwDecode not in old persisted order): use default-order position (Roaming<->Map), then fall back to last
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
             if (idx != -1) idx
             else com.rtbishop.look4sat.core.presentation.defaultScreenOrder.indexOf(screen.screenId).let {
@@ -159,8 +159,8 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
             }
         }
         .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
-    // 4.5.1 折叠菜单: 主菜单(底部栏 5 槽) + 更多菜单(溢出页面)
-    // 老用户迁移: 已持久化的 subMenuOrder 不含新页面 WavelogLog → 追加到子菜单尾部
+    // 4.5.1 foldable menu: main menu (5 bottom-bar slots) + More menu (overflow page)
+    // Legacy migration: persisted subMenuOrder lacks new pages (WavelogLog) -> append to the sub-menu tail
     val subOrder = (otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder })
         .let { list -> if ("WavelogLog" in list) list else list + "WavelogLog" }
         .let { list -> if ("AMSAT" in list) list else list + "AMSAT" }
@@ -171,7 +171,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
         subOrder.mapNotNull { id -> allNavItems.find { it.screenId == id } }
     }
     var moreExpanded by remember { mutableStateOf(false) }
-    // 更多菜单打开时拦截返回: 先关菜单
+    // Intercept Back while the More menu is open: close the menu first
     BackHandler(enabled = moreExpanded) { moreExpanded = false }
     // Activity-scoped so the mutual query results survive navigation to Radar and back
     val mutualViewModel: MutualViewModel = viewModel(
@@ -212,7 +212,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                     )
                 }
-                // 更多菜单按钮(固定第 6 槽, 子菜单非空才显示)
+                // More-menu button (fixed slot 6; shown only when the sub-menu is non-empty)
                 if (moreNavItems.isNotEmpty()) {
                     item(
                         icon = {
@@ -346,7 +346,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                     }
                 }
-                // 更多菜单弹出面板(覆盖在内容上, 底部栏上方; spring 弹跳)
+                // More-menu popup panel (overlays content above the bottom bar; spring bounce)
                 AnimatedVisibility(
                     visible = moreExpanded,
                     modifier = Modifier.fillMaxSize(),

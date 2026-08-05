@@ -8,9 +8,9 @@ import com.ve3nea.morse_expert.ScaleView;
 import com.ve3nea.morse_expert.WaterfallSurfaceView;
 
 /**
- * 照搬自 Morse Expert 1.15 j1.C1646n, 类名/字段名保持混淆原名。
- * R8 合并类手术: 只保留视图持有器(6 参构造 + 5 个 View 字段);
- * 其余 158-1278 行(广告/计费合并方法)已整段裁剪(用户要求广告不迁移)。
+ * Ported from Morse Expert 1.15 j1.C1646n; obfuscated class/field names kept.
+ * R8-merged class surgery: keeps only the view holder (6-arg constructor + 5 View fields);
+ * the remaining lines 158-1278 (ads/billing merged methods) were removed wholesale (user: no ad migration).
  */
 public final class C1646n {
 

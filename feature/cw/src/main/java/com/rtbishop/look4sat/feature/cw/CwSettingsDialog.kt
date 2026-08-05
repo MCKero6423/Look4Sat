@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.ve3nea.morse_expert.MainActivity
 import kotlin.math.roundToInt
 
-/** 键名/默认值照搬原 Morse Expert(root_preferences.xml + SettingsActivity 逻辑)。 */
+/** Keys/defaults ported from the original Morse Expert (root_preferences.xml + SettingsActivity logic). */
 private const val KEY_MESSAGE_TYPE = "message_type"
 private const val KEY_TEXT_FONT_SIZE = "text_font_size"
 private const val DEFAULT_MESSAGE_TYPE = "general_text"
@@ -55,7 +55,7 @@ private const val DEFAULT_TEXT_FONT_SIZE = 18
 private const val MIN_FONT_SIZE = 7
 private const val MAX_FONT_SIZE = 99
 
-/** 预置色板(9 色, 3x3 网格);原 ColorPreferenceCompat 用第三方 colorpicker, 不引入。 */
+/** Preset palette (9 colors, 3x3 grid); the original ColorPreferenceCompat used a third-party colorpicker, not imported. */
 private val PaletteColors = listOf(
     0xFFD0F0F0.toInt(), 0xFF000000.toInt(), 0xFFFFFFFF.toInt(),
     0xFFAAAAAA.toInt(), 0xFFFF0000.toInt(), 0xFF00FF00.toInt(),
@@ -63,11 +63,11 @@ private val PaletteColors = listOf(
 )
 
 /**
- * CW 设置弹窗(替代原 Morse Expert 的 SettingsActivity)。
- * 设置项与键名照搬原 APK: message_type / text_font_size / 9 个颜色
- * (I2.b.f663b 键名, I2.b.f664d 默认值, I2.b.c 英文标题)。
- * 存储: SharedPreferences(getPackageName() + "_preferences")。
- * 点击 OK 保存并调用 controller.onResume() 立即生效; Cancel/点外部仅关闭不保存。
+ * CW settings dialog (replaces the original Morse Expert SettingsActivity).
+ * Items and keys ported from the original APK: message_type / text_font_size / 9 colors
+ * (I2.b.f663b keys, I2.b.f664d defaults, I2.b.c English titles).
+ * Storage: SharedPreferences(getPackageName() + "_preferences").
+ * OK saves and calls controller.onResume() to take effect at once; Cancel/outside-tap only closes without saving.
  */
 @Composable
 fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
@@ -142,7 +142,7 @@ fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
                     editor.putInt(I2.b.f663b[i], colorValues[i])
                 }
                 editor.apply()
-                // 原 SettingsActivity 返回时由 MainActivity.onResume() 重新读取全部设置; 照搬逻辑已就位
+                // The original re-read all settings in MainActivity.onResume() when SettingsActivity returned; ported logic in place
                 controller.onResume()
                 onDismiss()
             }) { Text("OK") }

@@ -1,7 +1,7 @@
 package d1;
 
 /* renamed from: d1.b, reason: case insensitive filesystem */
-/* 照搬自 Morse Expert 1.15, 混淆名保持。b(Parcel)/c(y2.d) 为库工具已裁剪(L1/y2 库依赖)。 */
+/* Ported from Morse Expert 1.15; obfuscated names kept. b(Parcel)/c(y2.d) were library utilities, trimmed (L1/y2 library deps). */
 public abstract /* synthetic */ class AbstractC1518b {
     public static float a(float f, float f4, k3.d dVar, long j4, float f5, float f6) {
         dVar.c(j4, f - f4);

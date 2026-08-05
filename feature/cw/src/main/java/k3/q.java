@@ -1,10 +1,10 @@
 package k3;
 
 /**
- * R8 生成的伪 enum(k3 FFT 库的数组类型枚举)。
- * smali 中 q 的直接子类:l(LONG/5)、m(FLOAT/6)、n(DOUBLE/7),
- * 其余常量(BYTE/UNSIGNED_BYTE/SHORT/INT/COMPLEX_FLOAT/COMPLEX_DOUBLE/STRING/OBJECT)
- * 直接以 q 实例表达。
+ * R8-generated pseudo-enum (the k3 FFT library's array-type enum).
+ * Direct q subclasses in smali: l (LONG/5), m (FLOAT/6), n (DOUBLE/7),
+ * the other constants (BYTE/UNSIGNED_BYTE/SHORT/INT/COMPLEX_FLOAT/COMPLEX_DOUBLE/STRING/OBJECT)
+ * are expressed directly as q instances.
  */
 public class q {
     public static final l f;

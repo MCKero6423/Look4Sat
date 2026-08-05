@@ -1,22 +1,22 @@
 /*
- * WavelogQueue.kt — WaveLog 本地日志队列(4.5.2)。
+ * WavelogQueue.kt - WaveLog local log queue (4.5.2).
  *
- * 纯 Kotlin(不依赖 Android): 存储走 IWavelogQueueStore 接口,
- * 由 core/data 用 SharedPreferences 实现。
- * 队列上限 500 条(超出丢最旧)。
+ * Pure Kotlin (no Android deps): storage goes through the IWavelogQueueStore interface,
+ * implemented with SharedPreferences in core/data.
+ * Queue capped at 500 entries (oldest dropped beyond that).
  */
 package com.rtbishop.look4sat.core.domain.wavelog
 
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 存储抽象(SharedPreferences 实现见 core/data) */
+/** Storage abstraction (SharedPreferences impl lives in core/data) */
 interface IWavelogQueueStore {
     fun load(): String
     fun save(json: String)
 }
 
-/** 待上传的 QSO 条目(本地队列元素,与 POST /api/v2/qso 字段对应) */
+/** QSO entry awaiting upload (local queue element, mirrors POST /api/v2/qso fields) */
 data class WavelogQso(
     val id: String,              // 本地唯一 id(UUID)
     val timeUtcMs: Long,         // 回车时刻 UTC 毫秒(本地显示 + 组装 qso_date/time_on)
@@ -73,18 +73,18 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
         save(all().filter { it.id !in ids })
     }
 
-    /** 标记为已上传(保留在队列, 表格打勾) */
+    /** Mark as uploaded (kept in the queue; checkmark in the table) */
     @Synchronized
     fun markUploaded(id: String) {
         save(all().map { if (it.id == id) it.copy(uploaded = true) else it })
     }
 
-    /** 更新某条 QSO 的对方网格(QRZ 爬虫异步回填, 4.5.5) */
+    /** Update a QSO's counterpart grid (async backfill from the QRZ scraper, 4.5.5) */
     fun updateGridsquare(id: String, grid: String) {
         save(all().map { if (it.id == id) it.copy(gridsquare = grid) else it })
     }
 
-    /** 移除所有已上传条目(可选项, 保持队列精简) */
+    /** Remove all uploaded entries (optional; keeps the queue lean) */
     @Synchronized
     fun removeUploaded() {
         save(all().filter { !it.uploaded })

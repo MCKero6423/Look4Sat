@@ -7,11 +7,11 @@ import java.util.Locale;
 import d1.AbstractC1518b;
 
 /**
- * 照搬自 Morse Expert 1.15 B0.b, 类名保持混淆原名。
- * R8 合并 Runnable 手术: 构造按 smali 真实签名 (H2/b, String, [I) -> f=4;
- * 只保留 case 4(状态栏更新: dBFS/Hz/dB/WPM + ScaleView 频率标记, H2.b 调用),
- * 其余 case(WorkManager/动画等库代码)已裁剪。
- * r3 = scaleView.getHeight()(smali 证实, jadx 寄存器未展开)。
+ * Ported from Morse Expert 1.15 B0.b; obfuscated class name kept.
+ * R8-merged Runnable surgery: constructor per the real smali signature (H2/b, String, [I) -> f=4;
+ * keeps only case 4 (status-bar update: dBFS/Hz/dB/WPM + ScaleView frequency markers, invoked by H2.b),
+ * other cases (WorkManager/animation library code) were trimmed.
+ * r3 = scaleView.getHeight() (smali-verified; jadx never expanded the registers).
  */
 public final class b implements Runnable {
     public final /* synthetic */ int f;
@@ -50,7 +50,7 @@ public final class b implements Runnable {
                 ScaleView scaleView = (ScaleView) mainActivity.f11035D.f11889h;
                 int i4 = iArr[1];
                 scaleView.f11041g = iArr[5];
-                // r3 = scaleView.getHeight()(smali 证实)
+                // r3 = scaleView.getHeight() (smali-verified)
                 scaleView.f = (scaleView.getHeight() - 1) - Math.round(((Math.round(i4 * 0.128f) - H2.b.f606z) * scaleView.getHeight()) / H2.b.f603B);
                 scaleView.invalidate();
                 return;

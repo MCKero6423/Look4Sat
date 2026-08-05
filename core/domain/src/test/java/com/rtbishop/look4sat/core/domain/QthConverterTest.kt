@@ -87,7 +87,7 @@ class QthConverterTest {
 
     @Test
     fun `Given square returns correct 3x3 neighbors`() {
-        // Reference grid from the QTH定位器 screenshot: OL42
+        // Reference grid from the QTH Locator screenshot: OL42
         val neighbors = qthNeighbors("OL42")
         assert(neighbors == listOf(
             "OL33", "OL43", "OL53",

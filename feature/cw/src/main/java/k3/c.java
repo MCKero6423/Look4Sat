@@ -34,7 +34,7 @@ public abstract class c {
     }
 
     public static void b(Future[] futureArr) throws InterruptedException, java.util.concurrent.ExecutionException {
-        // smali: 无 catch 直接向上抛 -> Java 声明 throws(忠实表达)
+        // smali: no catch, thrown straight up -> Java declares throws (faithful)
         for (Future future : futureArr) {
             future.get();
         }

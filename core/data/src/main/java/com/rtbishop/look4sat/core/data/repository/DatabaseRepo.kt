@@ -69,7 +69,7 @@ class DatabaseRepo(
         val dataSourcesSettings = settingsRepo.dataSourcesSettings.value
         val tleUrls = buildMap {
             putAll(Sources.satelliteDataUrls)
-            // 开关开且 URL 非空 -> All 用自定义 URL;否则用默认 URL(在线更新默认源)
+            // Switch on + non-empty URL -> All uses the custom URL; otherwise the default URL (online-update default source)
             put("All", if (dataSourcesSettings.useCustomTLE && dataSourcesSettings.tleUrl.isNotBlank())
                 dataSourcesSettings.tleUrl else Sources.defaultTleUrl)
         }.filterValues { it.isNotBlank() }
@@ -81,7 +81,7 @@ class DatabaseRepo(
         // launch all network requests concurrently
         val tleJobs = tleUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
         val radioJobs = radioUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
-        // 统计成功源数: 0 成功视为更新失败(不刷时间戳, 抛异常让 UI 提示)
+        // Count successful sources: zero successes = update failed (timestamp untouched, exception surfaced in the UI)
         val tleResults = tleJobs.awaitAll()
         val radioResults = radioJobs.awaitAll()
         val successCount = tleResults.count { it.second != null } + radioResults.count { it.second != null }

@@ -1,8 +1,8 @@
 /*
- * WavelogLogScreen.kt — 「日志」页面(更多菜单, 4.5.2 修复)。
+ * WavelogLogScreen.kt - the Log page (More menu, 4.5.2 fix).
  *
- * 表格形式展示本地存储的日志: 时间 | 频率 | 卫星 | 呼号 | 已上传(✓)。
- * 完整格子线(表头横线 + 行横线 + 列竖线 + 外边框); 行复用左滑删除。
+ * Shows locally stored logs as a table: time | freq | satellite | callsign | uploaded (✓).
+ * Full grid lines (header rule + row rules + column rules + outer border); rows reuse swipe-to-delete.
  */
 package com.rtbishop.look4sat.feature.radar
 
@@ -59,13 +59,13 @@ fun WavelogLogScreen(
             .verticalScroll(rememberScrollState())
             .padding(8.dp)
     ) {
-        // 表格外边框(左右 + 上下由表头/行底线构成)
+        // Table outer border (left/right; top/bottom formed by header/row bottom rules)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainer)
         ) {
-            // 表头
+            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -82,9 +82,9 @@ fun WavelogLogScreen(
                 GridVLine()
                 HeaderCell(stringResource(id = R.string.wavelog_col_uploaded), 44.dp)
             }
-            // 表头横线
+            // Header rule
             HorizontalDivider(thickness = 1.5.dp, color = GridLineColor)
-            // 表头与数据区留白
+            // Space between header and data area
             Box(modifier = Modifier.height(8.dp))
 
             if (entries.isEmpty()) {
@@ -95,13 +95,13 @@ fun WavelogLogScreen(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp)
                 )
             } else {
-                // 按场次分组(sessionId = 卫星名-AOS 时间戳); 空 sessionId 归"未分组"放最后
+                // Grouped by pass session (sessionId = satName-AOS timestamp); empty sessionId goes to "Uncategorized" last
                 val groups = entries.groupBy { it.sessionId.ifBlank { UNGROUPED } }
                     .toSortedMap(compareByDescending<String> { id ->
                         entries.filter { it.sessionId.ifBlank { UNGROUPED } == id }.minOfOrNull { it.timeUtcMs } ?: 0L
                     }.thenByDescending { it })
                 groups.forEach { (sessionId, groupEntries) ->
-                    // 组标题(场次名 + 本地时间)
+                    // Group title (session name + local time)
                     val (satPart, timePart) = parseSession(sessionId)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -113,7 +113,7 @@ fun WavelogLogScreen(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         )
                     }
-                    // 组间横线(md --- 效果)
+                    // Rule between groups (md --- effect)
                     HorizontalDivider(thickness = 1.5.dp, color = GridLineColor)
                     groupEntries.forEach { entry ->
                     SwipeDeleteRow(
@@ -148,7 +148,7 @@ fun WavelogLogScreen(
                                     }
                                 }
                             }
-                            // 行分隔线
+                            // Row divider
                             HorizontalDivider(thickness = 1.dp, color = GridLineColor)
                         }
                     }
@@ -159,7 +159,7 @@ fun WavelogLogScreen(
     }
 }
 
-/** 列竖线 */
+/** Column rule */
 @Composable
 private fun GridVLine() {
     Box(
@@ -196,7 +196,7 @@ private fun RowScope.Cell(text: String, width: Dp, weight: Float = 0f) {
 
 private const val UNGROUPED = "__ungrouped__"
 
-/** 解析场次 ID: "ASRTU-1-20260804-2014" → (卫星名, "20260804-2014") */
+/** Parse session ID: "ASRTU-1-20260804-2014" -> (sat name, "20260804-2014") */
 private fun parseSession(sessionId: String): Pair<String, String> {
     val parts = sessionId.split('-')
     if (parts.size < 3) return sessionId to ""
@@ -205,7 +205,7 @@ private fun parseSession(sessionId: String): Pair<String, String> {
     return satPart to timePart
 }
 
-/** 场次时间(UTC "20260804-2014") → 本地 "MM-dd HH:mm" */
+/** Session time (UTC "20260804-2014") -> local "MM-dd HH:mm" */
 private fun formatSessionTime(timePart: String): String {
     if (timePart.length != 13 || timePart[8] != '-') return timePart
     return try {

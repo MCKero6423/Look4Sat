@@ -4,12 +4,12 @@ import kotlin.math.abs
 import kotlin.math.round
 
 /**
- * APRS-IS 协议核心(纯 Kotlin,无 Android 依赖)。
- * 从 APRSdroid 1.6.3d 逆向移植:AprsPacket$.scala + ab0oo Position.java。
+ * APRS-IS protocol core (pure Kotlin, no Android dependencies).
+ * Reverse-ported from APRSdroid 1.6.3d: AprsPacket$.scala + ab0oo Position.java.
  */
 object AprsPacket {
 
-    /** APRS-IS passcode 算法(标准):0x73E2 初值,呼号大写+\0,每对字符 XOR */
+    /** APRS-IS passcode algorithm (standard): 0x73E2 seed, uppercase callsign + \0, XOR each char pair */
     fun passcode(callsign: String): Int {
         val s = callsign.split("-")[0].uppercase() + "\u0000"
         var hash = 29666 // 0x73E2
@@ -21,30 +21,30 @@ object AprsPacket {
         return hash and 0x7FFF
     }
 
-    /** 登录行:user CALL-SSID pass XXXX vers XXXX */
+    /** Login line: user CALL-SSID pass XXXX vers XXXX */
     fun formatLogin(callsign: String, ssid: String, passcode: Int, version: String): String {
         val callSsid = formatCallSsid(callsign, ssid)
         return "user $callSsid pass $passcode vers $version"
     }
 
-    /** 呼号-SSID 拼接(BG7NTA + 5 → BG7NTA-5) */
+    /** Callsign-SSID join (BG7NTA + 5 -> BG7NTA-5) */
     fun formatCallSsid(callsign: String, ssid: String): String {
         if (ssid.isNullOrEmpty()) return callsign
         return "$callsign-$ssid"
     }
 
-    /** 可选距离过滤: filter r/lat/lon/dist */
+    /** Optional distance filter: filter r/lat/lon/dist */
     fun formatRangeFilter(latitude: Double, longitude: Double, distKm: Int): String {
         return String.format("r/%.3f/%.3f/%d", latitude, longitude, distKm)
     }
 
-    /** 高度扩展 /A=00000(英尺) */
+    /** Altitude extension /A=00000 (feet) */
     fun formatAltitude(altitudeMeters: Double?): String {
         if (altitudeMeters == null) return ""
         return String.format("/A=%06d", (altitudeMeters * 3.2808399).toInt())
     }
 
-    /** 航速航向扩展(节/度) */
+    /** Speed/course extension (knots/degrees) */
     fun formatCourseSpeed(speedMps: Double?, bearing: Float?): String {
         if (speedMps == null || bearing == null) return ""
         val knots = (speedMps * 1.94384449).toInt()
@@ -53,8 +53,8 @@ object AprsPacket {
 }
 
 /**
- * APRS 位置编码(ab0oo Position.java 逆向移植)。
- * 非压缩:DDMM.MMN/DDDMM.MME;压缩:base91。
+ * APRS position encoding (reverse-ported from ab0oo Position.java).
+ * Uncompressed: DDMM.MMN/DDDMM.MME; compressed: base91.
  */
 class AprsPosition(
     val latitude: Double,
@@ -64,14 +64,14 @@ class AprsPosition(
     val positionAmbiguity: Int = 0
 ) {
 
-    /** 非压缩格式(APRS-IS 默认上报格式) */
+    /** Uncompressed format (APRS-IS default reporting format) */
     fun toUncompressedString(): String {
         val lat = getDMS(latitude, true)
         val lon = getDMS(longitude, false)
         return "$lat$symbolTable$lon$symbolCode"
     }
 
-    /** 压缩格式(base91,标准 APRS 算法) */
+    /** Compressed format (base91, standard APRS algorithm) */
     fun toCompressedString(): String {
         val jRound = round((90.0 - latitude) * 380926.0).toLong()
         val j = jRound / 753571 + 33
@@ -91,7 +91,7 @@ class AprsPosition(
             ((j8 % 91).toInt() + 33).toChar() + symbolCode
     }
 
-    /** 单轴 DMS 编码(百分位) */
+    /** Single-axis DMS encoding (hundredths) */
     private fun getDMS(value: Double, isLat: Boolean): String {
         var iRound = round(value * 6000.0).toInt()
         if (iRound < 0) iRound = -iRound

@@ -1,10 +1,10 @@
 /*
- * WavelogUploader.kt — WaveLog 队列上传调度(4.5.2)。
+ * WavelogUploader.kt - WaveLog queue upload scheduler (4.5.2).
  *
- * 手动/周期上传共用: 逐条网格检测(用户 QTH 前 4 位 vs 台站网格前 4 位)
- * → POST /api/v2/qso → 成功移出队列。
- * 网格不一致: 返回 NeedConfirm(由 UI 弹窗「忽略并上传/取消」),
- * 确认后带 force=true 重试本批。
+ * Manual/periodic uploads share: per-batch grid check (user QTH first 4 chars vs station grid first 4 chars)
+ * -> POST /api/v2/qso -> success removes from the queue.
+ * Grid mismatch: returns NeedConfirm (UI dialog "Ignore and upload / Cancel"),
+ * retrying the batch with force=true once confirmed.
  */
 package com.rtbishop.look4sat.core.domain.wavelog
 
@@ -26,10 +26,10 @@ class WavelogUploader(
     private val queue: WavelogQueue
 ) {
 
-    // 台站网格缓存(每次上传前刷新; 失败用旧值)
+    // Station grid cache (refreshed before each upload; stale value kept on failure)
     private var cachedStationGrid: String? = null
 
-    /** 上传整个队列。force=true 跳过网格确认(用户已选「忽略并上传」) */
+    /** Upload the whole queue. force=true skips the grid confirm (user chose "Ignore and upload") */
     suspend fun uploadQueue(force: Boolean = false): UploadOutcome {
         val settings = settingsRepo.otherSettings.value
         val url = settings.wavelogUrl
@@ -39,14 +39,14 @@ class WavelogUploader(
             return UploadOutcome.Done(0, queue.all().size, "未配置 WaveLog 服务器")
         }
 
-        // 1. 拉站点信息(拿台站网格); v1 无此端点时降级用用户 QTH
+        // 1. Fetch station info (station grid); fall back to user QTH when v1 lacks the endpoint
         val stationGrid = getStationGrid(url, apiKey, stationId) ?: userQthGrid()
         if (stationGrid.isNullOrBlank()) {
             return UploadOutcome.Done(0, queue.all().size, "无法获取站点信息(检查站点 ID/密钥权限)")
         }
 
-        // 2. 网格检测: 云端站点网格前 4 位 vs 当前站位网格前 4 位
-        //   (防站点配置错误; 与 QSO 对方网格无关 — 用户澄清)
+        // 2. Grid check: cloud station grid first 4 chars vs current station QTH first 4 chars
+        //   (guards against a misconfigured station; unrelated to the QSO counterpart grid - per user)
         if (!force) {
             val userGrid = userQthGrid()
             if (userGrid != null && stationGrid.take(4).lowercase() != userGrid.take(4).lowercase()) {
@@ -54,7 +54,7 @@ class WavelogUploader(
             }
         }
 
-        // 3. 逐条上传。ADIF 网格字段 = 对方网格(通联对象), 爬虫接入前留空
+        // 3. Upload one by one. ADIF gridsquare = counterpart grid (the QSO partner); blank until the scraper lands
         val entries = queue.all()
         var ok = 0
         var fail = 0
@@ -85,7 +85,7 @@ class WavelogUploader(
         return cachedStationGrid
     }
 
-    /** 用户当前 QTH 网格(前 4 位; 无 QTH 返回 null = 跳过检测) */
+    /** User's current QTH grid (first 4 chars; null when no QTH = check skipped) */
     private fun userQthGrid(): String? {
         return settingsRepo.stationPosition.value.qthLocator?.takeIf { it.length >= 4 }
     }

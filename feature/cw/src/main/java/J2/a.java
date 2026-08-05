@@ -28,7 +28,7 @@ public final class a {
             int i11 = (i9 >> 8) & 255;
             int i12 = i9 & 255;
             float f4 = i8;
-            // r10 = iArr2[i7] (下一个锚点色, smali: aget v10, v4, v8)
+            // r10 = iArr2[i7] (next anchor color, smali: aget v10, v4, v8)
             float f5 = (((iArr2[i7] >> 16) & 255) - i10) / f4;
             float f6 = (((iArr2[i7] >> 8) & 255) - i11) / f4;
             float f7 = ((iArr2[i7] & 255) - i12) / f4;

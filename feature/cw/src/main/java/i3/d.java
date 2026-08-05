@@ -1213,8 +1213,8 @@ public final class d {
                         }
                     }
                 } else {
-                        // smali cond_22(a5==0, k=1 时运行时路径!): 单线程 FFT + 后处理
-                        // jadx 原把这段错塞进 if(i8!=1) 的 else(死代码), a5==0 的 else 是幻觉(throw null)
+                        // smali cond_22 (a5==0, the k=1 runtime path!): single-thread FFT + post-processing
+                        // jadx wrongly stuffed this into the else of if(i8!=1) (dead code); the a5==0 else is a phantom (throw null)
                         int i26 = this.f11700a;
                         if (i26 > 4) {
                             j3.c.q(i26, fArr, i4, this.c, this.f11704g, this.f11703e);

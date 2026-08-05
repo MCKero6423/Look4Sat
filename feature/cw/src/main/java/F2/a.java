@@ -35,7 +35,7 @@ public final class a implements ActionMode.Callback {
     @Override // android.view.ActionMode.Callback
     public final boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
         this.f564a.f11032n = true;
-        // 原: if (menu.findItem(R.id.shareText) == null) 检查(shareText 为原 APK 资源, 简化后始终添加)
+        // Original: if (menu.findItem(R.id.shareText) == null) check (shareText is an original APK resource; always added after simplification)
         menu.add(0, 74, 0, "Share").setIcon(R.drawable.ic_baseline_share_24);
         menu.add(0, 73, 0, "Save").setIcon(R.drawable.ic_baseline_save_24);
         return true;

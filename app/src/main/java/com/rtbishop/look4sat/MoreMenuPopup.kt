@@ -1,9 +1,9 @@
 /*
- * MoreMenuPopup.kt — 底部导航「更多」二级菜单弹出面板(4.5.1)。
+ * MoreMenuPopup.kt - bottom-nav "More" second-level menu popup panel (4.5.1).
  *
- * 覆盖在内容区上(底部栏上方, 右对齐), 竖排菜单项(图标+文本+箭头),
- * 当前页高亮; 点击遮罩关闭, 点击项跳转。弹出/收起动画由调用处
- * (MainScreen 的 AnimatedVisibility + spring)驱动。
+ * Overlays the content area (above the bottom bar, right-aligned), vertical menu items (icon+text+arrow),
+ * current page highlighted; tap the scrim to close, tap an item to navigate. Open/close animation is driven by the caller
+ * (MainScreen's AnimatedVisibility + spring).
  */
 package com.rtbishop.look4sat
 

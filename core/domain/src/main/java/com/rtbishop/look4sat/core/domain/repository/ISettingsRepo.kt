@@ -45,7 +45,7 @@ interface ISettingsRepo {
     //region # Station position settings
     val stationPosition: StateFlow<GeoPos>
     fun setStationPosition(latitude: Double, longitude: Double, altitude: Double): Boolean
-    /** GPS 定位(挂起): 拿到位置才返回 true; 权限缺失/超时/无信号返回 false */
+    /** GPS fix (suspend): true only with a fix; false on missing permission/timeout/no signal */
     suspend fun setStationPosition(): Boolean
     fun setStationPosition(locator: String): Boolean
     //endregion

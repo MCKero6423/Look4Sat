@@ -19,8 +19,8 @@ public abstract class r {
             declaredField.setAccessible(true);
             obj = declaredField.get(cls);
         } catch (ClassNotFoundException | IllegalAccessException | IllegalArgumentException | NoSuchFieldException | SecurityException ignored) {
-            // Android 适配: sun.misc.Unsafe 可能不可用(隐藏 API), 静默降级为 null;
-            // 大数组 native 路径(j4 > 1GB)不会在实际解码中触发
+            // Android adaptation: sun.misc.Unsafe may be unavailable (hidden API); silently degrades to null;
+            // the large-array native path (j4 > 1GB) never triggers in real decoding
         }
         f12109a = (Unsafe) obj;
     }

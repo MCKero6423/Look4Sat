@@ -9,8 +9,8 @@ import java.net.InetSocketAddress
 import java.net.Socket
 
 /**
- * APRS-IS TCP 客户端(从 APRSdroid TcpUploader.scala 逆向移植)。
- * 纯文本协议:登录一行 + 每行一个包;断线 30 秒重连。
+ * APRS-IS TCP client (reverse-ported from APRSdroid TcpUploader.scala).
+ * Plain-text protocol: one login line + one packet per line; 30 s reconnect after drop.
  */
 class AprsIsClient(
     private val host: String,
@@ -30,7 +30,7 @@ class AprsIsClient(
     val isConnected: Boolean
         get() = synchronized(lock) { socket?.isConnected == true && !socket!!.isClosed }
 
-    /** 建立连接 + 登录(同步阻塞,调用方放后台线程) */
+    /** Connect + login (synchronous/blocking; call from a background thread) */
     @Throws(Exception::class)
     fun connect() {
         disconnect()
@@ -43,10 +43,10 @@ class AprsIsClient(
             writer = PrintWriter(OutputStreamWriter(s.getOutputStream(), Charsets.ISO_8859_1), true)
             reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.ISO_8859_1), 256)
         }
-        // 登录行
+        // Login line
         val login = AprsPacket.formatLogin(callsign, ssid, passcode, version) + filter
         writer?.println(login)
-        // 读登录响应(aprsc 返回 # logresp ... verified/unverified)
+        // Read the login response (aprsc replies # logresp ... verified/unverified)
         runCatching {
             s.soTimeout = 8000
             val resp = reader?.readLine()
@@ -54,14 +54,14 @@ class AprsIsClient(
                     resp.contains("unverified", ignoreCase = true))) {
                 throw IllegalArgumentException(resp.trim())
             }
-            // 恢复超时
+            // Restore timeout
             s.soTimeout = timeoutSec * 1000
         }
     }
 
     /**
-     * 发送一个 APRS 包(一行)并尝试读服务器确认。
-     * 返回 null=发送失败;Pair(ok, detail)=发送结果(服务器错误原文在 detail)
+     * Sends one APRS packet (one line) and tries to read the server ack.
+     * Returns null=failed to send; Pair(ok, detail)=result (server error text lives in detail)
      */
     fun sendPacket(packetLine: String): Pair<Boolean, String>? {
         synchronized(lock) {
@@ -69,7 +69,7 @@ class AprsIsClient(
             w.println(packetLine)
             if (w.checkError()) return Pair(false, "write failed")
         }
-        // 尝试读服务器响应(短超时 3s;APRS-IS 对格式错误会回错误行)
+        // Try to read the server response (short 3 s timeout; APRS-IS replies with an error line on bad format)
         return runCatching {
             val s = socket ?: return@runCatching Pair(true, "OK")
             val oldTimeout = s.soTimeout
@@ -88,7 +88,7 @@ class AprsIsClient(
         }.getOrElse { Pair(true, "OK") }
     }
 
-    /** 读一行(服务器响应,超时抛异常) */
+    /** Read one line (server response; throws on timeout) */
     fun readLine(): String? {
         return reader?.readLine()
     }

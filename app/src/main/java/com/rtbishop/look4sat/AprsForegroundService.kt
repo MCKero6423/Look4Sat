@@ -24,8 +24,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * APRS 前台服务:系统通知保活,切换页面不断线。
- * START_STICKY:被系统杀掉后自动重启(APRSdroid 同款策略)。
+ * APRS foreground service: kept alive by a system notification; keeps working across pages.
+ * START_STICKY: auto-restarted after being killed by the system (same strategy as APRSdroid).
  */
 class AprsForegroundService : Service() {
 
@@ -53,7 +53,7 @@ class AprsForegroundService : Service() {
             ACTION_STOP -> stopReporting()
             ACTION_REPORT_NOW -> {
                 if (reporter == null) {
-                    // 服务没在跑:先启动(未配置会 Toast 提示)
+                    // Service not running: start it first (Toast hint when not configured)
                     startReporting()
                 }
                 reporter?.reportNow()
@@ -80,7 +80,7 @@ class AprsForegroundService : Service() {
             onReport = { report ->
                 AprsStore.saveLastReport(this, report.ok, report.detail)
                 updateNotification(cfg)
-                // 上报结果必达:成功 Toast 短显,失败 Toast 长显+原因
+                // Report result always surfaces: success = short Toast, failure = long Toast + reason
                 val msg = if (report.ok) {
                     getString(R.string.aprs_toast_ok)
                 } else {
@@ -112,7 +112,7 @@ class AprsForegroundService : Service() {
                 startForeground(NOTIF_ID, notif)
             }
         } catch (e: Exception) {
-            // 厂商 ROM / 旧系统兼容兜底:启动前台失败只停服务,不崩进程
+            // Vendor ROM / old-system safety net: foreground-start failure only stops the service, never crashes the app
             stopSelf()
         }
     }
@@ -146,9 +146,9 @@ class AprsForegroundService : Service() {
         nm.notify(NOTIF_ID, buildNotification(cfg))
     }
 
-    /** 上报位置:优先用设置里的站位(用户拍板);站位无效时实时 GPS 兜底 */
+    /** Report position: station QTH from settings first (per user); live GPS as fallback when invalid */
     private fun stationPosition(): Pair<Double, Double>? {
-        // ① 站位(设置页设置的位置)
+        // 1. Station QTH (position set in settings)
         val station = runCatching {
             val container = (application as MainApplication).getMainContainer()
             container.settingsRepo.stationPosition.value
@@ -156,7 +156,7 @@ class AprsForegroundService : Service() {
         if (station != null && (station.latitude != 0.0 || station.longitude != 0.0)) {
             return Pair(station.latitude, station.longitude)
         }
-        // ② 兜底:实时 GPS 最后位置
+        // 2. Fallback: last live GPS position
         return runCatching {
             val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
             val providers = listOf(

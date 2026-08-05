@@ -3,8 +3,8 @@ package com.rtbishop.look4sat.core.data.aprs
 import android.content.Context
 
 /**
- * APRS 配置存取 + 服务 action 常量(被 feature/settings 和 app 服务共用,
- * 避免 feature 反向依赖 app)。
+ * APRS config storage + service action constants (shared by feature/settings and the app service,
+ * so feature never depends on app).
  */
 object AprsStore {
 
@@ -28,7 +28,7 @@ object AprsStore {
     private const val KEY_LAST_OK = "last_report_ok"
     private const val KEY_LAST_DETAIL = "last_report_detail"
 
-    /** 读取配置(填入即保存,无需每次打开重填) */
+    /** Read config (saved as filled; no need to re-enter each time) */
     fun loadConfig(context: Context): AprsConfig {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return AprsConfig(
@@ -45,7 +45,7 @@ object AprsStore {
         )
     }
 
-    /** 上次上报结果(供设置卡片显示) */
+    /** Last report result (shown on the settings card) */
     data class LastReport(val time: Long = 0L, val ok: Boolean = false, val detail: String = "")
 
     fun loadLastReport(context: Context): LastReport {
@@ -65,7 +65,7 @@ object AprsStore {
             .apply()
     }
 
-    /** 保存配置 */
+    /** Save config */
     fun saveConfig(context: Context, cfg: AprsConfig) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean(KEY_ENABLED, cfg.enabled)

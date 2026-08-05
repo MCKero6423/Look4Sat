@@ -467,7 +467,7 @@ public final class b {
                 fArr3[i11 - i10] = f4;
                 i11++;
             } else {
-                // smali: 循环内无 try; 录音写入 try 在循环后(见下)
+                // smali: no try inside the loop; the recording-write try sits after the loop (see below)
                 break;
             }
         }
@@ -522,7 +522,7 @@ public final class b {
                     }
                     tNativeDecoder.setHamMode(this.f623s.get());
                 } catch (Exception e5) {
-                    // jadx 幻觉区(空循环/空 if 为 catch 错位还原)已裁剪; 原 smali: 记录异常后跳回正常流程尾部
+                    // jadx phantom zones (empty loops/ifs from misplaced catch reconstruction) trimmed; original smali: logs the exception, then jumps back to the normal flow tail
                     exc = e5;
                     bVar = this;
                     Log.e("Audio Processor", "Exception", exc);
@@ -544,7 +544,7 @@ public final class b {
                 try {
                     handler.post(new RunnableC0001b(bVar, spannableStringBuilder, tNativeDecoder.getDeleteCount(), 2, false));
                 } catch (Exception e6) {
-                    // jadx 幻觉区已裁剪(同 catch e5); 原 smali: 记录异常后跳回正常流程尾部
+                    // jadx phantom zone trimmed (same catch e5); original smali: logs the exception, then jumps back to the normal flow tail
                     exc = e6;
                     Log.e("Audio Processor", "Exception", exc);
                 }
@@ -552,7 +552,7 @@ public final class b {
                 bVar = this;
             }
         } catch (Exception e7) {
-            // jadx 幻觉(e 变量)已裁剪
+            // jadx phantom (the e variable) trimmed
             bVar = this;
         }
         i4 = f603B;

@@ -6,9 +6,9 @@ import android.opengl.GLUtils;
 import com.ve3nea.morse_expert.WaterfallSurfaceView;
 
 /**
- * 照搬自 Morse Expert 1.15, 类名保持混淆原名。
- * R8 合并 Runnable 手术: 只保留 case 1(瀑布图频谱->OpenGL 纹理, H2.b 调用),
- * 其余 case(库/广告)已裁剪。
+ * Ported from Morse Expert 1.15; obfuscated class name kept.
+ * R8-merged Runnable surgery: keeps only case 1 (waterfall spectrum -> OpenGL texture, invoked by H2.b),
+ * other cases (library/ads) were trimmed.
  */
 public final /* synthetic */ class n implements Runnable {
     public final /* synthetic */ int f;

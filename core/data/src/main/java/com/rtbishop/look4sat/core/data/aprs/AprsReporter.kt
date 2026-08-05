@@ -10,10 +10,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/** APRS 连接状态 */
+/** APRS connection state */
 enum class AprsState { Idle, Connecting, Connected, Disconnected, Error }
 
-/** APRS 配置(SharedPreferences 持久化,填入即保存) */
+/** APRS config (persisted in SharedPreferences, saved as filled) */
 data class AprsConfig(
     val enabled: Boolean = false,
     val server: String = "euro.aprs2.net",
@@ -29,7 +29,7 @@ data class AprsConfig(
     val includeAltitude: Boolean = true
 )
 
-/** APRS 上报结果 */
+/** APRS report result */
 data class AprsReport(
     val timestamp: Long,
     val packet: String,
@@ -37,7 +37,7 @@ data class AprsReport(
     val detail: String
 )
 
-/** 上报调度器(周期上报 + 手动触发),连接管理放在前台服务 */
+/** Report scheduler (periodic + manual trigger); connection management lives in the foreground service */
 class AprsReporter(
     private val configProvider: () -> AprsConfig,
     private val positionProvider: () -> Pair<Double, Double>? = { null },
@@ -51,7 +51,7 @@ class AprsReporter(
 
     val isRunning: Boolean get() = job?.isActive == true
 
-    /** 启动周期上报(前台服务调用) */
+    /** Start periodic reporting (called by the foreground service) */
     fun start() {
         stop()
         val cfg = configProvider()
@@ -75,7 +75,7 @@ class AprsReporter(
         onState(AprsState.Idle)
     }
 
-    /** 手动触发一次(立即上报,不等待周期) */
+    /** Trigger one report manually (immediately, without waiting for the cycle) */
     fun reportNow() {
         manualJob?.cancel()
         manualJob = scope.launch { reportOnce() }
@@ -112,7 +112,7 @@ class AprsReporter(
         }
     }
 
-    /** 构造位置包:BG7NTA-5>APRS:=DDMM.MMN/DDDMM.MME<状态文本 */
+    /** Build position packet: BG7NTA-5>APRS:=DDMM.MMN/DDDMM.MME<status text */
     private fun buildPositionPacket(cfg: AprsConfig, lat: Double? = null, lon: Double? = null): String {
         val source = AprsPacket.formatCallSsid(cfg.callsign, cfg.ssid)
         val pos = AprsPosition(

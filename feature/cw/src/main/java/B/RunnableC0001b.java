@@ -6,11 +6,11 @@ import com.ve3nea.morse_expert.MainActivity;
 import H2.b;
 
 /**
- * 照搬自 Morse Expert 1.15 B.RunnableC0001b, 类名保持混淆原名。
- * R8 合并 Runnable 手术: 构造按 smali 真实签名 5 参 (Object,Object,int,int,boolean),
- * 字段 = i(Object)/h(Object)/g(int)/f(int); run() 仅保留 case 4(f==2 对应 pswitch_4:
- * 解码文本 UI 更新, H2.b 调用), 其余 case(权限/Intent/通知等库代码)已裁剪。
- * 注: jadx 4 参构造为错误还原, 已按 smali 修正。
+ * Ported from Morse Expert 1.15 B.RunnableC0001b; obfuscated class name kept.
+ * R8-merged Runnable surgery: constructor per the real smali 5-arg signature (Object,Object,int,int,boolean),
+ * fields = i(Object)/h(Object)/g(int)/f(int); run() keeps only case 4 (f==2 maps to pswitch_4:
+ * decode-text UI update, invoked by H2.b); other cases (permission/Intent/notification library code) were trimmed.
+ * Note: jadx's 4-arg constructor was a wrong reconstruction; fixed per smali.
  */
 public final class RunnableC0001b implements Runnable {
     public final /* synthetic */ int f;

@@ -8,17 +8,17 @@ import com.rtbishop.look4sat.core.domain.model.SatStatusPage
 import java.util.regex.Pattern
 
 /**
- * AMSAT 卫星状态页解析器(https://amsat.org/status/)
+ * AMSAT satellite status page parser (https://amsat.org/status/)
  *
- * 页面结构(静态 HTML, 2026-08 实测):
- * - 状态表: <table> 内 48 行, 表头 = Name + 6 天(每个 colspan=12)
- *   数据行 73 格: [0]=卫星名, [1..72] = 6 天 × 12 个 2 小时槽(新→旧)
- *   每格 <td width=9 bgcolor="颜色">数字</td>, 有报告时数字带
- *   docTips.show('id') 链接
- * - 报告详情在页面内嵌 JS:
- *   tips.a885153 = new Array(5,5,120,'状态<br>呼号<br>网格<br>日期<br>时间段 UTC')
+ * Page structure (static HTML, verified 2026-08):
+ * - Status table: 48 rows in <table>, header = Name + 6 days (each colspan=12)
+ *   Data row has 73 cells: [0]=satellite name, [1..72] = 6 days x 12 two-hour slots (new->old)
+ *   Each cell: <td width=9 bgcolor="color">count</td>; when reports exist the count carries a
+ *   docTips.show('id') link
+ * - Report details live in the page's inline JS:
+ *   tips.a885153 = new Array(5,5,120,'status<br>callsign<br>grid<br>date<br>time span UTC')
  *
- * 状态色: #648fff=活跃, #ffb000=仅遥测, #dc267f=未听到, #fe6100=矛盾
+ * Status colors: #648fff=active, #ffb000=telemetry only, #dc267f=not heard, #fe6100=conflicting
  */
 object AmSatParser {
 
@@ -38,14 +38,14 @@ object AmSatParser {
         "tips\\.(a\\d+)\\s*=\\s*new\\s+Array\\(\\s*\\d+,\\s*\\d+,\\s*\\d+,\\s*'([^']*)'"
     )
 
-    /** 解析完整页面 */
+    /** Parse the full page */
     fun parse(html: String, fetchedAtUtcMs: Long): SatStatusPage {
         val reports = parseReports(html)
         val statuses = parseStatusTable(html, reports)
         return SatStatusPage(fetchedAtUtcMs, statuses, reports)
     }
 
-    /** 提取全部报告(tips.* JS 数组) */
+    /** Extract all reports (tips.* JS arrays) */
     fun parseReports(html: String): Map<String, SatReport> {
         val map = mutableMapOf<String, SatReport>()
         val m = tipRe.matcher(html)
@@ -64,7 +64,7 @@ object AmSatParser {
         return map
     }
 
-    /** 解析状态表(48 行卫星) */
+    /** Parse the status table (48 satellite rows) */
     fun parseStatusTable(html: String, reports: Map<String, SatReport>): List<SatStatus> {
         val result = mutableListOf<SatStatus>()
         val tables = extractTables(html)
@@ -79,7 +79,7 @@ object AmSatParser {
                 val cellList = mutableListOf<String>()
                 while (cells.find()) cellList.add(cells.group(1))
                 if (rowIndex == 0) {
-                    // 表头: Name + 6 天(每个 colspan=12)
+                    // Header: Name + 6 days (each colspan=12)
                     dayHeaders = cellList.drop(1).take(6).map { stripHtml(it) }
                     rowIndex++
                     continue

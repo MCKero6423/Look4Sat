@@ -1,5 +1,5 @@
-/* ILotwSatellitesRepo.kt — LoTW 卫星列表刷新接口(domain 层, 4.5.5)。
- * 实现: core/data 的 LotwSatellitesRepo(下载 ARRL config.tq6)。
+/* ILotwSatellitesRepo.kt - LoTW satellite list refresh interface (domain layer, 4.5.5).
+ * Impl: LotwSatellitesRepo in core/data (downloads ARRL config.tq6).
  */
 package com.rtbishop.look4sat.core.domain.wavelog
 

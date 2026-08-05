@@ -118,7 +118,7 @@ fun qthToSquare(locator: String): String {
  * Builds the 3x3 grid of 4-char squares surrounding [square] (e.g. "OL42").
  * Row 0 = north (lat +1), col 0 = west (lon -1). Handles field/square carry
  * at boundaries (e.g. "AA00" wraps to "RR99" at the south-west corner).
- * Mirrors the neighbor logic decompiled from the QTH定位器 app.
+ * Mirrors the neighbor logic decompiled from the QTH Locator app.
  */
 fun qthNeighbors(square: String): List<String> {
     if (square.length != 4) return emptyList()

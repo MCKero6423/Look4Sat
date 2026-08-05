@@ -1,9 +1,9 @@
-/* QrzGridClient.kt — QRZ 呼号网格爬虫(4.5.5, domain 层纯 JVM)。
- * 原理(已实测): 带用户 QRZ 登录 Cookie GET https://www.qrz.com/db/{呼号},
- * 页面 Detail 表格里有 <td class="dh">Grid Square</td><td class="di">XXX</td>。
- * 匿名无 Cookie 拿不到 Detail(已确认); 对方没填网格时表格无此行(返回 null)。
- * Cookie 由用户在设置页粘贴(EditThisCookie 导出的 JSON 数组 或 原始 Cookie 串),
- * 绝不内置/进构建。
+/* QrzGridClient.kt - QRZ callsign grid scraper (4.5.5, pure JVM in domain).
+ * How it works (verified): GET https://www.qrz.com/db/{callsign} with the user's QRZ login Cookie,
+ * the Detail table on the page holds <td class="dh">Grid Square</td><td class="di">XXX</td>.
+ * Without cookies the Detail is unavailable (confirmed); if the other station has no grid, the row is absent (null).
+ * The Cookie is pasted by the user in settings (EditThisCookie JSON export or a raw cookie string),
+ * never built into the app.
  */
 package com.rtbishop.look4sat.core.domain.qrz
 
@@ -13,11 +13,11 @@ import java.net.URL
 
 object QrzGridClient {
 
-    /** 解析用户粘贴的 Cookie(兼容两种格式): EditThisCookie JSON 数组 或 原始 "k=v; k=v" 串 */
+    /** Parse the pasted Cookie (both formats): EditThisCookie JSON array or raw "k=v; k=v" string */
     fun parseCookies(raw: String): String {
         val text = raw.trim()
         if (text.isEmpty()) return ""
-        // JSON 数组格式: [{"name":"qz_userid","value":"1266043",...}, ...]
+        // JSON array format: [{"name":"qz_userid","value":"1266043",...}, ...]
         if (text.startsWith("[")) {
             return try {
                 val arr = org.json.JSONArray(text)
@@ -34,7 +34,7 @@ object QrzGridClient {
         return text
     }
 
-    /** 检测 cookies 对应的登录呼号(请求 db 首页, 提取账号菜单呼号)。失败返回 null */
+    /** Detect the callsign logged in with these cookies (fetch db home, extract the account menu callsign). Null on failure */
     suspend fun fetchOwnCallsign(cookieHeader: String): String? = withContext(Dispatchers.IO) {
         if (cookieHeader.isBlank()) return@withContext null
         try {
@@ -45,13 +45,13 @@ object QrzGridClient {
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) Look4Sat-Pro")
             conn.setRequestProperty("Cookie", cookieHeader)
             val html = conn.getInputStream().bufferedReader().use { it.readText() }
-            // 登录账号菜单(实测结构): <li class="leaf last" onclick="return true">BG7NTA <ul class="sub">
+            // Logged-in account menu (verified): <li class="leaf last" onclick="return true">BG7NTA <ul class="sub">
             val pattern = Regex("<li class=\"leaf last\"[^>]*>\\s*([A-Z0-9/]+)\\s*<ul")
             pattern.find(html)?.groupValues?.get(1)?.trim()
         } catch (_: Exception) { null }
     }
 
-    /** 查询呼号的网格。返回 null = 未填/查不到(静默, 不阻塞录入) */
+    /** Look up a callsign's grid. Null = not set / not found (silent, does not block logging) */
     suspend fun lookupGrid(callsign: String, cookieHeader: String): String? = withContext(Dispatchers.IO) {
         if (callsign.isBlank() || cookieHeader.isBlank()) return@withContext null
         try {
@@ -62,7 +62,7 @@ object QrzGridClient {
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) Look4Sat-Pro")
             conn.setRequestProperty("Cookie", cookieHeader)
             val html = conn.getInputStream().bufferedReader().use { it.readText() }
-            // Detail 表格 Grid Square 行(已实测格式)
+            // Detail table Grid Square row (verified format)
             val m = Regex("""<td class="dh">Grid Square</td><td class="di">([^<]+)</td>""")
                 .find(html)
             m?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }

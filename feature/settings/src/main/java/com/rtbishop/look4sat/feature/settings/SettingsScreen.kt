@@ -121,7 +121,7 @@ fun SettingsDestination() {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     SettingsScreen(uiState, viewModel::onAction, container.provideLotwSatellitesRepo())
 
-    // WaveLog 网格不一致确认弹窗(4.5.2)
+    // WaveLog grid mismatch confirmation dialog (4.5.2)
     val gridConfirm = viewModel.gridConfirm
     if (gridConfirm != null) {
         AlertDialog(
@@ -149,7 +149,7 @@ fun SettingsDestination() {
         )
     }
 
-    // WaveLog 错误详情弹窗(可一键复制)
+    // WaveLog error detail dialog (one-tap copy)
     val wavelogError = viewModel.wavelogError
     if (wavelogError != null) {
         AlertDialog(
@@ -628,11 +628,11 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
 }
 
 /**
- * UI 设置卡片: 控制底部菜单栏各页面显示/隐藏。
- * 顺序固定(卫星/过境/雷达/匹配/漫游/地图/设置), 关闭后其余自动靠拢;
- * "设置"页固定显示(防止失去设置入口)。
+ * UI settings card: controls which pages appear in the bottom menu bar.
+ * Order is fixed (Satellites/Passes/Radar/Mutual/Roaming/Map/Settings); turning one off makes the rest close up;
+ * the Settings page is always shown (so the settings entry can't be lost).
  */
-/** WaveLog 日志服务器设置卡片(4.5.2): 照用户截图布局(深色卡片/标签左输入右/按钮行) */
+/** WaveLog log server settings card (4.5.2): matches the user's screenshot (dark card / label left, input right / button row) */
 @Composable
 private fun WavelogCard(
     settings: OtherSettings,
@@ -813,7 +813,7 @@ private fun UiSettingsCard(
         R.string.nav_map to "Map",
         R.string.nav_prefs to "Settings"
     ) // name 必须与 Screen.screenId 一致 (R8 安全)
-    // 主菜单项: 排除更多菜单项, Settings 固定最后
+    // Main menu items: exclude sub-menu items; Settings pinned last
     val mainItems = remember(screens, screenOrder, subMenuOrder) {
         val sub = subMenuOrder.ifEmpty { defaultSubMenuOrder }
         screens.map { it.second }
@@ -827,7 +827,7 @@ private fun UiSettingsCard(
             }
             .sortedWith(compareBy { if (it == "Settings") 1 else 0 })
     }
-    // 更多菜单项
+    // More-menu items
     val subItems = remember(screens, subMenuOrder) {
         val sub = subMenuOrder.ifEmpty { defaultSubMenuOrder }
         sub.filter { s -> screens.any { (_, name) -> name == s } }
@@ -843,7 +843,7 @@ private fun UiSettingsCard(
             )
             screens.forEach { (labelRes, name) ->
                 if (name == "Settings") {
-                    // 设置页固定显示, 开关禁用
+                    // Settings always shown; its switch is disabled
                     SwitchRow(labelRes, true, null)
                 } else {
                     SwitchRow(labelRes, name !in hiddenScreens) {
@@ -855,7 +855,7 @@ private fun UiSettingsCard(
                 text = stringResource(id = R.string.prefs_ui_order_title),
                 color = MaterialTheme.colorScheme.primary
             )
-            // 主菜单区(底部栏, 最多 5 项, 设置锁定最后)
+            // Main menu area (bottom bar, max 5 items, Settings locked last)
             Text(
                 text = stringResource(id = R.string.prefs_ui_main_title),
                 fontSize = 12.sp,
@@ -875,7 +875,7 @@ private fun UiSettingsCard(
                 },
                 onReorder = { main -> onUpdateMenu(main, subMenuOrder) }
             )
-            // 更多菜单区(进「更多」的页面)
+            // More-menu area (pages behind "More")
             Text(
                 text = stringResource(id = R.string.prefs_ui_sub_title),
                 fontSize = 12.sp,
@@ -885,7 +885,7 @@ private fun UiSettingsCard(
                 items = subItems,
                 labels = screens,
                 moveLabel = stringResource(id = R.string.prefs_ui_move_back),
-                // 按钮常显; 主菜单满 5 时自动让位(最后一个非"设置"项移入更多, 交换)
+                // Buttons always visible; when the main menu hits 5, the last non-Settings item moves to More (swap)
                 moveEnabled = { true },
                 onMove = { name ->
                     val mainWithoutSettings = mainItems.filter { it != "Settings" }
@@ -909,7 +909,7 @@ private fun UiSettingsCard(
     }
 }
 
-/** 页面顺序拖拽列表: 每行右侧抓手, 按住上下拖动实时换位, 松手持久化 */
+/** Page-order drag list: handle on each row's right; drag up/down to reorder live; persists on release */
 @Composable
 private fun DragOrderList(
     items: List<String>,
@@ -927,7 +927,7 @@ private fun DragOrderList(
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragOffset by remember { mutableStateOf(0f) }
 
-    // 固定高度: 嵌套在 LazyVerticalGrid 内必须给有界高度, 否则无限高度约束崩溃
+    // Fixed height: nested inside LazyVerticalGrid it needs a bounded height or infinite constraints crash
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -956,7 +956,7 @@ private fun DragOrderList(
                     }
                 }
                 if (isLocked) {
-                    // 锁定行(设置页): 无抓手, 固定最后
+                    // Locked row (Settings): no handle, pinned last
                     Text(
                         text = stringResource(id = R.string.prefs_ui_order_locked),
                         fontSize = 11.sp,
@@ -995,7 +995,7 @@ private fun DragOrderList(
                                 )
                             }
                     ) {
-                        // 小圆点手柄(触控区 padding 20dp 居中 -> 8dp 圆点)
+                        // Dot handle (touch area padding 20dp centered -> 8dp dot)
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1065,7 +1065,7 @@ private fun CardCredits(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(id = R.string.prefs_outro_thanks)
             )
-            // 感谢列表与保修声明之间保留约两行间距 (用户要求)
+            // Keep roughly two lines of spacing between the thanks list and the license block (user request)
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(id = R.string.prefs_outro_license),

@@ -146,7 +146,7 @@ class SettingsViewModel(
             is SettingsAction.UpdateRC -> settingsRepo.updateRCSettings(action.settings)
             is SettingsAction.UpdateRadioControl -> settingsRepo.updateRadioControlSettings(action.settings)
             is SettingsAction.UpdateDataSources -> settingsRepo.updateDataSourcesSettings(action.settings)
-            // WaveLog 日志(4.5.2)
+            // WaveLog logging (4.5.2)
             is SettingsAction.UpdateWavelogSettings -> settingsRepo.updateOtherSettings {
                 it.copy(
                     wavelogUrl = action.url,
@@ -244,13 +244,13 @@ class SettingsViewModel(
 
     // region WaveLog(4.5.2)
 
-    // 由 SettingsScreen 注入的共享 uploader(容器级单例)
+    // Shared uploader injected by SettingsScreen (container-level singleton)
     var pendingUploader: WavelogUploader? = null
 
-    // 网格不一致确认弹窗状态(UI 观察后弹 AlertDialog)
+    // Grid-mismatch confirmation state (UI observes it and shows an AlertDialog)
     var gridConfirm by mutableStateOf<GridConfirmData?>(null)
 
-    // WaveLog 错误详情弹窗(UI 观察后弹 AlertDialog, 可一键复制)
+    // WaveLog error-detail dialog (UI observes it; one-tap copy)
     var wavelogError by mutableStateOf<String?>(null)
 
     data class GridConfirmData(val stationGrid: String, val userGrid: String)
@@ -296,7 +296,7 @@ class SettingsViewModel(
         }
     }
 
-    /** 网格确认结果: 忽略并上传 / 取消 */
+    /** Grid-confirm result: ignore and upload / cancel */
     fun resolveGridConfirm(ignoreAndUpload: Boolean) {
         val confirm = gridConfirm ?: return
         gridConfirm = null

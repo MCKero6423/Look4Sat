@@ -20,6 +20,6 @@ package com.rtbishop.look4sat.core.domain.usecase
 interface IShowToast {
     operator fun invoke(message: String)
 
-    /** 按资源 ID 显示(四语文案) */
+    /** Show by resource ID (four-language text) */
     operator fun invoke(resId: Int)
 }

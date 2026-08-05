@@ -1,8 +1,8 @@
 package com.rtbishop.look4sat.feature.cw.suncompat;
 
 /**
- * 编译期 stub:Android 无 sun.misc.Unsafe(运行时通过反射获取,失败时 k3.r.f12109a 为 null)。
- * 照搬自 Morse Expert 1.15(k3 FFT 库的大数组 native 路径 >1GB 不触发,实际 FFT 走 float[] 分支)。
+ * Compile-time stub: Android has no sun.misc.Unsafe (obtained via reflection at runtime; k3.r.f12109a is null on failure).
+ * Ported from Morse Expert 1.15 (the k3 FFT library's >1GB native path never triggers; real FFT uses the float[] branch).
  */
 public class Unsafe {
     public long allocateMemory(long bytes) {

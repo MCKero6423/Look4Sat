@@ -54,10 +54,10 @@ sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: Strin
     data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs, "Settings")
 }
 
-// UI 设置: 默认主菜单页面顺序(底部栏 5 槽)
+// UI settings: default main-menu page order (5 bottom-bar slots)
 val defaultScreenOrder = listOf("Satellites", "Passes", "Radar", "Map", "Settings")
 
-// UI 设置: 默认更多菜单顺序(进「更多」的页面)
+// UI settings: default More-menu order (pages behind "More")
 val defaultSubMenuOrder = listOf("Mutual", "Roaming", "CwDecode", "WavelogLog", "AMSAT")
 
 @Serializable

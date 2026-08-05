@@ -21,9 +21,9 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 照搬自 Morse Expert 1.15 DecodedTextView, 类名保持混淆原名。
- * 适配: 原 extends l.C1702e0(appcompat 混淆类) -> 直接 extends TextView
- * (C1702e0 仅提供 TextView 兼容功能, 本类未使用其特有方法)。
+ * Ported from Morse Expert 1.15 DecodedTextView; obfuscated class name kept.
+ * Adaptation: originally extends l.C1702e0 (obfuscated appcompat class) -> now extends TextView directly
+ * (C1702e0 only provided TextView-compatible behavior; this class never used its specific methods).
  */
 public class DecodedTextView extends TextView {
 

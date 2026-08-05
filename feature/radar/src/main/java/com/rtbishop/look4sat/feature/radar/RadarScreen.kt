@@ -124,17 +124,17 @@ fun RadarDestination(navigateUp: () -> Unit) {
         viewModel.onAction(RadarAction.SstvPermissionResult(granted))
         viewModel.onAction(RadarAction.CwPermissionResult(granted))
     }
-    // WaveLog(4.5.2): 自动上传 — 每 10 分钟重试本地队列(开关开启时)
+    // WaveLog (4.5.2): auto-upload - retries the local queue every 10 min (when the switch is on)
     val wavelogUploader = remember { container.provideWavelogUploader() }
     LaunchedEffect(Unit) {
         while (true) {
             delay(10 * 60 * 1000L)
             val s = container.settingsRepo.otherSettings.value
             if (s.wavelogAutoUpload && s.wavelogUrl.isNotBlank()) {
-                // 网格不一致时静默跳过(留给手动上传确认), 其余失败自动下次重试
+                // Grid mismatch is skipped silently (left for manual-upload confirmation); other failures retry on the next tick
                 val outcome = wavelogUploader.uploadQueue()
                 if (outcome is UploadOutcome.NeedConfirm) {
-                    // 跳过本次; 用户可在设置页手动上传并确认
+                    // Skip this run; the user can upload and confirm manually in settings
                 }
             }
         }

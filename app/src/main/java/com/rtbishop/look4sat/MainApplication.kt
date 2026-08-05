@@ -30,7 +30,7 @@ class MainApplication : Application(), IContainerProvider {
 
     private lateinit var container: IMainContainer
 
-    /** 全局崩溃捕获:堆栈写入 files/crash_log.txt,重启后可查看(用户要求错误报告) */
+    /** Global crash capture: stack written to files/crash_log.txt, viewable after restart (user asked for error reports) */
     private fun installCrashHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->

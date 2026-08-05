@@ -22,7 +22,7 @@ import org.junit.Test
 
 class RoamingStateTest {
 
-    // 用户实测坐标 (QTH定位器 2.0 成品截图): 22.314066 / 108.706575
+    // User-verified coordinates (QTH Locator 2.0 screenshot): 22.314066 / 108.706575
     private fun stateOf(lat: Double, lon: Double) =
         roamingStateFromLocation(lat, lon, System.currentTimeMillis(), "21:")
 
@@ -35,7 +35,7 @@ class RoamingStateTest {
     @Test
     fun `red marker from ih pair matches reference lookup`() {
         val state = stateOf(22.314066, 108.706575)
-        // 成品查表: 经度第3对 'i' -> leftMargin 65dp, 纬度第3对 'h' -> topMargin 137dp
+        // Original lookup: lon 3rd pair 'i' -> leftMargin 65dp, lat 3rd pair 'h' -> topMargin 137dp
         assertEquals(65, state.markerLeft)
         assertEquals(137, state.markerTop)
     }
@@ -70,43 +70,43 @@ class RoamingStateTest {
 
     @Test
     fun `west edge borrows lon letter`() {
-        // 经度 0.5 纬度 22.314066: 数字对 02, 西边界 parseInt==0
+        // lon 0.5 lat 22.314066: digit pair 02, west edge parseInt==0
         val state = stateOf(22.314066, 0.5)
         assertEquals(8, state.loc.length)
-        // 左列经度 0->9, 经度字母 J-1=I: IL92
+        // Left column lon 0->9, lon letter J-1=I: IL92
         assertEquals("IL92", state.grids[3])
     }
 
     @Test
     fun `north edge carries lat letter`() {
-        // 纬度 29.5 经度 108.706575: 数字对 49? -> 纬度数字 9 -> 北边界
+        // lat 29.5 lon 108.706575: digit pair 49? -> lat digit 9 -> north edge
         val state = stateOf(29.5, 108.706575)
         assertEquals(8, state.loc.length)
-        // 上排纬度 +1 -> 0, 纬度字母 +1 (M)
+        // Top row lat +1 -> 0, lat letter +1 (M)
         assertEquals("OM40", state.grids[1])
     }
 
     @Test
     fun `east edge carries lon letter`() {
-        // 经度 119.5 纬度 22.314066: 经度数字 9 -> 东边界
+        // lon 119.5 lat 22.314066: lon digit 9 -> east edge
         val state = stateOf(22.314066, 119.5)
         assertEquals(8, state.loc.length)
-        // 右上 经度 9->0, 经度字母 O+1=P, 纬度 2+1=3: PL03
+        // Top-right lon 9->0, lon letter O+1=P, lat 2+1=3: PL03
         assertEquals("PL03", state.grids[2])
     }
 
     @Test
     fun `south edge borrows lat letter`() {
-        // 纬度 0.5 经度 108.706575: 纬度数字 0 -> 南边界
+        // lat 0.5 lon 108.706575: lat digit 0 -> south edge
         val state = stateOf(0.5, 108.706575)
         assertEquals(8, state.loc.length)
-        // 下中 纬度 0->9, 纬度字母 J-1=I: OI49
+        // Bottom-center lat 0->9, lat letter J-1=I: OI49
         assertEquals("OI49", state.grids[7])
     }
 
     @Test
     fun `boundary values wrap like reference`() {
-        // (90, 180) -> RR99xx99 (成品区间查表行为)
+        // (90, 180) -> RR99xx99 (original range-lookup behavior)
         val state = stateOf(90.0, 180.0)
         assertEquals("RR99xx99", state.loc)
     }

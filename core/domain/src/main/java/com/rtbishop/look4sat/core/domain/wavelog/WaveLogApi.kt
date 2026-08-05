@@ -1,12 +1,12 @@
 /*
- * WaveLogApi.kt — WaveLog 日志服务器 API 客户端(4.5.2 覆盖修复 2)。
+ * WaveLogApi.kt - WaveLog log server API client (4.5.2 override fix 2).
  *
- * 同时支持 v1 与 v2(用户服务器实测只有 v1, v2 返回 404):
- *   v2: POST {base}/api/v2/qso            (Authorization: Bearer + JSON 字段)
- *   v1: POST {base}/index.php/api/qso     (key 在 JSON body + ADIF 字符串)
- * 策略: 优先 v2, 404 自动降级 v1。
- * 测试连接: v2 GET api/v2/token → 404 时 v1 POST api/get_contacts_adif。
- * 站点网格: 仅 v2 有 GET api/v2/station/{id}; v1 无此端点 → 降级用用户 QTH。
+ * Supports both v1 and v2 (user's server only has v1 in practice; v2 returns 404):
+ *   v2: POST {base}/api/v2/qso            (Authorization: Bearer + JSON fields)
+ *   v1: POST {base}/index.php/api/qso     (key in JSON body + ADIF string)
+ * Strategy: try v2 first, auto-fallback to v1 on 404.
+ * Test connection: v2 GET api/v2/token; on 404 use v1 POST api/get_contacts_adif.
+ * Station grid: only v2 has GET api/v2/station/{id}; v1 lacks it -> fall back to user QTH.
  */
 package com.rtbishop.look4sat.core.domain.wavelog
 
@@ -20,7 +20,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 
-/** 站点信息(GET /api/v2/station/{id} 结果) */
+/** Station info (GET /api/v2/station/{id} result) */
 data class WavelogStation(
     val id: Int,
     val name: String,
@@ -37,7 +37,7 @@ object WaveLogApi {
 
     private const val TIMEOUT_MS = 15000
 
-    /** 规范化服务器地址: 去尾斜杠/去尾部 index.php; 无协议前缀时补 https:// */
+    /** Normalize server URL: strip trailing slash/index.php; prepend https:// when missing */
     fun normalizeUrl(raw: String): String {
         var u = raw.trim().trimEnd('/')
         if (u.isBlank()) return ""
@@ -46,7 +46,7 @@ object WaveLogApi {
         return u
     }
 
-    /** 测试连接: v2 GET api/v2/token → 404 时 v1 POST api/get_contacts_adif */
+    /** Test connection: v2 GET api/v2/token; on 404 use v1 POST api/get_contacts_adif */
     suspend fun testToken(url: String, apiKey: String, stationId: String = ""): WavelogResult = withContext(Dispatchers.IO) {
         val base = normalizeUrl(url)
         if (base.isBlank()) return@withContext WavelogResult.Failure("服务器地址为空")
@@ -55,7 +55,7 @@ object WaveLogApi {
         val v2 = httpRequest("$base/index.php/api/v2/token", "GET", apiKey, null)
         if (v2.first in 200..299) return@withContext WavelogResult.Success("连接成功 (API v2)")
 
-        // v1: POST /index.php/api/get_contacts_adif(key 在 body)
+        // v1: POST /index.php/api/get_contacts_adif (key in body)
         if (stationId.isNotBlank()) {
             val body = JSONObject().apply {
                 put("key", apiKey)
@@ -66,7 +66,7 @@ object WaveLogApi {
             if (v1.first in 200..299) return@withContext WavelogResult.Success("连接成功 (API v1)")
             if (v1.first == 401) return@withContext WavelogResult.Failure("API 密钥无效 (v1: 401)")
         }
-        // 无 index.php 的 v1 尝试
+        // v1 attempt without index.php
         val body = JSONObject().apply {
             put("key", apiKey)
             put("station_id", stationId)
@@ -79,7 +79,7 @@ object WaveLogApi {
         WavelogResult.Failure("连接失败: v2 HTTP ${v2.first}, v1 HTTP ${v1b.first} — 请确认服务器地址/密钥正确")
     }
 
-    /** 站点信息: 仅 v2; v1 无此端点返回 null 标记(网格检测降级用用户 QTH) */
+    /** Station info: v2 only; v1 lacks the endpoint (grid check falls back to user QTH) */
     suspend fun getStation(url: String, apiKey: String, stationId: String): WavelogResult = withContext(Dispatchers.IO) {
         val base = normalizeUrl(url)
         if (base.isBlank()) return@withContext WavelogResult.Failure("服务器地址为空")
@@ -102,19 +102,19 @@ object WaveLogApi {
                 WavelogResult.Failure("解析失败: ${e.message}")
             }
         }
-        // v1 无 station 端点 → 返回 Success 空(调用方降级用用户 QTH)
+        // v1 has no station endpoint -> return empty Success (caller falls back to user QTH)
         WavelogResult.Success("")
     }
 
-    /** LoTW 认可的卫星名: 取括号前主名 + 大写(ISS 特判) */
+    /** LoTW-recognized satellite name: main name before parentheses, uppercased (ISS special case) */
     fun normalizeSatName(raw: String): String {
         val main = raw.substringBefore('(').trim()
             .ifBlank { raw.trim() }
             .uppercase(Locale.ENGLISH)
-        // 匹配逻辑(仿 WaveLog 卫星表 name/displayname 匹配 + LoTW 列表):
-        // 1. 已在 LoTW 列表(常见 TLE 名 == 通用名) → 原样返回
-        // 2. 不在 → 查 Celestrak 别名映射(SAUDISAT 1C → SO-50 等) → 映射后必须在 LoTW 列表
-        // 3. 仍不匹配 → 原样返回(不阻塞上传, QSO 仍保存)
+        // Matching logic (mirrors WaveLog satellite table name/displayname matching + LoTW list):
+        // 1. Already in LoTW list (common TLE name == common name) -> return as-is
+        // 2. Not present -> check Celestrak alias map (SAUDISAT 1C -> SO-50 etc.); mapped name must be in LoTW list
+        // 3. Still unmatched -> return as-is (uploads are not blocked; QSO is still saved)
         val commonName = mapOf(
             "ZARYA" to "ARISS",
             "ARISS" to "ARISS",
@@ -128,7 +128,7 @@ object WaveLogApi {
         return if (candidate in LotwSatellites.names) candidate else main
     }
 
-    /** 创建 QSO: 优先 v2, 404 降级 v1(ADIF) */
+    /** Create QSO: v2 first, fall back to v1 (ADIF) on 404 */
     suspend fun postQso(
         url: String,
         apiKey: String,
@@ -141,7 +141,7 @@ object WaveLogApi {
 
         val satName = normalizeSatName(qso.satName)
 
-        // v2: POST /index.php/api/v2/qso(JSON 字段)
+        // v2: POST /index.php/api/v2/qso (JSON fields)
         val v2Body = JSONObject().apply {
             put("station_profile_id", stationProfileId.toIntOrNull() ?: 0)
             put("call", qso.call)
@@ -160,7 +160,7 @@ object WaveLogApi {
         if (code in 200..299) return@withContext WavelogResult.Success("已上传 (v2)")
         if (code == 409) return@withContext WavelogResult.Success("重复(已存在)")
 
-        // v1: POST /index.php/api/qso(key 在 body + ADIF)
+        // v1: POST /index.php/api/qso (key in body + ADIF)
         val v1Body = JSONObject().apply {
             put("key", apiKey)
             put("station_profile_id", stationProfileId)
@@ -170,14 +170,14 @@ object WaveLogApi {
         val (code1, resp1) = httpRequest("$base/index.php/api/qso", "POST", apiKey, v1Body.toString())
         if (code1 in 200..299) return@withContext WavelogResult.Success("已上传 (v1)")
 
-        // 无 index.php 的 v1
+        // v1 without index.php
         val (code1b, resp1b) = httpRequest("$base/api/qso", "POST", apiKey, v1Body.toString())
         if (code1b in 200..299) return@withContext WavelogResult.Success("已上传 (v1)")
 
         WavelogResult.Failure("上传失败: v2 HTTP $code, v1 HTTP $code1 — ${shortError(resp1.ifBlank { resp1b })}")
     }
 
-    /** v1 ADIF 字符串(频率 MHz, 长度=UTF-8 字节数, sat_name 已规范化) */
+    /** v1 ADIF string (freq in MHz, length = UTF-8 byte count, sat_name normalized) */
     private fun toAdif(qso: WavelogQso, gridsquare: String, satName: String): String {
         fun field(name: String, value: String): String {
             val bytes = value.toByteArray(Charsets.UTF_8).size
@@ -204,7 +204,7 @@ object WaveLogApi {
         }
     }
 
-    /** 通用 HTTP 请求(返回 code + body) */
+    /** Generic HTTP request (returns code + body) */
     private fun httpRequest(url: String, method: String, apiKey: String, jsonBody: String?): Pair<Int, String> {
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection
@@ -230,7 +230,7 @@ object WaveLogApi {
     }
 
     private fun shortError(body: String): String {
-        if (body.startsWith("<")) return body.take(80) // HTML 错误页
+        if (body.startsWith("<")) return body.take(80) // HTML error page
         return try {
             val obj = JSONObject(body)
             val err = obj.optJSONObject("error")

@@ -9,12 +9,12 @@ import k3.d;
 import k3.s;
 
 /**
- * 照搬自 Morse Expert 1.15 j3.c (R8 合并类), 类名保持混淆原名。
- * 仅保留 k3 FFT 库实际调用的静态 FFT 方法 (u/v/w/x/y/z/E/F/g/h/q/r 及其辅助
- * A/B/C/D/G/H/i/j/k/l/m/n/o/p/s/t/d/J), 其余 R8 合并的 billing/ads/TextView
- * 兼容代码及 M.Z 接口实现已裁剪。依据: apktool smali (j3/c.smali) 静态调用关系。
- * d 方法中 K1.a.z 的 Guava lenientFormat 以 String.format 等价替换
- * (K1.a 已裁剪为仅保留内存统计字段)。
+ * Ported from Morse Expert 1.15 j3.c (R8-merged class); obfuscated class name kept.
+ * Keeps only the static FFT methods the k3 FFT library actually calls (u/v/w/x/y/z/E/F/g/h/q/r and their helpers
+ * A/B/C/D/G/H/i/j/k/l/m/n/o/p/s/t/d/J); the rest of the R8-merged billing/ads/TextView
+ * compatibility code and M.Z interface implementations were trimmed. Based on apktool smali (j3/c.smali) static call analysis.
+ * In method d, K1.a.z's Guava lenientFormat is replaced with an equivalent String.format
+ * (K1.a was trimmed to memory-accounting fields only).
  */
 public final class c {
     public static void A(int i4, int i5, int i6, float[] fArr, float[] fArr2) {

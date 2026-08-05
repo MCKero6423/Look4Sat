@@ -63,13 +63,13 @@ data class OtherSettings(
     val sstvMode: String = "Auto",
     val lowElevation: Double = 15.0,
     val highElevation: Double = 45.0,
-    // UI 设置: 底部导航栏隐藏的页面(Screen simpleName 列表, 默认空 = 全部显示)
+    // UI settings: pages hidden from the bottom nav (Screen simpleName list; empty default = all shown)
     val hiddenScreens: List<String> = emptyList(),
-    // UI 设置: 页面顺序(空 = 默认顺序: 卫星/过境/雷达/地图/设置)
+    // UI settings: page order (empty = default: Satellites/Passes/Radar/Map/Settings)
     val screenOrder: List<String> = emptyList(),
-    // UI 设置: 更多菜单顺序(空 = 默认: 匹配/漫游/CW解码)
+    // UI settings: More-menu order (empty = default: Mutual/Roaming/CW decode)
     val subMenuOrder: List<String> = emptyList(),
-    // WaveLog 日志系统(4.5.2): 服务器配置
+    // WaveLog logging (4.5.2): server config
     val wavelogUrl: String = "",
     val wavelogApiKey: String = "",
     val wavelogStationId: String = "",

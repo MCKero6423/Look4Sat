@@ -1,17 +1,17 @@
 /*
- * CwDecodeScreen.kt — Look4Sat 的 CW 解码页面(Compose 外壳)。
+ * CwDecodeScreen.kt - Look4Sat CW decode page (Compose shell).
  *
- * 照搬自 Morse Expert 1.15 的 com.ve3nea.morse_expert.MainActivity(已改为普通控制器类):
- * - AndroidView 嵌入原版 activity_main.xml(ConstraintLayout 根, 含 decodedTextView/scaleView/
+ * Ported from Morse Expert 1.15 com.ve3nea.morse_expert.MainActivity (converted to a plain controller class):
+ * - AndroidView embeds the original activity_main.xml (ConstraintLayout root, with decodedTextView/scaleView/
  *   statusTextView/verticalLayout/waterfallView);
- * - 生命周期 onCreate/onResume/onPause/onDestroy 全部委托给控制器, 顺序与原 Activity 一致
- *   (onCreate 必须在 onResume 前, onDispose 先 onPause 再 onDestroy);
- * - 麦克风权限(RECORD_AUDIO)由 Compose 侧管理, 授予后调用 onPermissionGranted()(= v()),
- *   用 initialized 标记保证只调一次(v() 会 new a() 覆盖 f11036E);
- * - 原 options_menu 的 清除/暂停/保存/录音/设置 改为顶部一行按钮(图标用模块内原版 drawable)。
+ * - Lifecycle onCreate/onResume/onPause/onDestroy fully delegated to the controller, same order as the original Activity
+ *   (onCreate must run before onResume; onDispose runs onPause then onDestroy);
+ * - Mic permission (RECORD_AUDIO) is managed on the Compose side; onPermissionGranted() (= v()) is called once granted,
+ *   an initialized flag guarantees it runs only once (v() news an a() which overwrites f11036E);
+ * - The original options_menu Clear/Pause/Save/Record/Settings became a top button row (icons from the module's original drawables).
  *
- * 注意: 控制器 onCreate 内的 setImmersive(window, false) 会把宿主窗口恢复为
- * decorFitsSystemWindows(true)(原版行为照搬, 会对整个宿主 Activity 生效)。
+ * Note: setImmersive(window, false) inside the controller's onCreate restores the host window to
+ * decorFitsSystemWindows(true) (ported original behavior; affects the whole host Activity).
  */
 package com.rtbishop.look4sat.feature.cw
 
@@ -67,9 +67,9 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
     val activity = remember(context) {
         context as? Activity ?: error("CwDecodeScreen must be hosted in an Activity")
     }
-    // 照搬的控制器(普通类, 非 Activity); 每次进入页面新建实例
+    // Ported controller (plain class, not an Activity); new instance per page entry
     val controller = remember { MainActivity() }
-    // 提前 inflate 原版布局, 供 AndroidView 与控制器 onCreate 共用同一根视图
+    // Inflate the original layout early so AndroidView and the controller's onCreate share one root view
     val rootView = remember(context) {
         LayoutInflater.from(context).inflate(R.layout.activity_main, null) as ConstraintLayout
     }
@@ -81,11 +81,11 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
         )
     }
     var permanentlyDenied by remember { mutableStateOf(false) }
-    // v() 会 new a() 覆盖 f11036E, 必须保证只初始化一次
+    // v() news an a() which overwrites f11036E; must run exactly once
     var initialized by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
-    // 生命周期: onCreate 必须在 onResume 前; onDispose 先 onPause 再 onDestroy
+    // Lifecycle: onCreate before onResume; onDispose runs onPause then onDestroy
     DisposableEffect(Unit) {
         controller.onCreate(activity, rootView)
         controller.onResume()
@@ -95,12 +95,12 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
         }
     }
 
-    // 权限授予后启动解码核心; "首次进入已授权" 与 "弹窗回调授权" 两条路径统一走这里
+    // Start the decode core after permission granted; both "already granted on entry" and "granted via dialog" go here
     LaunchedEffect(permissionGranted) {
         if (permissionGranted && !initialized) {
             controller.onPermissionGranted() // = v(): 创建音频采集 + 解码核心
-            // v() 只创建核心; 页面此刻已处于 resumed, 需再走一次 onResume 立即启动录音
-            // (AudioRecord 是新建的, startRecording 不会重复; GLSurfaceView.onResume 幂等)
+            // v() only creates the core; the page is already resumed, so run onResume again to start recording immediately
+            // (AudioRecord is freshly created so startRecording won't double-start; GLSurfaceView.onResume is idempotent)
             controller.onResume()
             initialized = true
         }
@@ -114,7 +114,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
             !activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)
     }
 
-    // 原版 tap_back_again_to_close: 单击返回只提示, 2 秒内再按才退出
+    // Original tap_back_again_to_close: single Back shows a hint; press again within 2 s to exit
     BackHandler {
         if (!controller.handleBackPress()) navigateUp()
     }
@@ -128,7 +128,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
             .fillMaxSize()
             .systemBarsPadding()
     ) {
-        // 原 options_menu: 暂停/清除/保存(原版图标) + 录音/设置(文字按钮)
+        // Original options_menu: Pause/Clear/Save (original icons) + Record/Settings (text buttons)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -154,7 +154,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                     contentDescription = stringResource(R.string.save_text)
                 )
             }
-            // recordSignals 需要解码核心(f11037F), 未初始化时禁用
+            // recordSignals needs the decode core (f11037F); disabled until initialized
             TextButton(
                 onClick = { if (initialized) controller.recordSignals() },
                 enabled = initialized
@@ -172,7 +172,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                 modifier = Modifier.fillMaxSize()
             )
             if (!permissionGranted) {
-                // 未授予麦克风权限: 遮罩 + 提示文字 + 请求按钮
+                // Mic permission not granted: overlay + hint text + request button
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -193,7 +193,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                             Text(stringResource(R.string.cw_grant_permission))
                         }
                         if (permanentlyDenied) {
-                            // 勾选了"不再询问": 引导去系统设置开启
+                            // "Never ask again" checked: guide user to system settings
                             TextButton(onClick = {
                                 activity.startActivity(
                                     Intent(
