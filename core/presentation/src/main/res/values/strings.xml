@@ -48,6 +48,7 @@
     <string name="nav_more">More</string>
     <string name="nav_log">Log</string>
     <string name="nav_amsat">AMSAT</string>
+    <string name="nav_ft8">FT8</string>
     <string name="amsat_title">AMSAT Satellite Status</string>
     <string name="amsat_updated">Updated:</string>
     <string name="amsat_active">Active</string>
@@ -96,14 +97,8 @@
         Make sure to set your position via GPS, Lat/Lon or QTH in Settings.
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
-        <string name="pass_whatsnew_message" translatable="false">
-        * NEW: AMSAT satellite status page - live status grid (official colors), report counts, detailed reports per satellite/day
-        * Log entries grouped by satellite pass (session ID = satellite + AOS time), divider lines between sessions
-        * GPS now only reports success when a real fix is acquired (15s timeout, permission check)
-        * Data update shows a clear failure message when the satellite database cannot be downloaded
-        * Log frequencies follow the Doppler panel in real time; swipe-to-delete visuals restored
-        * Indonesian locale fix (values-id)
-        * NEW: APRS reporting (APRS-IS network, foreground service with notification, configurable interval)</string>
+        <string name="pass_whatsnew_message" translatable="false">        * NEW: FT8 mode (integrated FT8CN 0.93 - full decoder/transmitter UI, spectrum, logs, callsign database; entry in More menu)
+</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>

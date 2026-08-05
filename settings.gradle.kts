@@ -29,5 +29,6 @@ include(
     ":feature:roaming",
     ":feature:satellites",
     ":feature:settings",
-    ":feature:status"
+    ":feature:status",
+    ":feature:ft8"
 )

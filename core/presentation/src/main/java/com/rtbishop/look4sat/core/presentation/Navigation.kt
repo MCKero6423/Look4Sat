@@ -51,6 +51,9 @@ sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: Strin
     data object AmSat : Screen(R.drawable.ic_satellites, R.string.nav_amsat, "AMSAT")
 
     @Serializable
+    data object Ft8 : Screen(R.drawable.ic_radios, R.string.nav_ft8, "FT8")
+
+    @Serializable
     data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs, "Settings")
 }
 
@@ -58,7 +61,7 @@ sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: Strin
 val defaultScreenOrder = listOf("Satellites", "Passes", "Radar", "Map", "Settings")
 
 // UI 设置: 默认更多菜单顺序(进「更多」的页面)
-val defaultSubMenuOrder = listOf("Mutual", "Roaming", "CwDecode", "WavelogLog", "AMSAT")
+val defaultSubMenuOrder = listOf("Mutual", "Roaming", "CwDecode", "WavelogLog", "AMSAT", "FT8")
 
 @Serializable
 data object RadarDestination : NavKey
