@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.widget.Toast
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
@@ -66,7 +67,18 @@ class AprsForegroundService : Service() {
             configProvider = { AprsStore.loadConfig(this) },
             positionProvider = { lastKnownPosition() },
             onState = { lastState = it },
-            onReport = { updateNotification(cfg) }
+            onReport = { report ->
+                updateNotification(cfg)
+                // 手动上报/失败时给即时反馈(前台可见)
+                if (report.timestamp > System.currentTimeMillis() - 60_000L) {
+                    val msg = if (report.ok) {
+                        getString(R.string.aprs_toast_ok)
+                    } else {
+                        getString(R.string.aprs_toast_fail, report.detail)
+                    }
+                    runCatching { Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
+                }
+            }
         )
         reporter = rep
         rep.start()

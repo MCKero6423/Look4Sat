@@ -1,6 +1,8 @@
 package com.rtbishop.look4sat.feature.settings
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +33,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.data.aprs.AprsConfig
+import com.rtbishop.look4sat.core.domain.aprs.AprsPacket
 import com.rtbishop.look4sat.core.data.aprs.AprsStore
 import com.rtbishop.look4sat.core.presentation.CardButton
 import com.rtbishop.look4sat.core.presentation.R
@@ -39,6 +44,17 @@ fun AprsCard() {
     val context = LocalContext.current
     var config by remember { mutableStateOf(AprsStore.loadConfig(context)) }
     var showDialog by remember { mutableStateOf(false) }
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+    fun requestNotifPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -66,6 +82,7 @@ fun AprsCard() {
             AprsSwitchRow(R.string.prefs_aprs_enable, config.enabled) { enabled ->
                 config = config.copy(enabled = enabled)
                 AprsStore.saveConfig(context, config)
+                if (enabled) requestNotifPermissionIfNeeded()
                 val intent = Intent()
                     .setClassName(context.packageName, AprsStore.SERVICE_CLASS)
                     .setAction(if (enabled) AprsStore.ACTION_START else AprsStore.ACTION_STOP)
@@ -163,6 +180,16 @@ private fun AprsSettingsDialog(
                     singleLine = true,
                     textStyle = textStyle
                 )
+                // 计算验证码按钮(用户要求:让用户算出结果)
+                TextButton(
+                    onClick = {
+                        val call = callsign.trim().uppercase()
+                        if (call.isNotBlank()) {
+                            passcode = AprsPacket.passcode(call).toString()
+                        }
+                    },
+                    enabled = callsign.trim().isNotBlank()
+                ) { Text(stringResource(id = R.string.prefs_aprs_calc_passcode)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = ssid,

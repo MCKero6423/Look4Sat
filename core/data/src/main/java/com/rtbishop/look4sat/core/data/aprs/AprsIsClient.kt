@@ -46,6 +46,17 @@ class AprsIsClient(
         // 登录行
         val login = AprsPacket.formatLogin(callsign, ssid, passcode, version) + filter
         writer?.println(login)
+        // 读登录响应(aprsc 返回 # logresp ... verified/unverified)
+        runCatching {
+            s.soTimeout = 8000
+            val resp = reader?.readLine()
+            if (resp != null && (resp.contains("Invalid", ignoreCase = true) ||
+                    resp.contains("unverified", ignoreCase = true))) {
+                throw IllegalArgumentException(resp.trim())
+            }
+            // 恢复超时
+            s.soTimeout = timeoutSec * 1000
+        }
     }
 
     /** 发送一个 APRS 包(一行) */

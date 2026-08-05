@@ -37,6 +37,9 @@
     <string name="aprs_notif_connected">已连接 APRS-IS</string>
     <string name="aprs_notif_error">连接错误</string>
     <string name="aprs_notif_stop">停止</string>
+    <string name="prefs_aprs_calc_passcode">计算验证码</string>
+    <string name="aprs_toast_ok">APRS: 上报成功</string>
+    <string name="aprs_toast_fail">APRS: 上报失败 - %1$s</string>
     <string name="nav_more">更多</string>
     <string name="nav_log">日志</string>
     <string name="nav_amsat">AMSAT</string>

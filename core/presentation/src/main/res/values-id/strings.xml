@@ -35,6 +35,9 @@
     <string name="aprs_notif_connected">Terhubung ke APRS-IS</string>
     <string name="aprs_notif_error">Kesalahan koneksi</string>
     <string name="aprs_notif_stop">Berhenti</string>
+    <string name="prefs_aprs_calc_passcode">Hitung kode sandi</string>
+    <string name="aprs_toast_ok">APRS: laporan terkirim</string>
+    <string name="aprs_toast_fail">APRS: laporan gagal - %1$s</string>
     <string name="nav_more">Lainnya</string>
     <string name="nav_log">Log</string>
     <string name="nav_amsat">AMSAT</string>

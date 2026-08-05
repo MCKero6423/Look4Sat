@@ -30,10 +30,29 @@ class MainApplication : Application(), IContainerProvider {
 
     private lateinit var container: IMainContainer
 
+    /** 全局崩溃捕获:堆栈写入 files/crash_log.txt,重启后可查看(用户要求错误报告) */
+    private fun installCrashHandler() {
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            runCatching {
+                val log = StringBuilder()
+                log.append("=== Crash ${System.currentTimeMillis()} ===\n")
+                log.append("Thread: ").append(thread.name).append("\n")
+                val sw = java.io.StringWriter()
+                throwable.printStackTrace(java.io.PrintWriter(sw))
+                log.append(sw.toString()).append("\n")
+                val file = java.io.File(filesDir, "crash_log.txt")
+                file.appendText(log.toString())
+            }
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+    }
+
     override fun getMainContainer(): IMainContainer = container
 
     override fun onCreate() {
         super.onCreate()
+        installCrashHandler()
         container = MainContainer(this)
         // trigger automatic update every 48 hours
         container.appScope.launch { checkAutoUpdate() }

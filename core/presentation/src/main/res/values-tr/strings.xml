@@ -36,6 +36,9 @@
     <string name="aprs_notif_connected">APRS-IS bağlı</string>
     <string name="aprs_notif_error">Bağlantı hatası</string>
     <string name="aprs_notif_stop">Durdur</string>
+    <string name="prefs_aprs_calc_passcode">Parolayı hesapla</string>
+    <string name="aprs_toast_ok">APRS: rapor gönderildi</string>
+    <string name="aprs_toast_fail">APRS: rapor başarısız - %1$s</string>
     <string name="nav_more">Daha Fazla</string>
     <string name="nav_log">Günlük</string>
     <string name="nav_amsat">AMSAT</string>
