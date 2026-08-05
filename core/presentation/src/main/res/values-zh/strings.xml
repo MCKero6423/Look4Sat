@@ -87,9 +87,11 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 导航: AMSAT 移到底部栏,雷达移到更多菜单(主目的地最多 5 个)
-        * 宽屏/平板: 改为侧边导航栏(不再有底部空白条)
-        * AMSAT 标签新图标(MDI satellite-variant,Apache 2.0)
+        * 新: AMSAT 卫星状态改用官方 AMSAT API(v1 JSON,更快更稳)
+        * AMSAT 状态页适配全面屏(刷新按钮和更新时间始终可点)
+        * WaveLog: QRZ 对方网格查询(⚙ 弹窗粘贴 Cookie + 测试查询)
+        * WaveLog: LoTW 卫星列表更新按钮(内置 112 颗卫星)
+        * WaveLog: 信号报告 59/59(v1 和 v2)
     </string>
 
     <!-- Radar screen -->
