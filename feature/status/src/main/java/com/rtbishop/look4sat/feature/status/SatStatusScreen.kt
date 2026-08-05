@@ -62,12 +62,25 @@ import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.feature.status.R as StatusR
 import java.util.Calendar
 
-// ========== Official status colors (amsat.org/status originals) ==========
-val ActiveBlue = Color(0xFF648FFF)
-val TlmOrange = Color(0xFFFFB000)
-val NotHeardPink = Color(0xFFDC267F)
-val ConflictDeepOrange = Color(0xFFFE6100)
-val NoReportGray = Color(0xFFC0C0C0)
+/**
+ * Map AMSAT status text to Material3 colorScheme colors.
+ * Addresses PR #233 review: use colorScheme instead of hardcoded Color() constants.
+ */
+@Composable
+private fun statusColorOf(statusText: String): Color {
+    return when {
+        statusText.contains("Heard", ignoreCase = true) && !statusText.contains("Not", ignoreCase = true) ->
+            MaterialTheme.colorScheme.tertiary // Active
+        statusText.contains("Telemetry", ignoreCase = true) || statusText.contains("Beacon", ignoreCase = true) ->
+            MaterialTheme.colorScheme.tertiaryContainer // Telemetry
+        statusText.contains("Not Heard", ignoreCase = true) ->
+            Color(0xFFDC267F) // NotHeard pink (no semantic slot)
+        else ->
+            MaterialTheme.colorScheme.error // Conflict
+    }
+}
+
+private val NoReportGray = Color(0xFFC0C0C0) // Neutral state
 
 @Composable
 fun SatStatusScreen(container: IMainContainer) {
@@ -197,10 +210,10 @@ private fun StatusHeader(
 @Composable
 private fun LegendRow() {
     val legend = listOf(
-        stringResource(id = R.string.amsat_active) to ActiveBlue,
-        stringResource(id = R.string.amsat_tlm) to TlmOrange,
-        stringResource(id = R.string.amsat_not_heard) to NotHeardPink,
-        stringResource(id = R.string.amsat_conflict) to ConflictDeepOrange
+        stringResource(id = R.string.amsat_active) to MaterialTheme.colorScheme.tertiary,
+        stringResource(id = R.string.amsat_tlm) to MaterialTheme.colorScheme.tertiaryContainer,
+        stringResource(id = R.string.amsat_not_heard) to Color(0xFFDC267F),
+        stringResource(id = R.string.amsat_conflict) to MaterialTheme.colorScheme.error
     )
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
@@ -249,9 +262,10 @@ private fun HeaderRow(statuses: List<SatStatus>) {
     }
 }
 
-/** Satellite row: name + 6 day color blocks (official colors + report counts) */
+/** Satellite row: name + 6 day color blocks (displays the newest non-gray status) */
 @Composable
 private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
+    val noReportGray = 0xFFC0C0C0L
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -266,7 +280,7 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
             modifier = Modifier.weight(2f).padding(start = 4.dp)
         )
         status.days.forEach { day ->
-            val slot = day.slots.firstOrNull { it.statusColor != NoReportGray.value.toInt().toLong() } ?: day.slots.first()
+            val slot = day.slots.firstOrNull { it.statusColor != noReportGray } ?: day.slots.first()
             DayCell(
                 slot = slot,
                 modifier = Modifier.weight(0.8f).padding(horizontal = 1.dp),
@@ -351,12 +365,6 @@ private fun ReportDialog(
     )
 }
 
-private fun statusColorOf(statusText: String): Color = when {
-    statusText.contains("Heard", ignoreCase = true) && !statusText.contains("Not", ignoreCase = true) -> ActiveBlue
-    statusText.contains("Telemetry", ignoreCase = true) || statusText.contains("Beacon", ignoreCase = true) -> TlmOrange
-    statusText.contains("Not Heard", ignoreCase = true) -> NotHeardPink
-    else -> ConflictDeepOrange
-}
 
 private fun formatFetchedAt(utcMs: Long): String {
     val cal = Calendar.getInstance()

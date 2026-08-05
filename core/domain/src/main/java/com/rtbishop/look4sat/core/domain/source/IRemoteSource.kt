@@ -25,4 +25,10 @@ interface IRemoteSource {
 
     /** Fetch AMSAT status page HTML (with UA; null = failure) */
     suspend fun getStatusHtml(): String?
+
+    /** Fetch AMSAT API catalog (JSON string; null on failure) */
+    suspend fun getAmSatCatalog(): String?
+
+    /** Fetch AMSAT API reports for the past N hours (JSON string; null on failure) */
+    suspend fun getAmSatReports(hours: Int, limit: Int): String?
 }
