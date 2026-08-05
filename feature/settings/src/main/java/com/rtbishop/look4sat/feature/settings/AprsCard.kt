@@ -69,7 +69,7 @@ fun AprsCard() {
                 val intent = Intent()
                     .setClassName(context.packageName, AprsStore.SERVICE_CLASS)
                     .setAction(if (enabled) AprsStore.ACTION_START else AprsStore.ACTION_STOP)
-                context.startService(intent)
+                if (enabled) context.startForegroundService(intent) else context.startService(intent)
             }
             // 简洁信息行(不挤)
             Text(
@@ -87,7 +87,7 @@ fun AprsCard() {
                     val intent = Intent()
                         .setClassName(context.packageName, AprsStore.SERVICE_CLASS)
                         .setAction(AprsStore.ACTION_REPORT_NOW)
-                    context.startService(intent)
+                    context.startForegroundService(intent)
                 },
                 text = stringResource(id = R.string.prefs_aprs_report_now),
                 modifier = Modifier.fillMaxWidth()
@@ -107,7 +107,7 @@ fun AprsCard() {
                         Intent().setClassName(context.packageName, AprsStore.SERVICE_CLASS)
                             .setAction(AprsStore.ACTION_STOP)
                     )
-                    context.startService(
+                    context.startForegroundService(
                         Intent().setClassName(context.packageName, AprsStore.SERVICE_CLASS)
                             .setAction(AprsStore.ACTION_START)
                     )

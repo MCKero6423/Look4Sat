@@ -80,11 +80,16 @@ class AprsForegroundService : Service() {
     }
 
     private fun startForegroundWithNotification(cfg: AprsConfig) {
-        val notif = buildNotification(cfg)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(NOTIF_ID, notif)
+        try {
+            val notif = buildNotification(cfg)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIF_ID, notif)
+            }
+        } catch (e: Exception) {
+            // 厂商 ROM / 旧系统兼容兜底:启动前台失败只停服务,不崩进程
+            stopSelf()
         }
     }
 

@@ -50,6 +50,7 @@
 
             <service
             android:name="com.rtbishop.look4sat.app.AprsForegroundService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

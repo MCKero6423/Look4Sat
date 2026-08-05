@@ -91,7 +91,7 @@ class AprsReporter(
                 port = cfg.port,
                 callsign = cfg.callsign,
                 ssid = cfg.ssid,
-                passcode = cfg.passcode.toIntOrNull() ?: AprsPacket.passcode(cfg.callsign),
+                passcode = cfg.passcode.toIntOrNull()?.takeIf { it >= 0 } ?: AprsPacket.passcode(cfg.callsign),
                 version = "Look4Sat 4.5.4"
             ).also { client = it }
             if (!c.isConnected) c.connect()
