@@ -149,10 +149,14 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
     // UI settings: sort by screenOrder (empty = default order), then filter by hiddenScreens (Settings always kept)
+
+    val screenOrder = if (otherSettings.screenOrder.isEmpty()) emptyList()
+        else otherSettings.screenOrder.filter { it != "Radar" }
+            .let { list -> if ("AMSAT" in list) list else list + "AMSAT" }
     val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
             // Unknown pages (e.g. CwDecode not in old persisted order): use default-order position (Roaming<->Map), then fall back to last
-            val idx = otherSettings.screenOrder.indexOf(screen.screenId)
+            val idx = screenOrder.indexOf(screen.screenId)
             if (idx != -1) idx
             else com.rtbishop.look4sat.core.presentation.defaultScreenOrder.indexOf(screen.screenId).let {
                 if (it != -1) it else Int.MAX_VALUE
@@ -160,10 +164,12 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
         }
         .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
     // 4.5.1 foldable menu: main menu (5 bottom-bar slots) + More menu (overflow page)
+    // 4.5.6 migration: Radar moved to the More menu, AMSAT promoted to the main menu
     // Legacy migration: persisted subMenuOrder lacks new pages (WavelogLog) -> append to the sub-menu tail
     val subOrder = (otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder })
+        .filter { it != "AMSAT" }
         .let { list -> if ("WavelogLog" in list) list else list + "WavelogLog" }
-        .let { list -> if ("AMSAT" in list) list else list + "AMSAT" }
+        .let { list -> if ("Radar" in list) list else list + "Radar" }
     val mainNavItems = remember(allNavItems, subOrder) {
         allNavItems.filter { it.screenId !in subOrder }.take(5)
     }
@@ -231,8 +237,8 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                 navigationRailContainerColor = MaterialTheme.colorScheme.surfaceContainer
             ),
             layoutType = when {
-                !hasEnoughHeight() && hasEnoughWidth() -> NavigationSuiteType.NavigationRail
-                !hasEnoughWidth() -> NavigationSuiteType.ShortNavigationBarCompact
+                hasEnoughWidth() -> NavigationSuiteType.NavigationRail
+                !hasEnoughHeight() -> NavigationSuiteType.ShortNavigationBarCompact
                 else -> NavigationSuiteType.ShortNavigationBarMedium
             }
         ) {

@@ -93,11 +93,9 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
-        * BARU: Status satelit AMSAT kini menggunakan API resmi AMSAT (v1 JSON, lebih cepat dan andal)
-        * Halaman status AMSAT kini mendukung layar penuh (tombol refresh dan waktu selalu dapat diakses)
-        * WaveLog: pencarian grid lawan QRZ (dialog ⚙ tempel Cookie + uji query)
-        * WaveLog: tombol perbarui daftar satelit LoTW (112 satelit bawaan)
-        * WaveLog: laporan sinyal RST 59/59 untuk QSO (v1 dan v2)
+        * Navigasi: AMSAT dipindahkan ke bilah bawah, Radar dipindahkan ke menu Lainnya (maks 5 tujuan utama)
+        * Layar lebar / tablet: rel navigasi samping, bukan bilah bawah (strip kosong bawah dihilangkan)
+        * Ikon tab AMSAT baru (MDI satellite-variant, Apache 2.0)
     </string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>

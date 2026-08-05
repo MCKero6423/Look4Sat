@@ -97,11 +97,9 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * YENİ: AMSAT uydu durumu resmi AMSAT API kullanıyor (v1 JSON, daha hızlı ve güvenilir)
-        * AMSAT durum sayfası tam ekran cihazlara uyumlu (yenileme düğmesi ve saat her zaman erişilebilir)
-        * WaveLog: QRZ karşı grid sorgulama (⚙ diyalogda Cookie yapıştır + test sorgusu)
-        * WaveLog: LoTW uydu listesi güncelleme düğmesi (112 uydu yerleşik)
-        * WaveLog: RST 59/59 sinyal raporu (v1 ve v2)
+        * Gezinme: AMSAT alt çubuğa taşındı, Radar Daha Fazla menüsüne taşındı (en fazla 5 ana hedef)
+        * Geniş ekran / tablet: alt çubuk yerine yan gezinme rayı (alttaki boş şerit kaldırıldı)
+        * Yeni AMSAT sekme simgesi (MDI satellite-variant, Apache 2.0)
     </string>
 
     <!-- Radar screen -->
