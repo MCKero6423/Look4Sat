@@ -90,7 +90,7 @@ public class ClearCacheDataDialog extends Dialog {
         scrollView = (ScrollView) findViewById(R.id.helpScrollView);
         upImageView.setVisibility(View.INVISIBLE);
         downImageView.setVisibility(View.INVISIBLE);
-        appNameTextView.setText(GeneralVariables.getStringFromResource(R.string.ft8cn_app_name));
+        appNameTextView.setText(GeneralVariables.getStringFromResource(R.string.app_name));
         buildVersionTextView.setText(BuildConfig.VERSION_NAME);
 
         Button cancelButton=(Button) findViewById(R.id.cancelClearButton);
