@@ -8,20 +8,22 @@ import com.rtbishop.look4sat.core.domain.model.SatSlot
 import com.rtbishop.look4sat.core.domain.model.SatStatus
 import com.rtbishop.look4sat.core.domain.model.SatStatusPage
 import com.rtbishop.look4sat.core.domain.repository.IAmSatRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.TimeZone
 
 /** AMSAT status repository: official API v1 -> SatStatusPage (replaces the HTML parser). */
 class AmSatRepository(private val apiClient: AmSatApiClient) : IAmSatRepository {
 
-    override suspend fun fetchStatus(): SatStatusPage? {
+    override suspend fun fetchStatus(): SatStatusPage? = withContext(Dispatchers.IO) {
         val nowSec = System.currentTimeMillis() / 1000
         val names = apiClient.fetchCatalog()
         val reports = apiClient.fetchAllReports(hours = 168)
-        if (names.isEmpty() && reports.isEmpty()) return null
+        if (names.isEmpty() && reports.isEmpty()) return@withContext null
         val statuses = buildStatuses(names, reports, nowSec)
         val reportMap = reports.associate { it.id to toSatReport(it) }
-        return SatStatusPage(System.currentTimeMillis(), statuses, reportMap)
+        SatStatusPage(System.currentTimeMillis(), statuses, reportMap)
     }
 
     /** Build one SatStatus (6 days x 12 slots) per catalog satellite, slotting reports by age. */

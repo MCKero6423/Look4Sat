@@ -46,6 +46,8 @@
     <string name="nav_log">Log</string>
     <string name="nav_amsat">AMSAT</string>
     <string name="amsat_title">Status Satelit AMSAT</string>
+    <string name="amsat_refresh">Segarkan</string>
+    <string name="amsat_retry">Coba lagi</string>
     <string name="amsat_updated">Diperbarui:</string>
     <string name="amsat_active">Aktif</string>
     <string name="amsat_tlm">TLM/beacon</string>

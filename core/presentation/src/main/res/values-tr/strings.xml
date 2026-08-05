@@ -47,6 +47,8 @@
     <string name="nav_log">Günlük</string>
     <string name="nav_amsat">AMSAT</string>
     <string name="amsat_title">AMSAT Uydu Durumu</string>
+    <string name="amsat_refresh">Yenile</string>
+    <string name="amsat_retry">Tekrar dene</string>
     <string name="amsat_updated">Güncellendi:</string>
     <string name="amsat_active">Aktif</string>
     <string name="amsat_tlm">TLM/işaret</string>

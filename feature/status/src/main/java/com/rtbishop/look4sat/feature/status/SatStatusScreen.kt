@@ -7,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -56,6 +59,7 @@ import com.rtbishop.look4sat.core.domain.model.SatSlot
 import com.rtbishop.look4sat.core.domain.model.SatStatus
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
 import com.rtbishop.look4sat.core.presentation.R
+import com.rtbishop.look4sat.feature.status.R as StatusR
 import java.util.Calendar
 
 // ========== Official status colors (amsat.org/status originals) ==========
@@ -97,11 +101,18 @@ fun SatStatusScreen(container: IMainContainer) {
                 }
             }
             uiState.error != null && uiState.statuses.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = stringResource(id = R.string.amsat_load_failed),
                         color = MaterialTheme.colorScheme.error
                     )
+                    TextButton(onClick = { viewModel.refresh() }) {
+                        Text(text = stringResource(id = R.string.amsat_retry))
+                    }
                 }
             }
             else -> {
@@ -169,11 +180,13 @@ private fun StatusHeader(
             if (isRefreshing) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
-                Text(
-                    text = "↻",
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.rotate(angle)
+                Image(
+                    painter = painterResource(id = StatusR.drawable.ic_refresh),
+                    contentDescription = stringResource(id = R.string.amsat_refresh),
+                    modifier = Modifier
+                        .size(18.dp)
+                        .rotate(angle),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
                 )
             }
         }

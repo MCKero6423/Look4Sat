@@ -49,6 +49,8 @@
     <string name="nav_log">Log</string>
     <string name="nav_amsat">AMSAT</string>
     <string name="amsat_title">AMSAT Satellite Status</string>
+    <string name="amsat_refresh">Refresh</string>
+    <string name="amsat_retry">Retry</string>
     <string name="amsat_updated">Updated:</string>
     <string name="amsat_active">Active</string>
     <string name="amsat_tlm">TLM/Beacon</string>
