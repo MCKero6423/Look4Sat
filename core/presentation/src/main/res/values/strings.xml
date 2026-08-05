@@ -97,13 +97,12 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * NEW: AMSAT satellite status page - live status grid (official colors), report counts, detailed reports per satellite/day
-        * Log entries grouped by satellite pass (session ID = satellite + AOS time), divider lines between sessions
-        * GPS now only reports success when a real fix is acquired (15s timeout, permission check)
-        * Data update shows a clear failure message when the satellite database cannot be downloaded
-        * Log frequencies follow the Doppler panel in real time; swipe-to-delete visuals restored
-        * Indonesian locale fix (values-id)
-        * NEW: APRS reporting (APRS-IS network, foreground service with notification, configurable interval)</string>
+        * NEW: AMSAT satellite status now uses the official AMSAT API (v1 JSON, faster and more reliable)
+        * AMSAT status page fits edge-to-edge screens (refresh button and update time always reachable)
+        * WaveLog: QRZ counterpart grid lookup (gear dialog > paste QRZ cookies > test query)
+        * WaveLog: LoTW satellite list refresh button (112 satellites built in)
+        * WaveLog: RST 59/59 signal reports for QSOs (v1 and v2)
+    </string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>

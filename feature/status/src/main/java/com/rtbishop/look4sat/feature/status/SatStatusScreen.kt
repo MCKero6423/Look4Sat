@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -72,7 +75,13 @@ fun SatStatusScreen(container: IMainContainer) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedDay by remember { mutableStateOf<Pair<SatStatus, SatDay>?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 8.dp)
+    ) {
         // Top: legend + refresh
         StatusHeader(
             fetchedAtUtcMs = uiState.fetchedAtUtcMs,
@@ -100,7 +109,10 @@ fun SatStatusScreen(container: IMainContainer) {
                 HeaderRow(statuses = uiState.statuses)
                 HorizontalDivider(thickness = 1.dp)
                 // Row
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
                     items(uiState.statuses, key = { it.name }) { status ->
                         StatusRow(
                             status = status,

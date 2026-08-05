@@ -85,13 +85,12 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 新增: AMSAT 卫星状态页 - 实时状态表格(官网配色)、报告数量、逐卫星/逐日详细报告
-        * 日志按场次分组(场次 = 卫星 + AOS 时间), 组间横线分隔
-        * GPS 真正定位成功才会提示成功(15 秒超时, 权限检查)
-        * 卫星数据库下载失败时有明确失败提示
-        * 日志频率实时跟随多普勒面板; 左滑删除视觉恢复
-        * 印尼语识别修复(values-id)
-        * 新增: APRS 网络上报(APRS-IS,前台服务+通知保活,周期可调)</string>
+        * 新: AMSAT 卫星状态改用官方 AMSAT API(v1 JSON,更快更稳)
+        * AMSAT 状态页适配全面屏(刷新按钮和更新时间始终可点)
+        * WaveLog: QRZ 对方网格查询(⚙ 弹窗粘贴 Cookie + 测试查询)
+        * WaveLog: LoTW 卫星列表更新按钮(内置 112 颗卫星)
+        * WaveLog: 信号报告 59/59(v1 和 v2)
+    </string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>

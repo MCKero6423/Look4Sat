@@ -91,13 +91,12 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
-        * BARU: Halaman status satelit AMSAT - tabel status langsung (warna resmi), jumlah laporan, laporan detail per satelit/hari
-        * Log dikelompokkan per lintasan satelit (sesi = satelit + waktu AOS), garis pemisah antar sesi
-        * GPS kini hanya menampilkan sukses saat posisi benar-benar didapat (timeout 15 dtk, cek izin)
-        * Pesan kegagalan jelas saat database satelit gagal diunduh
-        * Frekuensi log mengikuti panel Doppler secara real-time; visual hapus geser dipulihkan
-        * Perbaikan bahasa Indonesia (values-id)
-        * BARU: Pelaporan APRS (jaringan APRS-IS, layanan latar depan dengan notifikasi, interval dapat diatur)</string>
+        * BARU: Status satelit AMSAT kini menggunakan API resmi AMSAT (v1 JSON, lebih cepat dan andal)
+        * Halaman status AMSAT kini mendukung layar penuh (tombol refresh dan waktu selalu dapat diakses)
+        * WaveLog: pencarian grid lawan QRZ (dialog ⚙ tempel Cookie + uji query)
+        * WaveLog: tombol perbarui daftar satelit LoTW (112 satelit bawaan)
+        * WaveLog: laporan sinyal RST 59/59 untuk QSO (v1 dan v2)
+    </string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
