@@ -19,6 +19,14 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <application
+        android:allowBackup="true"
+        android:usesCleartextTraffic="true"
+        android:icon="@drawable/ft8cn_icon"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ft8cn_icon"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ft8CN">
         <activity
             android:name=".grid_tracker.GridTrackerMainActivity"
             android:screenOrientation="sensorLandscape"
@@ -76,6 +84,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths" />
         </provider>
-
+    </application>
 
 </manifest>
