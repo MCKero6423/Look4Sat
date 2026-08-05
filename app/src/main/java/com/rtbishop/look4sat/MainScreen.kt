@@ -149,8 +149,7 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
     // UI 设置: 按 screenOrder 排序(空 = 默认顺序), 再按 hiddenScreens 过滤(设置页固定保留)
-    val ft8Context = androidx.compose.ui.platform.LocalContext.current
-    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Ft8, Screen.Map, Screen.Settings)
+    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Map, Screen.Settings)
         .sortedBy { screen ->
             // 未知(新页面如 CwDecode 不在旧持久化顺序里): 用默认顺序位置(漫游↔地图), 再兜底最后
             val idx = otherSettings.screenOrder.indexOf(screen.screenId)
@@ -208,13 +207,6 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         onClick = {
                             if (isSelected) return@item
                             moreExpanded = false
-                            if (screen is Screen.Ft8) {
-                                ft8Context.startActivity(
-                                    android.content.Intent()
-                                        .setClassName(ft8Context.packageName, "com.bg7yoz.ft8cn.MainActivity")
-                                )
-                                return@item
-                            }
                             while (backStack.size > 1) backStack.removeAt(backStack.size - 1)
                             if (screen !is Screen.Passes) backStack.add(screen)
                         }
@@ -369,13 +361,6 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         onDismiss = { moreExpanded = false },
                         onSelect = { screen ->
                             moreExpanded = false
-                            if (screen is Screen.Ft8) {
-                                ft8Context.startActivity(
-                                    android.content.Intent()
-                                        .setClassName(ft8Context.packageName, "com.bg7yoz.ft8cn.MainActivity")
-                                )
-                                return@MoreMenuPopup
-                            }
                             while (backStack.size > 1) backStack.removeAt(backStack.size - 1)
                             if (screen !is Screen.Passes) backStack.add(screen)
                         }

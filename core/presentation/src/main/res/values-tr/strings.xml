@@ -46,7 +46,6 @@
     <string name="nav_more">Daha Fazla</string>
     <string name="nav_log">Günlük</string>
     <string name="nav_amsat">AMSAT</string>
-    <string name="nav_ft8">FT8</string>
     <string name="amsat_title">AMSAT Uydu Durumu</string>
     <string name="amsat_updated">Güncellendi:</string>
     <string name="amsat_active">Aktif</string>
@@ -95,8 +94,14 @@
         Ayarlar\'dan GPS, Enlem/Boylam veya QTH kullanarak konumunuzu belirlediğinizden emin olun.
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
-        <string name="pass_whatsnew_message" translatable="false">        * YENİ: FT8 modu (FT8CN 0.93 entegre - tam kod çözücü/verici arayüzü, spektrum, günlükler, çağrı veritabanı; giriş Diğer menüde)
-</string>
+        <string name="pass_whatsnew_message" translatable="false">
+        * YENİ: AMSAT uydu durum sayfası - canlı durum tablosu (resmi renkler), rapor sayıları, uydu/gün bazında detaylı raporlar
+        * Günlükler uydu geçişine göre gruplanır (oturum = uydu + AOS zamanı), oturumlar arasında ayırıcı çizgi
+        * GPS artık yalnızca gerçek konum alındığında başarı gösterir (15 sn zaman aşımı, izin kontrolü)
+        * Uydu veritabanı indirilemediğinde net hata mesajı gösterilir
+        * Günlük frekansları Doppler panelini gerçek zamanlı takip eder; kaydırarak silme görselleri düzeltildi
+        * Endonezya dili düzeltmesi (values-id)
+        * YENİ: APRS raporlama (APRS-IS ağı, bildirimli ön plan hizmeti, ayarlanabilir aralık)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>

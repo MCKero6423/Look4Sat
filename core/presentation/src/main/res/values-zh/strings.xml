@@ -47,7 +47,6 @@
     <string name="nav_more">更多</string>
     <string name="nav_log">日志</string>
     <string name="nav_amsat">AMSAT</string>
-    <string name="nav_ft8">FT8</string>
     <string name="amsat_title">AMSAT 卫星状态</string>
     <string name="amsat_updated">更新:</string>
     <string name="amsat_active">活跃</string>
@@ -85,8 +84,14 @@
     <string name="pass_welcome_title">欢迎来到 Look4Sat\!</string>
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
-        <string name="pass_whatsnew_message" translatable="false">        * 新增: FT8 模式(集成 FT8CN 0.93 - 完整解码/发射界面、频谱、日志、呼号库;入口在更多菜单)
-</string>
+        <string name="pass_whatsnew_message" translatable="false">
+        * 新增: AMSAT 卫星状态页 - 实时状态表格(官网配色)、报告数量、逐卫星/逐日详细报告
+        * 日志按场次分组(场次 = 卫星 + AOS 时间), 组间横线分隔
+        * GPS 真正定位成功才会提示成功(15 秒超时, 权限检查)
+        * 卫星数据库下载失败时有明确失败提示
+        * 日志频率实时跟随多普勒面板; 左滑删除视觉恢复
+        * 印尼语识别修复(values-id)
+        * 新增: APRS 网络上报(APRS-IS,前台服务+通知保活,周期可调)</string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
