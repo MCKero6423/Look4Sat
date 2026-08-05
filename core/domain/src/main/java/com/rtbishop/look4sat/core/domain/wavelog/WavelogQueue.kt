@@ -49,6 +49,7 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
                     freqRxHz = o.optLong("freqRxHz"),
                     satName = o.optString("satName"),
                     sessionId = o.optString("sessionId"),
+                    gridsquare = o.optString("gridsquare"),
                     uploaded = o.optBoolean("uploaded", false)
                 )
             }
@@ -98,6 +99,7 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
                 put("mode", q.mode); put("freqTxHz", q.freqTxHz)
                 put("freqRxHz", q.freqRxHz); put("satName", q.satName)
                 put("sessionId", q.sessionId)
+                put("gridsquare", q.gridsquare)
                 put("uploaded", q.uploaded)
             })
         }
