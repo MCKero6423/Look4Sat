@@ -10,7 +10,9 @@ import com.rtbishop.look4sat.core.domain.source.IRemoteSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import java.util.TimeZone
 
 /** One report from the AMSAT API (data layer model). */
@@ -25,6 +27,10 @@ private data class ApiReport(
 
 /** AMSAT status repository using RemoteSource (Clean Architecture: data layer handles HTTP). */
 class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepository {
+
+    private val isoUtcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
 
     override suspend fun fetchStatus(): SatStatusPage? = withContext(Dispatchers.IO) {
         val nowSec = System.currentTimeMillis() / 1000
@@ -74,20 +80,11 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
 
     /** Parse ISO 8601 UTC timestamp to epoch seconds (e.g., "2026-08-05T07:30:00Z") */
     private fun parseIsoUtcSec(iso: String): Long {
-        val m = Regex("""(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})""").find(iso) ?: return 0L
-        val (y, mo, d, h, mi, s) = m.destructured
-        val days = daysFromCivil(y.toInt(), mo.toInt(), d.toInt())
-        return days * 86400L + h.toInt() * 3600L + mi.toInt() * 60L + s.toInt()
-    }
-
-    /** Days since 1970-01-01 (civil calendar, proleptic Gregorian) */
-    private fun daysFromCivil(year: Int, month: Int, day: Int): Long {
-        val y = if (month <= 2) year - 1 else year
-        val era = (if (y >= 0) y else y - 399) / 400
-        val yoe = y - era * 400
-        val doy = (153 * (if (month > 2) month - 3 else month + 9) + 2) / 5 + day - 1
-        val doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
-        return era * 146097L + doe - 719468
+        return try {
+            (isoUtcFormat.parse(iso)?.time ?: 0L) / 1000
+        } catch (e: Exception) {
+            0L
+        }
     }
 
     /** Build one SatStatus (6 days x 12 slots) per catalog satellite, slotting reports by age. */
