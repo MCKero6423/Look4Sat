@@ -49,7 +49,7 @@
             android:value="com.rtbishop.look4sat.bg7nta" />
 
             <service
-            android:name=".AprsForegroundService"
+            android:name="com.rtbishop.look4sat.app.AprsForegroundService"
             android:exported="false" />
     </application>
 </manifest>

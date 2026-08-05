@@ -75,7 +75,7 @@ fun AprsCard() {
             Text(
                 text = stringResource(
                     id = R.string.prefs_aprs_summary,
-                    config.server, config.port.toString(),
+                    config.server, config.port,
                     if (config.callsign.isBlank()) "-" else config.callsign
                 ),
                 fontSize = 13.sp,
