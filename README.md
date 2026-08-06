@@ -1,45 +1,26 @@
-# Look4Sat: Satellite tracker
+# Look4Sat-BA7OPF
 
-[![Look4Sat CI](https://github.com/rt-bishop/Look4Sat/actions/workflows/release.yml/badge.svg)](https://github.com/rt-bishop/Look4Sat/actions/workflows/release.yml)
+[![Look4Sat CI](https://github.com/atsunatsu/Look4Sat/actions/workflows/release.yml/badge.svg)](https://github.com/atsunatsu/Look4Sat/actions/workflows/release.yml)
 
-[<img src="https://play.google.com/intl/en_gb/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80">](https://play.google.com/store/apps/details?id=com.rtbishop.look4sat)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/com.rtbishop.look4sat/)
+**BA7OPF 定制版** — 基于 [rt-bishop/Look4Sat](https://github.com/rt-bishop/Look4Sat) 的业余无线电卫星追踪器，增加了线性卫星频率计算器等功能。
 
-### Radio satellite tracker and pass predictor for Android, inspired by Gpredict
+## 本仓库特色功能
 
-<p float="left">
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="192"/>
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="192"/>
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="192"/>
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="192">
-</p>
+- **线性卫星转发器频率计算器** — 在雷达页的 Calculator 标签页中，支持 TX/RX 双向多普勒频率计算，以及下行频率偏移（offset）输入，方便操作带偏移的线性卫星
+- **CW 解码器** — 集成 Morse Expert 解码引擎，支持瀑布图、实时解码文本
+- **Passband 模式** — 支持通过位置滑块（Passband）自动计算 TX/RX 频率，避免切换时跳变
+- **中文界面优化** — 翻译修正、UI 布局调整
 
-### Track satellite passes with ease!
+## 上游仓库
 
-Thanks to [Celestrak](https://celestrak.com/) and [SatNOGS](https://satnogs.org/) you have access to over 9000 active satellites.\
-You can search the entire database by NORAD Catalog Number or the satellite's name.
+本仓库是 [rt-bishop/Look4Sat](https://github.com/rt-bishop/Look4Sat) 的分支，上游仓库的原始功能包括：
 
-Orbital positions and passes are calculated relative to your location.\
-To get reliable data make sure to set the station position via the app Settings.
+- 基于 Celestrak / SatNOGS 数据的 9000+ 活跃卫星追踪
+- SGP4/SDP4 轨道预测，10 天过境预报
+- 极坐标雷达图、地面轨迹图
+- SSTV 图像解码
+- 无广告、无跟踪、完全离线
 
-The application is built using Kotlin, Coroutines, Jetpack Compose and Navigation.\
-It is now and always will be completely ad-free and open-source.
+## 许可证
 
-## Main features:
-
-*  Predicting satellite positions and passes for up to 10 days
-*  Showing the list of currently active and upcoming satellite passes
-*  Showing the active pass progress, polar trajectory and transceivers info
-*  Showing the satellite positional data, footprint and ground track on the map
-*  Custom TLE satellite data import is available via Three Line Element .txt files
-*  Offline first: calculations are made offline. Weekly TLE data update is recommended.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=rt-bishop%2FLook4Sat&type=timeline&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=rt-bishop/Look4Sat&type=timeline&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=rt-bishop/Look4Sat&type=timeline&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=rt-bishop/Look4Sat&type=timeline&legend=top-left" />
- </picture>
-</a>
+GNU General Public License v3.0。详见 [LICENSE](LICENSE)。
