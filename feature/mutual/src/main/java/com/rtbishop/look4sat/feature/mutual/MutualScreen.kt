@@ -90,7 +90,7 @@ fun MutualScreen(
                 },
                 topInfo = {
                     Text(
-                        text = "Pass Match",
+                        text = stringResource(R.string.mutual_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -198,7 +198,7 @@ private fun MutualContent(
             ) {
                 if (isVertical) {
                     StationInputCard(
-                        title = "Your Station",
+                        title = stringResource(R.string.mutual_station_you),
                         titleColor = MaterialTheme.colorScheme.primary,
                         lat = state.stationALat,
                         lon = state.stationALon,
@@ -214,7 +214,7 @@ private fun MutualContent(
                         currentPositionAction = onUseCurrentPosition
                     )
                     StationInputCard(
-                        title = "opposite station",
+                        title = stringResource(R.string.mutual_station_opposite),
                         titleColor = MaterialTheme.colorScheme.tertiary,
                         lat = state.stationBLat,
                         lon = state.stationBLon,
@@ -234,7 +234,7 @@ private fun MutualContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         StationInputCard(
-                            title = "Your Station",
+                            title = stringResource(R.string.mutual_station_you),
                             titleColor = MaterialTheme.colorScheme.primary,
                             lat = state.stationALat,
                             lon = state.stationALon,
@@ -251,7 +251,7 @@ private fun MutualContent(
                             modifier = Modifier.weight(1f)
                         )
                         StationInputCard(
-                            title = "opposite station",
+                            title = stringResource(R.string.mutual_station_opposite),
                             titleColor = MaterialTheme.colorScheme.tertiary,
                             lat = state.stationBLat,
                             lon = state.stationBLon,
@@ -294,8 +294,8 @@ private fun MutualContent(
                 startTime = pass.startTime,
                 endTime = pass.endTime,
                 maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
-                labelA = "You",
-                labelB = "opposite"
+                labelA = stringResource(R.string.mutual_label_you),
+                labelB = stringResource(R.string.mutual_label_opposite)
             )
             MutualPassCard(
                 pass = pass,
@@ -341,20 +341,22 @@ private fun MutualStatusChip(state: MutualUiState) {
     }
 }
 
+@Composable
 private fun mutualStatusText(state: MutualUiState): String = when {
-    state.isCalculating -> "Calculating mutual visibility windows..."
-    state.errorMessage != null -> "Fix the reported issues and retry"
-    state.mutualPasses.isNotEmpty() -> "${state.mutualPasses.size} matches found · tap a card to expand"
-    state.hasSearched -> "No mutual windows found. Adjust time or min elevation and retry"
-    else -> "Enter both stations, then tap Query"
+    state.isCalculating -> stringResource(R.string.mutual_status_calculating)
+    state.errorMessage != null -> stringResource(R.string.mutual_status_error)
+    state.mutualPasses.isNotEmpty() -> stringResource(R.string.mutual_status_matches, state.mutualPasses.size)
+    state.hasSearched -> stringResource(R.string.mutual_status_none)
+    else -> stringResource(R.string.mutual_status_idle)
 }
 
+@Composable
 private fun mutualStatusChipText(state: MutualUiState): String = when {
-    state.isCalculating -> "Calculating"
-    state.errorMessage != null -> "Error"
-    state.mutualPasses.isNotEmpty() -> "${state.mutualPasses.size} matches"
-    state.hasSearched -> "No matches"
-    else -> "Idle"
+    state.isCalculating -> stringResource(R.string.mutual_chip_calculating)
+    state.errorMessage != null -> stringResource(R.string.mutual_chip_error)
+    state.mutualPasses.isNotEmpty() -> stringResource(R.string.mutual_chip_matches, state.mutualPasses.size)
+    state.hasSearched -> stringResource(R.string.mutual_chip_none)
+    else -> stringResource(R.string.mutual_chip_idle)
 }
 
 @Composable
@@ -393,7 +395,7 @@ private fun StationInputCard(
                 )
                 if (currentPositionAction != null) {
                     OutlinedButton(onClick = currentPositionAction) {
-                        Text("Use current", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.mutual_use_current), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -405,7 +407,7 @@ private fun StationInputCard(
                 OutlinedTextField(
                     value = lat,
                     onValueChange = onLatChange,
-                    label = { Text("Lat") },
+                    label = { Text(stringResource(R.string.mutual_lat)) },
                     placeholder = { Text(latPlaceholder) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -414,7 +416,7 @@ private fun StationInputCard(
                 OutlinedTextField(
                     value = lon,
                     onValueChange = onLonChange,
-                    label = { Text("Lon") },
+                    label = { Text(stringResource(R.string.mutual_lon)) },
                     placeholder = { Text(lonPlaceholder) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -425,15 +427,15 @@ private fun StationInputCard(
             OutlinedTextField(
                 value = grid,
                 onValueChange = onGridChange,
-                label = { Text("Grid") },
+                label = { Text(stringResource(R.string.mutual_grid)) },
                 placeholder = { Text(gridPlaceholder) },
-                supportingText = { Text("Supports 4/6/8-char Maidenhead grid; or enter lat/lon directly") },
+                supportingText = { Text(stringResource(R.string.mutual_grid_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Text(
-                text = "Min elevation: ${minElev.toInt()}°",
+                text = stringResource(R.string.mutual_min_elevation, minElev.toInt()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -461,7 +463,7 @@ private fun MatchSearchCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Time range",
+                text = stringResource(R.string.mutual_time_range),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium
             )
@@ -492,7 +494,7 @@ private fun MatchSearchCard(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(if (isCalculating) "Calculating..." else "Query Match")
+                Text(if (isCalculating) stringResource(R.string.mutual_calculating) else stringResource(R.string.mutual_query))
             }
         }
     }
@@ -558,12 +560,12 @@ private fun MutualPassCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "You: ${pass.maxElevationA}°",
+                    text = stringResource(R.string.mutual_elevation_you, pass.maxElevationA.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "opposite: ${pass.maxElevationB}°",
+                    text = stringResource(R.string.mutual_elevation_opposite, pass.maxElevationB.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -579,7 +581,7 @@ private fun MutualPassCard(
                     // Dual-station radar track (polar plot)
                     if (visibleTracks.isNotEmpty()) {
                         Text(
-                            text = "Both tracks",
+                            text = stringResource(R.string.mutual_both_tracks),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -587,8 +589,8 @@ private fun MutualPassCard(
                         MutualRadarView(
                             trackSamples = visibleTracks,
                             progress = dragProgress,
-                            labelA = "You",
-                            labelB = "opposite"
+                            labelA = stringResource(R.string.mutual_label_you),
+                            labelB = stringResource(R.string.mutual_label_opposite)
                         )
                         Spacer(Modifier.height(8.dp))
                     }
@@ -613,7 +615,7 @@ private fun MutualPassCard(
                             modifier = Modifier.height(16.dp).width(16.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Open Radar")
+                        Text(stringResource(R.string.mutual_open_radar))
                     }
                 }
             }

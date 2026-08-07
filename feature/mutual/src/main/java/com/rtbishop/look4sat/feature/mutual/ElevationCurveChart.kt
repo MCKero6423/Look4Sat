@@ -24,6 +24,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rtbishop.look4sat.core.presentation.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -226,8 +228,8 @@ fun ElevationCurveChart(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text("● Station A", color = colorA, fontSize = 12.sp)
-            Text("● Station B", color = colorB, fontSize = 12.sp)
+            Text(stringResource(R.string.mutual_station_a), color = colorA, fontSize = 12.sp)
+            Text(stringResource(R.string.mutual_station_b), color = colorB, fontSize = 12.sp)
         }
     }
 }

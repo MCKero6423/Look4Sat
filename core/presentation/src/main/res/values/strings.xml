@@ -214,4 +214,36 @@
     </string>
     <string name="prefs_outro_license">The app comes with no warranty</string>
 
+    <!-- Mutual match page -->
+    <string name="mutual_title">Pass Match</string>
+    <string name="mutual_station_you">Your Station</string>
+    <string name="mutual_station_opposite">Opposite Station</string>
+    <string name="mutual_label_you">You</string>
+    <string name="mutual_label_opposite">Opposite</string>
+    <string name="mutual_status_calculating">Calculating mutual visibility windows…</string>
+    <string name="mutual_status_error">Fix the reported issues and retry</string>
+    <string name="mutual_status_matches">%d matches found · tap a card to expand</string>
+    <string name="mutual_status_none">No mutual windows found. Adjust time or min elevation and retry</string>
+    <string name="mutual_status_idle">Enter both stations, then tap Query</string>
+    <string name="mutual_chip_calculating">Calculating</string>
+    <string name="mutual_chip_error">Error</string>
+    <string name="mutual_chip_matches">%d matches</string>
+    <string name="mutual_chip_none">No matches</string>
+    <string name="mutual_chip_idle">Idle</string>
+    <string name="mutual_use_current">Use current</string>
+    <string name="mutual_lat">Lat</string>
+    <string name="mutual_lon">Lon</string>
+    <string name="mutual_grid">Grid</string>
+    <string name="mutual_grid_hint">Supports 4/6/8-char Maidenhead grid; or enter lat/lon directly</string>
+    <string name="mutual_min_elevation">Min elevation: %d°</string>
+    <string name="mutual_time_range">Time range</string>
+    <string name="mutual_calculating">Calculating…</string>
+    <string name="mutual_query">Query Match</string>
+    <string name="mutual_elevation_you">You: %d°</string>
+    <string name="mutual_elevation_opposite">Opposite: %d°</string>
+    <string name="mutual_both_tracks">Both tracks</string>
+    <string name="mutual_open_radar">Open Radar</string>
+    <string name="mutual_station_a">Station A</string>
+    <string name="mutual_station_b">Station B</string>
+
 </resources>
