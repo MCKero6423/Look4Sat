@@ -214,7 +214,7 @@ private fun MutualContent(
                         currentPositionAction = onUseCurrentPosition
                     )
                     StationInputCard(
-                        title = "Friend Station",
+                        title = "opposite station",
                         titleColor = MaterialTheme.colorScheme.tertiary,
                         lat = state.stationBLat,
                         lon = state.stationBLon,
@@ -251,7 +251,7 @@ private fun MutualContent(
                             modifier = Modifier.weight(1f)
                         )
                         StationInputCard(
-                            title = "Friend Station",
+                            title = "opposite station",
                             titleColor = MaterialTheme.colorScheme.tertiary,
                             lat = state.stationBLat,
                             lon = state.stationBLon,
@@ -295,7 +295,7 @@ private fun MutualContent(
                 endTime = pass.endTime,
                 maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
                 labelA = "You",
-                labelB = "Friend"
+                labelB = "opposite"
             )
             MutualPassCard(
                 pass = pass,
@@ -563,7 +563,7 @@ private fun MutualPassCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Friend: ${pass.maxElevationB}°",
+                    text = "opposite: ${pass.maxElevationB}°",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -588,7 +588,7 @@ private fun MutualPassCard(
                             trackSamples = visibleTracks,
                             progress = dragProgress,
                             labelA = "You",
-                            labelB = "Friend"
+                            labelB = "opposite"
                         )
                         Spacer(Modifier.height(8.dp))
                     }
