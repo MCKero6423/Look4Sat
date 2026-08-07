@@ -7,13 +7,24 @@ plugins {
 
 android {
     namespace = "com.rtbishop.look4sat.feature.cw"
+    ndkVersion = "25.2.9519653"
     compileOptions {
         encoding = "UTF-8"
     }
-    // 照搬 Morse Expert 1.15: native 解码器仅 armeabi-v7a
     defaultConfig {
+        // fldigi CW 解码器: 支持 arm64-v8a + armeabi-v7a 双架构
         ndk {
-            abiFilters += listOf("armeabi-v7a")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
         }
     }
 }
@@ -26,13 +37,4 @@ androidComponents {
             project.layout.projectDirectory.file("proguard-rules.pro")
         )
     }
-}
-
-dependencies {
-    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-}
-
-// 照搬的 Java 源码含中文注释, 强制 UTF-8 编译(compileOptions 在部分 AGP 版本不生效)
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
 }

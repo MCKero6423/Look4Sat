@@ -95,7 +95,7 @@ import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.formatFrequency
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
 import com.rtbishop.look4sat.feature.cw.R as CwR
-import com.ve3nea.morse_expert.MainActivity
+import com.rtbishop.look4sat.feature.cw.FldigiCwController
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -941,7 +941,7 @@ private fun CwDecoderPanel(
             val activity = remember(context) {
                 context as? Activity ?: error("CwDecoderPanel must be hosted in an Activity")
             }
-            val controller = remember { MainActivity() }
+            val controller = remember { FldigiCwController() }
             val rootView = remember(context) {
                 LayoutInflater.from(context).inflate(CwR.layout.activity_main, null) as ConstraintLayout
             }

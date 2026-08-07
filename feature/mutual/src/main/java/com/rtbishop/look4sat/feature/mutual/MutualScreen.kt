@@ -90,7 +90,7 @@ fun MutualScreen(
                 },
                 topInfo = {
                     Text(
-                        text = "过境匹配",
+                        text = "Pass Match",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -198,7 +198,7 @@ private fun MutualContent(
             ) {
                 if (isVertical) {
                     StationInputCard(
-                        title = "你的位置",
+                        title = "Your Station",
                         titleColor = MaterialTheme.colorScheme.primary,
                         lat = state.stationALat,
                         lon = state.stationALon,
@@ -214,7 +214,7 @@ private fun MutualContent(
                         currentPositionAction = onUseCurrentPosition
                     )
                     StationInputCard(
-                        title = "友台位置",
+                        title = "Friend Station",
                         titleColor = MaterialTheme.colorScheme.tertiary,
                         lat = state.stationBLat,
                         lon = state.stationBLon,
@@ -234,7 +234,7 @@ private fun MutualContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         StationInputCard(
-                            title = "你的位置",
+                            title = "Your Station",
                             titleColor = MaterialTheme.colorScheme.primary,
                             lat = state.stationALat,
                             lon = state.stationALon,
@@ -251,7 +251,7 @@ private fun MutualContent(
                             modifier = Modifier.weight(1f)
                         )
                         StationInputCard(
-                            title = "友台位置",
+                            title = "Friend Station",
                             titleColor = MaterialTheme.colorScheme.tertiary,
                             lat = state.stationBLat,
                             lon = state.stationBLon,
@@ -294,8 +294,8 @@ private fun MutualContent(
                 startTime = pass.startTime,
                 endTime = pass.endTime,
                 maxElev = maxOf(pass.maxElevationA, pass.maxElevationB, 10.0),
-                labelA = "你",
-                labelB = "友台"
+                labelA = "You",
+                labelB = "Friend"
             )
             MutualPassCard(
                 pass = pass,
@@ -342,19 +342,19 @@ private fun MutualStatusChip(state: MutualUiState) {
 }
 
 private fun mutualStatusText(state: MutualUiState): String = when {
-    state.isCalculating -> "正在计算双方共同可见窗口…"
-    state.errorMessage != null -> "请修正提示后重新查询"
-    state.mutualPasses.isNotEmpty() -> "找到 ${state.mutualPasses.size} 个匹配 · 点击卡片展开曲线"
-    state.hasSearched -> "未找到共同可见窗口，调整时间或仰角后重试"
-    else -> "输入双方位置后点击查询"
+    state.isCalculating -> "Calculating mutual visibility windows..."
+    state.errorMessage != null -> "Fix the reported issues and retry"
+    state.mutualPasses.isNotEmpty() -> "${state.mutualPasses.size} matches found · tap a card to expand"
+    state.hasSearched -> "No mutual windows found. Adjust time or min elevation and retry"
+    else -> "Enter both stations, then tap Query"
 }
 
 private fun mutualStatusChipText(state: MutualUiState): String = when {
-    state.isCalculating -> "计算中"
-    state.errorMessage != null -> "有错误"
-    state.mutualPasses.isNotEmpty() -> "${state.mutualPasses.size}个匹配"
-    state.hasSearched -> "无匹配"
-    else -> "待查询"
+    state.isCalculating -> "Calculating"
+    state.errorMessage != null -> "Error"
+    state.mutualPasses.isNotEmpty() -> "${state.mutualPasses.size} matches"
+    state.hasSearched -> "No matches"
+    else -> "Idle"
 }
 
 @Composable
@@ -393,7 +393,7 @@ private fun StationInputCard(
                 )
                 if (currentPositionAction != null) {
                     OutlinedButton(onClick = currentPositionAction) {
-                        Text("填入当前位置", style = MaterialTheme.typography.bodySmall)
+                        Text("Use current", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -405,7 +405,7 @@ private fun StationInputCard(
                 OutlinedTextField(
                     value = lat,
                     onValueChange = onLatChange,
-                    label = { Text("纬度") },
+                    label = { Text("Lat") },
                     placeholder = { Text(latPlaceholder) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -414,7 +414,7 @@ private fun StationInputCard(
                 OutlinedTextField(
                     value = lon,
                     onValueChange = onLonChange,
-                    label = { Text("经度") },
+                    label = { Text("Lon") },
                     placeholder = { Text(lonPlaceholder) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -425,15 +425,15 @@ private fun StationInputCard(
             OutlinedTextField(
                 value = grid,
                 onValueChange = onGridChange,
-                label = { Text("网格") },
+                label = { Text("Grid") },
                 placeholder = { Text(gridPlaceholder) },
-                supportingText = { Text("支持 4/6/8 位 Maidenhead 网格；也可直接输入经纬度") },
+                supportingText = { Text("Supports 4/6/8-char Maidenhead grid; or enter lat/lon directly") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Text(
-                text = "最小仰角：${minElev.toInt()}°",
+                text = "Min elevation: ${minElev.toInt()}°",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -461,7 +461,7 @@ private fun MatchSearchCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "时间范围",
+                text = "Time range",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium
             )
@@ -492,7 +492,7 @@ private fun MatchSearchCard(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(if (isCalculating) "计算中..." else "查询匹配")
+                Text(if (isCalculating) "Calculating..." else "Query Match")
             }
         }
     }
@@ -558,12 +558,12 @@ private fun MutualPassCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "你: ${pass.maxElevationA}°",
+                    text = "You: ${pass.maxElevationA}°",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "友台: ${pass.maxElevationB}°",
+                    text = "Friend: ${pass.maxElevationB}°",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -579,7 +579,7 @@ private fun MutualPassCard(
                     // Dual-station radar track (polar plot)
                     if (visibleTracks.isNotEmpty()) {
                         Text(
-                            text = "双方轨迹",
+                            text = "Both tracks",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -587,8 +587,8 @@ private fun MutualPassCard(
                         MutualRadarView(
                             trackSamples = visibleTracks,
                             progress = dragProgress,
-                            labelA = "你",
-                            labelB = "友台"
+                            labelA = "You",
+                            labelB = "Friend"
                         )
                         Spacer(Modifier.height(8.dp))
                     }
@@ -613,7 +613,7 @@ private fun MutualPassCard(
                             modifier = Modifier.height(16.dp).width(16.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("查看雷达")
+                        Text("Open Radar")
                     }
                 }
             }

@@ -226,8 +226,8 @@ fun ElevationCurveChart(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text("● 站点A", color = colorA, fontSize = 12.sp)
-            Text("● 站点B", color = colorB, fontSize = 12.sp)
+            Text("● Station A", color = colorA, fontSize = 12.sp)
+            Text("● Station B", color = colorB, fontSize = 12.sp)
         }
     }
 }

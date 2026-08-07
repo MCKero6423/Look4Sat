@@ -44,7 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ve3nea.morse_expert.MainActivity
+import com.rtbishop.look4sat.feature.cw.FldigiCwController
 import kotlin.math.roundToInt
 
 /** 键名/默认值照搬原 Morse Expert(root_preferences.xml + SettingsActivity 逻辑)。 */
@@ -54,6 +54,30 @@ private const val DEFAULT_MESSAGE_TYPE = "general_text"
 private const val DEFAULT_TEXT_FONT_SIZE = 18
 private const val MIN_FONT_SIZE = 7
 private const val MAX_FONT_SIZE = 99
+
+/** 颜色键名（照搬原 Morse Expert I2.b.f663b） */
+private val ColorKeys = arrayOf(
+    "bg_color", "text_color", "text_color_weak",
+    "call_color", "call_color_weak",
+    "cq_color", "cq_color_weak",
+    "rst_color", "rst_color_weak"
+)
+
+/** 颜色默认值（照搬原 Morse Expert I2.b.f664d，ARGB int） */
+private val ColorDefaults = intArrayOf(
+    -3084048, -16777216, -5592406,
+    -65536, -30584,
+    -16776961, -7829249,
+    -65281, -30465
+)
+
+/** 颜色名称（照搬原 Morse Expert I2.b.c） */
+private val ColorNames = arrayOf(
+    "Background color", "Text color", "Text color, weak",
+    "Callsign color", "Callsign color, weak",
+    "CQ color", "CQ color, weak",
+    "RST color", "RST color, weak"
+)
 
 /** 预置色板(9 色, 3x3 网格);原 ColorPreferenceCompat 用第三方 colorpicker, 不引入。 */
 private val PaletteColors = listOf(
@@ -70,7 +94,7 @@ private val PaletteColors = listOf(
  * 点击 OK 保存并调用 controller.onResume() 立即生效; Cancel/点外部仅关闭不保存。
  */
 @Composable
-fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
+fun CwSettingsDialog(controller: FldigiCwController, onDismiss: () -> Unit) {
     val activity = controller.mActivity ?: return
     val prefs = remember(activity) {
         activity.getSharedPreferences(activity.packageName + "_preferences", Context.MODE_PRIVATE)
@@ -86,7 +110,7 @@ fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
         )
     }
     var colorValues by remember {
-        mutableStateOf(IntArray(9) { i -> prefs.getInt(I2.b.f663b[i], I2.b.f664d[i]) })
+        mutableStateOf(IntArray(9) { i -> prefs.getInt(ColorKeys[i], ColorDefaults[i]) })
     }
 
     AlertDialog(
@@ -124,7 +148,7 @@ fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
                 Text("Colors", style = MaterialTheme.typography.titleSmall)
                 for (i in 0 until 9) {
                     ColorSettingRow(
-                        title = I2.b.c[i],
+                        title = ColorNames[i],
                         value = colorValues[i],
                         onSelect = { selected ->
                             colorValues = colorValues.copyOf().also { it[i] = selected }
@@ -139,7 +163,7 @@ fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
                 editor.putString(KEY_MESSAGE_TYPE, messageType)
                 editor.putInt(KEY_TEXT_FONT_SIZE, fontSize.roundToInt())
                 for (i in 0 until 9) {
-                    editor.putInt(I2.b.f663b[i], colorValues[i])
+                    editor.putInt(ColorKeys[i], colorValues[i])
                 }
                 editor.apply()
                 // 原 SettingsActivity 返回时由 MainActivity.onResume() 重新读取全部设置; 照搬逻辑已就位

@@ -158,13 +158,13 @@ class MutualViewModel(
         var posB = resolvePosition(state.stationBLat, state.stationBLon, state.stationBGrid)
 
         if (posA == null || posB == null) {
-            _uiState.update { it.copy(errorMessage = "请输入有效的位置坐标或网格（4/6/8位）") }
+            _uiState.update { it.copy(errorMessage = "Please enter valid coordinates or a Maidenhead grid (4/6/8 chars)") }
             return
         }
 
         val satellites = satelliteRepo.satellites.value
         if (satellites.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "没有卫星数据，请先在卫星列表中选择卫星") }
+            _uiState.update { it.copy(errorMessage = "No satellite data. Select satellites from the list first.") }
             return
         }
 
@@ -193,9 +193,9 @@ class MutualViewModel(
                 val passCount = satelliteRepo.passes.value.size
                 val satCount = satellites.size
                 when {
-                    passCount == 0 -> "过境列表为空，请先在卫星列表中选择卫星"
-                    satCount == 0 -> "没有已选中的卫星"
-                    else -> "未找到共同过境（${passCount}个过境，${satCount}颗卫星）"
+                    passCount == 0 -> "Pass list is empty. Select satellites from the list first."
+                    satCount == 0 -> "No satellites selected."
+                    else -> "No mutual passes found (${passCount} passes, ${satCount} satellites)."
                 }
             } else null
 

@@ -57,8 +57,8 @@ private const val STROKE_WIDTH = 2.5f
 fun MutualRadarView(
     trackSamples: List<TrackSample>,
     progress: Float = 0.5f,
-    labelA: String = "站点A",
-    labelB: String = "站点B",
+    labelA: String = "Station A",
+    labelB: String = "Station B",
     modifier: Modifier = Modifier
 ) {
     if (trackSamples.isEmpty()) return
