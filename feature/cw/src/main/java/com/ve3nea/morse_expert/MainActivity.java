@@ -139,7 +139,7 @@ public class MainActivity {
     public void onResume() {
         android.content.SharedPreferences prefs = mActivity.getSharedPreferences(
             mActivity.getPackageName() + "_preferences", Context.MODE_PRIVATE);
-        String messageType = prefs.getString("message_type", "general_text");
+        String messageType = prefs.getString("message_type", "ham_radio_qso");
         b bVar = this.f11037F;
         if (bVar != null) {
             bVar.f623s.set(messageType.equals("ham_radio_qso"));
