@@ -16,20 +16,28 @@ import java.util.Locale
 /**
  * Computes Doppler-corrected reciprocal frequencies for linear transponders.
  *
- * For a linear (passband) transponder, uplink and downlink frequencies are
- * related by a fixed passband offset. When the satellite moves, both are
- * Doppler-shifted. Given one, we compute the other:
+ * The full physical path:
  *
- *   downlink → uplink: mapDownlinkToUplink (passband) → getUplinkFreq (Doppler)
- *   uplink → downlink: mapUplinkToDownlink (passband) → getDownlinkFreq (Doppler)
+ * TX→RX (uplink → downlink):
+ *   ① 地面发射 f_tx
+ *   ② 卫星收到 f_tx × (c - v) / c  （上行多普勒）
+ *   ③ 卫星转发 = passband映射(②)    （在卫星上做映射）
+ *   ④ 地面听到 ③ × (c - v) / c     （下行多普勒）
+ *
+ * RX→TX (downlink → uplink):
+ *   ④ 地面听到 f_rx
+ *   ③ 卫星转发 = f_rx × (c + v) / c  （逆下行多普勒）
+ *   ② 卫星收到 = 逆passband映射(③)
+ *   ① 地面应发射 = ② × (c + v) / c   （逆上行多普勒）
  *
  * Addresses GitHub issue #91 (Custom frequency Doppler correction).
  */
 object DopplerFrequencyCalculator {
 
     /**
-     * Given a downlink frequency, compute the Doppler-corrected uplink frequency.
-     * Returns null if the transponder is not a linear passband type.
+     * Given a downlink frequency (what the user hears), compute the
+     * uplink frequency the user should transmit.
+     * Full path: ④→③→②→①
      */
     fun computeUplinkFromDownlink(
         downlinkHz: Long,
@@ -37,17 +45,22 @@ object DopplerFrequencyCalculator {
         orbitalPos: OrbitalPos
     ): Long? {
         if (!isLinearTransponder(transponder)) return null
-        val baseUplink = TransponderMapper.mapDownlinkToUplink(downlinkHz, transponder) ?: return null
-        return orbitalPos.getUplinkFreq(baseUplink)
+        // ④→③ 逆下行多普勒：卫星转发的频率
+        val satTx = orbitalPos.getUplinkFreq(downlinkHz)
+        // ③→② 逆 passband 映射
+        val satRx = TransponderMapper.mapDownlinkToUplink(satTx, transponder) ?: return null
+        // ②→① 逆上行多普勒：地面应发射的频率
+        return orbitalPos.getUplinkFreq(satRx)
     }
 
     /**
-     * Given a downlink frequency, compute the Doppler-corrected uplink frequency
-     * with an offset applied to the downlink (in Hz).
-     * Returns null if the transponder is not a linear passband type.
+     * Given a downlink frequency (what the user hears), compute the
+     * uplink frequency the user should transmit, with an offset applied
+     * to the downlink (in Hz).
+     * Full path: ④→③→②→①
      *
      * The user-entered downlink frequency already includes the offset, so subtract
-     * it before mapping the downlink passband position back to the uplink.
+     * it before the inverse downlink Doppler.
      */
     fun computeUplinkFromDownlinkWithOffset(
         downlinkHz: Long,
@@ -56,13 +69,20 @@ object DopplerFrequencyCalculator {
         offsetHz: Long
     ): Long? {
         if (!isLinearTransponder(transponder)) return null
-        val baseUplink = TransponderMapper.mapDownlinkToUplink(downlinkHz - offsetHz, transponder) ?: return null
-        return orbitalPos.getUplinkFreq(baseUplink)
+        // ④→③ 逆下行多普勒：卫星转发的频率（含 offset）
+        val satTxWithOffset = orbitalPos.getUplinkFreq(downlinkHz)
+        // ③ 去掉 offset（offset 在卫星本地频率域）
+        val satTx = satTxWithOffset - offsetHz
+        // ③→② 逆 passband 映射
+        val satRx = TransponderMapper.mapDownlinkToUplink(satTx, transponder) ?: return null
+        // ②→① 逆上行多普勒：地面应发射的频率
+        return orbitalPos.getUplinkFreq(satRx)
     }
 
     /**
-     * Given an uplink frequency, compute the Doppler-corrected downlink frequency.
-     * Returns null if the transponder is not a linear passband type.
+     * Given an uplink frequency (what the user transmits), compute the
+     * downlink frequency the user will hear.
+     * Full path: ①→②→③→④
      */
     fun computeDownlinkFromUplink(
         uplinkHz: Long,
@@ -70,14 +90,19 @@ object DopplerFrequencyCalculator {
         orbitalPos: OrbitalPos
     ): Long? {
         if (!isLinearTransponder(transponder)) return null
-        val baseDownlink = TransponderMapper.mapUplinkToDownlink(uplinkHz, transponder) ?: return null
-        return orbitalPos.getDownlinkFreq(baseDownlink)
+        // ①→② 上行多普勒：卫星收到的频率
+        val satRx = orbitalPos.getDownlinkFreq(uplinkHz)
+        // ②→③ passband 映射
+        val satTx = TransponderMapper.mapUplinkToDownlink(satRx, transponder) ?: return null
+        // ③→④ 下行多普勒：地面听到的
+        return orbitalPos.getDownlinkFreq(satTx)
     }
 
     /**
-     * Given an uplink frequency, compute the Doppler-corrected downlink frequency
-     * with an offset applied to the downlink (in Hz).
-     * Returns null if the transponder is not a linear passband type.
+     * Given an uplink frequency (what the user transmits), compute the
+     * downlink frequency the user will hear, with an offset applied
+     * to the downlink (in Hz).
+     * Full path: ①→②→③→④
      */
     fun computeDownlinkFromUplinkWithOffset(
         uplinkHz: Long,
@@ -86,8 +111,13 @@ object DopplerFrequencyCalculator {
         offsetHz: Long
     ): Long? {
         if (!isLinearTransponder(transponder)) return null
-        val baseDownlink = TransponderMapper.mapUplinkToDownlink(uplinkHz, transponder) ?: return null
-        return orbitalPos.getDownlinkFreq(baseDownlink + offsetHz)
+        // ①→② 上行多普勒：卫星收到的频率
+        val satRx = orbitalPos.getDownlinkFreq(uplinkHz)
+        // ②→③ passband 映射
+        val satTx = TransponderMapper.mapUplinkToDownlink(satRx, transponder) ?: return null
+        // ③ 加上 offset（offset 在卫星本地频率域）
+        // ③→④ 下行多普勒：地面听到的
+        return orbitalPos.getDownlinkFreq(satTx + offsetHz)
     }
 
     /** True if this transponder supports linear passband mapping. */

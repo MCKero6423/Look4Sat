@@ -3,10 +3,22 @@ plugins {
 }
 
 android {
-    // PR #1 CW decoder uses the Morse Expert native decoder, which ships only armeabi-v7a.
+    namespace = libs.versions.packageName.get()
     defaultConfig {
-        ndk {
-            abiFilters += listOf("armeabi-v7a")
+        applicationId = "cn.ba7opf.look4sat"
+        ndk { abiFilters.add("armeabi-v7a") }
+    }
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getProperty("user.home") + "/my-release-key.jks")
+            storePassword = "look4sat123"
+            keyAlias = "look4sat"
+            keyPassword = "look4sat123"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
