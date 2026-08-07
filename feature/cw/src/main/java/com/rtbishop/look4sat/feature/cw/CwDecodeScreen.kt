@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.constraintlayout.widget.ConstraintLayout
+import com.ve3nea.morse_expert.MainActivity
 
 @Composable
 fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
@@ -66,8 +67,8 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
     val activity = remember(context) {
         context as? Activity ?: error("CwDecodeScreen must be hosted in an Activity")
     }
-    // fldigi 解码器控制器; 每次进入页面新建实例
-    val controller = remember { FldigiCwController() }
+    // 照搬的控制器(普通类, 非 Activity); 每次进入页面新建实例
+    val controller = remember { MainActivity() }
     // 提前 inflate 原版布局, 供 AndroidView 与控制器 onCreate 共用同一根视图
     val rootView = remember(context) {
         LayoutInflater.from(context).inflate(R.layout.activity_main, null) as ConstraintLayout
