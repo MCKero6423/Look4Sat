@@ -368,12 +368,15 @@ class CwWaterfallState {
     private var colCount = 0
     private val pending = ArrayList<Float>(4096)
     private val fftWindow = 512
-    private var acc = 0f
-    private var accN = 0
+
+    /** Monotonic frame counter — reading this in composition triggers redraw. */
+    private val _version = androidx.compose.runtime.mutableIntStateOf(0)
+    val version: androidx.compose.runtime.State<Int> = _version
 
     @Synchronized
     fun pushSamples(samples: FloatArray) {
         pending.addAll(samples.toList())
+        var frames = 0
         while (pending.size >= fftWindow) {
             val window = FloatArray(fftWindow) { pending[it] }
             repeat(fftWindow) { pending.removeAt(0) }
@@ -387,7 +390,9 @@ class CwWaterfallState {
                 data[(rows - 1) * columns + c] = spectrum[bin.coerceAtMost(spectrum.size - 1)]
             }
             if (colCount < rows) colCount++
+            frames++
         }
+        if (frames > 0) _version.intValue++
     }
 
     /** Magnitude spectrum via radix-2 FFT on a Hann-windowed frame. */
@@ -466,6 +471,8 @@ class CwWaterfallState {
 private fun CwWaterfallView(state: CwWaterfallState) {
     val columns = 160
     val rows = 64
+    // Read the frame counter so the canvas redraws as new spectra arrive.
+    state.version.value
     Canvas(
         modifier = Modifier
             .fillMaxSize()
@@ -478,9 +485,10 @@ private fun CwWaterfallView(state: CwWaterfallState) {
             val col = state.getColumn(c)
             for (r in 0 until rows) {
                 val v = col[r]
-                val intensity = (v * 4000f).coerceIn(0f, 255f)
-                if (intensity > 6f) {
-                    val green = (intensity * 1.3f).coerceAtMost(255f)
+                // log-ish scaling: quiet bins stay dark, strong CW tones pop
+                val intensity = (kotlin.math.ln1p(v * 600f) * 55f).coerceIn(0f, 255f)
+                if (intensity > 4f) {
+                    val green = (intensity * 1.25f).coerceAtMost(255f)
                     drawRect(
                         color = Color(0f, green / 255f, 0f, 1f),
                         topLeft = Offset(c * cellW, r * cellH),

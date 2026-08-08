@@ -906,9 +906,14 @@ private class CwPanelWaterfallState {
     private val pending = ArrayList<Float>(4096)
     private val fftWindow = 512
 
+    /** Monotonic frame counter — reading this in composition triggers redraw. */
+    private val _version = androidx.compose.runtime.mutableIntStateOf(0)
+    val version: androidx.compose.runtime.State<Int> = _version
+
     @Synchronized
     fun pushSamples(samples: FloatArray) {
         pending.addAll(samples.toList())
+        var frames = 0
         while (pending.size >= fftWindow) {
             val window = FloatArray(fftWindow) { pending[it] }
             repeat(fftWindow) { pending.removeAt(0) }
@@ -920,7 +925,9 @@ private class CwPanelWaterfallState {
                 val bin = c * spectrum.size / columns
                 data[(rows - 1) * columns + c] = spectrum[bin.coerceAtMost(spectrum.size - 1)]
             }
+            frames++
         }
+        if (frames > 0) _version.intValue++
     }
 
     private fun computeSpectrum(window: FloatArray): FloatArray {
@@ -995,6 +1002,8 @@ private class CwPanelWaterfallState {
 private fun CwPanelWaterfallView(state: CwPanelWaterfallState) {
     val columns = 120
     val rows = 48
+    // Read the frame counter so the canvas redraws as new spectra arrive.
+    state.version.value
     Canvas(
         modifier = Modifier
             .fillMaxSize()
