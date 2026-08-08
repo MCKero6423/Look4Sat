@@ -17,11 +17,13 @@
  */
 package com.rtbishop.look4sat.feature.radar
 
-import android.app.Activity
-import android.view.LayoutInflater
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -41,6 +43,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -53,35 +56,46 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.constraintlayout.widget.ConstraintLayout
+import com.rtbishop.look4sat.core.domain.cw.CwFldigiDecoder
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
 import com.rtbishop.look4sat.core.presentation.CardButton
+import kotlin.math.roundToInt
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.formatFrequency
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
-import com.rtbishop.look4sat.feature.cw.R as CwR
-import com.ve3nea.morse_expert.MainActivity
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -714,33 +728,47 @@ private fun CwDecoderPanel(
         }
 
         AnimatedVisibility(visible = cw.isExpanded) {
-            // PR #1 Morse Expert engine: mini layout with waterfall + decoded text.
-            // Keep the old Kotlin decoder state/actions as fallback code, but this panel no longer feeds it.
+            // fldigi engine: pure Compose panel (waterfall + decoded text).
             val context = LocalContext.current
-            val activity = remember { context as? Activity }
-            val controller = remember { MainActivity() }
-            val rootView = remember {
-                LayoutInflater.from(context).inflate(CwR.layout.cw_panel_main, null) as ConstraintLayout
-            }
-            var initialized by remember { mutableStateOf(false) }
+            val decoder = remember { CwFldigiDecoder(initialWpm = 18) }
+            val waterfall = remember { CwPanelWaterfallState() }
             var listening by remember { mutableStateOf(false) }
+            var captureJob by remember { mutableStateOf<Job?>(null) }
+            val scope = rememberCoroutineScope()
+
+            val decodedText by decoder.decodedTextFlow.collectAsState()
+            val signalStrength by decoder.signalStrength.collectAsState()
+
+            fun startPanelCapture() {
+                if (!cw.hasPermission) {
+                    requestMicPermission()
+                    return
+                }
+                captureJob?.cancel()
+                captureJob = scope.launch(Dispatchers.IO) {
+                    val capture = CwPanelMicCapture()
+                    capture.audioFlow().collect { chunk ->
+                        if (!isActive) return@collect
+                        decoder.processBuffer(chunk)
+                        waterfall.pushSamples(chunk)
+                    }
+                }
+                listening = true
+            }
+
+            fun stopPanelCapture() {
+                captureJob?.cancel()
+                captureJob = null
+                listening = false
+            }
 
             DisposableEffect(Unit) {
-                if (activity != null) {
-                    controller.onCreate(activity, rootView, false)
-                }
-                onDispose {
-                    controller.onPause()
-                    controller.onDestroy()
-                }
+                onDispose { stopPanelCapture() }
             }
 
             LaunchedEffect(cw.hasPermission) {
-                if (cw.hasPermission && !initialized) {
-                    controller.onPermissionGranted()
-                    controller.onResume()
-                    initialized = true
-                    listening = true
+                if (cw.hasPermission && !listening) {
+                    startPanelCapture()
                 }
             }
 
@@ -751,48 +779,61 @@ private fun CwDecoderPanel(
                 ) {
                     if (!listening) {
                         Button(
-                            onClick = {
-                                if (!cw.hasPermission) {
-                                    requestMicPermission()
-                                } else if (!initialized) {
-                                    controller.onPermissionGranted()
-                                    controller.onResume()
-                                    initialized = true
-                                    listening = true
-                                } else {
-                                    controller.onResume()
-                                    listening = true
-                                }
-                            },
+                            onClick = { startPanelCapture() },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(R.string.radar_cw_start))
                         }
                     } else {
                         Button(
-                            onClick = {
-                                controller.onPause()
-                                listening = false
-                            },
+                            onClick = { stopPanelCapture() },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(R.string.radar_cw_stop))
                         }
                     }
                     OutlinedButton(
-                        onClick = { controller.clearDecoded() },
+                        onClick = { decoder.resetDecoder(); waterfall.reset() },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.radar_cw_reset))
                     }
                 }
 
-                AndroidView(
-                    factory = { rootView },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
+                        .height(90.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    CwPanelWaterfallView(state = waterfall)
+                }
+
+                Text(
+                    text = decodedText.takeLast(120),
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = if (listening) "● ACTIVE" else "○ IDLE",
+                        fontSize = 12.sp,
+                        color = if (listening) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = "LEVEL ${(signalStrength * 100).roundToInt()}%",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -821,3 +862,161 @@ private fun transceiverTitle(radio: SatRadio): String {
 
 private val FREQ_ADJUSTMENTS =
     listOf(-10_000L to "-10k", -1_000L to "-1k", -100L to "-100", 100L to "+100", 1_000L to "+1k", 10_000L to "+10k")
+
+// --- CW panel components (fldigi engine, pure Compose) ---
+
+/** Microphone capture at 8000 Hz mono PCM float (fldigi sample rate). */
+private class CwPanelMicCapture {
+    private val sampleRate = 8000
+    private val channelConfig = AudioFormat.CHANNEL_IN_MONO
+    private val audioFormat = AudioFormat.ENCODING_PCM_FLOAT
+
+    fun audioFlow(): Flow<FloatArray> = flow {
+        val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+            .coerceAtLeast(sampleRate / 5)
+        val recorder = AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            sampleRate,
+            channelConfig,
+            audioFormat,
+            bufferSize * 4
+        )
+        try {
+            recorder.startRecording()
+            val chunkSize = sampleRate / 10
+            val buffer = FloatArray(chunkSize)
+            while (currentCoroutineContext().isActive) {
+                val read = recorder.read(buffer, 0, chunkSize, AudioRecord.READ_BLOCKING)
+                if (read > 0) {
+                    emit(if (read == chunkSize) buffer.copyOf() else buffer.copyOfRange(0, read))
+                }
+            }
+        } finally {
+            recorder.stop()
+            recorder.release()
+        }
+    }.flowOn(Dispatchers.IO)
+}
+
+/** Sliding spectrogram ring buffer for the CW waterfall. */
+private class CwPanelWaterfallState {
+    private val columns = 120
+    private val rows = 48
+    private val data = FloatArray(columns * rows)
+    private val pending = ArrayList<Float>(4096)
+    private val fftWindow = 512
+
+    @Synchronized
+    fun pushSamples(samples: FloatArray) {
+        pending.addAll(samples.toList())
+        while (pending.size >= fftWindow) {
+            val window = FloatArray(fftWindow) { pending[it] }
+            repeat(fftWindow) { pending.removeAt(0) }
+            val spectrum = computeSpectrum(window)
+            for (r in 0 until rows - 1) {
+                System.arraycopy(data, (r + 1) * columns, data, r * columns, columns)
+            }
+            for (c in 0 until columns) {
+                val bin = c * spectrum.size / columns
+                data[(rows - 1) * columns + c] = spectrum[bin.coerceAtMost(spectrum.size - 1)]
+            }
+        }
+    }
+
+    private fun computeSpectrum(window: FloatArray): FloatArray {
+        val n = window.size
+        val re = FloatArray(n)
+        val im = FloatArray(n)
+        for (i in 0 until n) {
+            val w = 0.5 - 0.5 * kotlin.math.cos(2.0 * Math.PI * i / (n - 1))
+            re[i] = window[i] * w.toFloat()
+        }
+        var j = 0
+        for (i in 1 until n) {
+            var bit = n shr 1
+            while (j and bit != 0) { j = j xor bit; bit = bit shr 1 }
+            j = j xor bit
+            if (i < j) {
+                val tr = re[i]; re[i] = re[j]; re[j] = tr
+                val ti = im[i]; im[i] = im[j]; im[j] = ti
+            }
+        }
+        var len = 2
+        while (len <= n) {
+            val ang = -2.0 * Math.PI / len
+            val wRe = kotlin.math.cos(ang).toFloat()
+            val wIm = kotlin.math.sin(ang).toFloat()
+            var i = 0
+            while (i < n) {
+                var curRe = 1f
+                var curIm = 0f
+                for (k in 0 until len / 2) {
+                    val uRe = re[i + k]
+                    val uIm = im[i + k]
+                    val vRe = re[i + k + len / 2] * curRe - im[i + k + len / 2] * curIm
+                    val vIm = re[i + k + len / 2] * curIm + im[i + k + len / 2] * curRe
+                    re[i + k] = uRe + vRe
+                    im[i + k] = uIm + vIm
+                    re[i + k + len / 2] = uRe - vRe
+                    im[i + k + len / 2] = uIm - vIm
+                    val nRe = curRe * wRe - curIm * wIm
+                    val nIm = curRe * wIm + curIm * wRe
+                    curRe = nRe; curIm = nIm
+                }
+                i += len
+            }
+            len = len shl 1
+        }
+        val bins = 48
+        val out = FloatArray(bins)
+        for (k in 0 until bins) {
+            out[k] = kotlin.math.sqrt(re[k] * re[k] + im[k] * im[k]) / n
+        }
+        return out
+    }
+
+    @Synchronized
+    fun getColumn(c: Int): FloatArray {
+        val col = FloatArray(rows)
+        for (r in 0 until rows) {
+            col[r] = data[r * columns + c.coerceIn(0, columns - 1)]
+        }
+        return col
+    }
+
+    @Synchronized
+    fun reset() {
+        data.fill(0f)
+        pending.clear()
+    }
+}
+
+@Composable
+private fun CwPanelWaterfallView(state: CwPanelWaterfallState) {
+    val columns = 120
+    val rows = 48
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D1B2A))
+            .clip(RoundedCornerShape(8.dp))
+    ) {
+        val cellW = size.width / columns
+        val cellH = size.height / rows
+        for (c in 0 until columns) {
+            val col = state.getColumn(c)
+            for (r in 0 until rows) {
+                val v = col[r]
+                val intensity = (v * 4000f).coerceIn(0f, 255f)
+                if (intensity > 6f) {
+                    val green = (intensity * 1.3f).coerceAtMost(255f)
+                    drawRect(
+                        color = Color(0f, green / 255f, 0f, 1f),
+                        topLeft = Offset(c * cellW, r * cellH),
+                        size = Size(cellW + 0.5f, cellH + 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}

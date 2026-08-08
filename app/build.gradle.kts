@@ -11,12 +11,9 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    // CW 解码 native 库仅 armeabi-v7a(照搬 Morse Expert 1.15): 全 ABI 打包会在
-    // arm64 设备 loadLibrary 失败, 强制 32 位兼容(用户设备为 32 位软件)
+    // CW 解码已迁移为纯 Kotlin fldigi 引擎, 不再有 native 库;
+    // 取消 armeabi-v7a 强制, 按设备 ABI 打包(含 x86_64 模拟器)
     defaultConfig {
-        ndk {
-            abiFilters += listOf("armeabi-v7a")
-        }
     }
     androidResources {
         // 显式保留全部语言(防 shrinkResources 丢弃 in/id 印尼语配置); AGP 9 用 localeFilters

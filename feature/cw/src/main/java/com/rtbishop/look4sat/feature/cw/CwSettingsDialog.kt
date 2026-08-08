@@ -6,10 +6,17 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.rtbishop.look4sat.feature.cw
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,50 +51,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ve3nea.morse_expert.MainActivity
 import kotlin.math.roundToInt
 
-/** Keys/defaults ported from the original Morse Expert (root_preferences.xml + SettingsActivity logic). */
-private const val KEY_MESSAGE_TYPE = "message_type"
-private const val KEY_TEXT_FONT_SIZE = "text_font_size"
-private const val DEFAULT_MESSAGE_TYPE = "general_text"
-private const val DEFAULT_TEXT_FONT_SIZE = 18
-private const val MIN_FONT_SIZE = 7
-private const val MAX_FONT_SIZE = 99
-
-/** Preset palette (9 colors, 3x3 grid); the original ColorPreferenceCompat used a third-party colorpicker, not imported. */
-private val PaletteColors = listOf(
-    0xFFD0F0F0.toInt(), 0xFF000000.toInt(), 0xFFFFFFFF.toInt(),
-    0xFFAAAAAA.toInt(), 0xFFFF0000.toInt(), 0xFF00FF00.toInt(),
-    0xFF0000FF.toInt(), 0xFFFFFF00.toInt(), 0xFFFF00FF.toInt(),
-)
-
 /**
- * CW settings dialog (replaces the original Morse Expert SettingsActivity).
- * Items and keys ported from the original APK: message_type / text_font_size / 9 colors
- * (I2.b.f663b keys, I2.b.f664d defaults, I2.b.c English titles).
- * Storage: SharedPreferences(getPackageName() + "_preferences").
- * OK saves and calls controller.onResume() to take effect at once; Cancel/outside-tap only closes without saving.
+ * CW decoder settings (fldigi engine).
+ *
+ * Options ported from fldigi progdefaults: speed (WPM), SOM codebook
+ * decoding on/off, filter bandwidth. Persisted in SharedPreferences.
  */
 @Composable
-fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
-    val activity = controller.mActivity ?: return
-    val prefs = remember(activity) {
-        activity.getSharedPreferences(activity.packageName + "_preferences", Context.MODE_PRIVATE)
-    }
-
-    var messageType by remember {
-        mutableStateOf(prefs.getString(KEY_MESSAGE_TYPE, DEFAULT_MESSAGE_TYPE) ?: DEFAULT_MESSAGE_TYPE)
-    }
-    var fontSize by remember {
-        mutableStateOf(
-            prefs.getInt(KEY_TEXT_FONT_SIZE, DEFAULT_TEXT_FONT_SIZE)
-                .toFloat().coerceIn(MIN_FONT_SIZE.toFloat(), MAX_FONT_SIZE.toFloat())
-        )
-    }
-    var colorValues by remember {
-        mutableStateOf(IntArray(9) { i -> prefs.getInt(I2.b.f663b[i], I2.b.f664d[i]) })
-    }
+fun CwSettingsDialog(
+    onDismiss: () -> Unit,
+    currentWpm: Int,
+    onSpeedChange: (Int) -> Unit = {},
+    onSomChange: (Boolean) -> Unit = {},
+    onBandwidthChange: (Int) -> Unit = {}
+) {
+    var wpm by remember { mutableStateOf(currentWpm.coerceIn(5, 50)) }
+    var useSom by remember { mutableStateOf(true) }
+    var bandwidth by remember { mutableStateOf(150) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -98,52 +80,71 @@ fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
                     .verticalScroll(rememberScrollState())
                     .padding(top = 4.dp)
             ) {
-                Text("Message type", style = MaterialTheme.typography.titleSmall)
-                MessageTypeRow("general_text", "General Text", messageType) { messageType = it }
-                MessageTypeRow("ham_radio_qso", "Ham Radio QSO", messageType) { messageType = it }
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-
-                Text("Text font size", style = MaterialTheme.typography.titleSmall)
+                Text("Speed (WPM)", style = MaterialTheme.typography.titleSmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Slider(
-                        value = fontSize,
-                        onValueChange = { fontSize = it },
-                        valueRange = MIN_FONT_SIZE.toFloat()..MAX_FONT_SIZE.toFloat(),
-                        steps = MAX_FONT_SIZE - MIN_FONT_SIZE - 1,
-                        modifier = Modifier.weight(1f),
+                        value = wpm.toFloat(),
+                        onValueChange = { wpm = it.roundToInt() },
+                        valueRange = 5f..50f,
+                        modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = "${fontSize.roundToInt()}",
+                        text = "$wpm",
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.End,
-                        modifier = Modifier.width(44.dp),
+                        modifier = Modifier.width(44.dp)
                     )
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-                Text("Colors", style = MaterialTheme.typography.titleSmall)
-                for (i in 0 until 9) {
-                    ColorSettingRow(
-                        title = I2.b.c[i],
-                        value = colorValues[i],
-                        onSelect = { selected ->
-                            colorValues = colorValues.copyOf().also { it[i] = selected }
-                        },
+                Text("Filter bandwidth (Hz)", style = MaterialTheme.typography.titleSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Slider(
+                        value = bandwidth.toFloat(),
+                        onValueChange = { bandwidth = it.roundToInt() },
+                        valueRange = 50f..500f,
+                        steps = 8,
+                        modifier = Modifier.weight(1f)
                     )
+                    Text(
+                        text = "$bandwidth",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.width(44.dp)
+                    )
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+                Text("SOM codebook decoding", style = MaterialTheme.typography.titleSmall)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { useSom = true }
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = useSom, onClick = { useSom = true })
+                    Text("On (recommended, higher accuracy)")
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { useSom = false }
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = !useSom, onClick = { useSom = false })
+                    Text("Off (plain table lookup)")
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                val editor = prefs.edit()
-                editor.putString(KEY_MESSAGE_TYPE, messageType)
-                editor.putInt(KEY_TEXT_FONT_SIZE, fontSize.roundToInt())
-                for (i in 0 until 9) {
-                    editor.putInt(I2.b.f663b[i], colorValues[i])
-                }
-                editor.apply()
-                // The original re-read all settings in MainActivity.onResume() when SettingsActivity returned; ported logic in place
-                controller.onResume()
+                onSpeedChange(wpm)
+                onSomChange(useSom)
+                onBandwidthChange(bandwidth)
                 onDismiss()
             }) { Text("OK") }
         },
@@ -151,68 +152,4 @@ fun CwSettingsDialog(controller: MainActivity, onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
-}
-
-@Composable
-private fun MessageTypeRow(option: String, label: String, selected: String, onSelect: (String) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .clickable { onSelect(option) }
-            .padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = option == selected, onClick = { onSelect(option) })
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun ColorSettingRow(title: String, value: Int, onSelect: (Int) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Box(
-                Modifier
-                    .size(20.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(value)),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = String.format("#%06X", value and 0xFFFFFF),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(Modifier.height(6.dp))
-        PaletteGrid(selected = value, onSelect = onSelect)
-    }
-}
-
-@Composable
-private fun PaletteGrid(selected: Int, onSelect: (Int) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        PaletteColors.chunked(3).forEach { rowColors ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                rowColors.forEach { color ->
-                    val isSelected = color == selected
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .border(
-                                width = if (isSelected) 3.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(6.dp),
-                            )
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(color))
-                            .clickable { onSelect(color) },
-                    )
-                }
-            }
-        }
-    }
 }
