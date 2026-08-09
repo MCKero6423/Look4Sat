@@ -106,6 +106,51 @@ object WaveLogApi {
         WavelogResult.Success("")
     }
 
+    /**
+     * ADIF band code from a frequency in Hz. "SAT" is NOT a legal ADIF band
+     * value (the Band enumeration is 160M/80M/.../2M/70CM/23CM...); a logger
+     * that fails to parse an illegal band falls back to a default such as
+     * 160m. Satellite QSOs must carry the real band of the TX frequency.
+     */
+    fun bandFromHz(freqHz: Long): String = when {
+        freqHz >= 1240_000_000 -> "23CM"
+        freqHz >= 902_000_000 -> "33CM"
+        freqHz >= 420_000_000 -> "70CM"
+        freqHz >= 222_000_000 -> "1.25M"
+        freqHz >= 144_000_000 -> "2M"
+        freqHz >= 50_000_000 -> "6M"
+        freqHz >= 28_000_000 -> "10M"
+        freqHz >= 24_890_000 -> "12M"
+        freqHz >= 21_000_000 -> "15M"
+        freqHz >= 18_068_000 -> "17M"
+        freqHz >= 14_000_000 -> "20M"
+        freqHz >= 10_000_000 -> "30M"
+        freqHz >= 7_000_000 -> "40M"
+        freqHz >= 5_102_000 -> "60M"
+        freqHz >= 3_500_000 -> "80M"
+        freqHz >= 1_800_000 -> "160M"
+        else -> "160M"
+    }
+
+    /** Band class letter for satellite mode derivation: VHF=V, UHF=U, SHF=S. */
+    private fun bandLetter(freqHz: Long): String = when {
+        freqHz >= 1_240_000_000 -> "S"
+        freqHz >= 420_000_000 -> "U"
+        freqHz >= 144_000_000 -> "V"
+        else -> "V"
+    }
+
+    /**
+     * ADIF SAT_MODE (free text, satellite convention): "V/U" = VHF up /
+     * UHF down, "U/V", "V/S", "U/S"... Derived from the actual TX/RX bands.
+     */
+    fun satModeFrom(txFreqHz: Long, rxFreqHz: Long): String {
+        if (rxFreqHz <= 0) return ""
+        val up = bandLetter(txFreqHz)
+        val down = bandLetter(rxFreqHz)
+        return if (up == down) "" else "$up/$down"
+    }
+
     /** LoTW-recognized satellite name: main name before parentheses, uppercased (ISS special case) */
     fun normalizeSatName(raw: String): String {
         val main = raw.substringBefore('(').trim()
@@ -142,10 +187,11 @@ object WaveLogApi {
         val satName = normalizeSatName(qso.satName)
 
         // v2: POST /index.php/api/v2/qso (JSON fields)
+        val satMode = satModeFrom(qso.freqTxHz, qso.freqRxHz)
         val v2Body = JSONObject().apply {
             put("station_profile_id", stationProfileId.toIntOrNull() ?: 0)
             put("call", qso.call)
-            put("band", "SAT")
+            put("band", bandFromHz(qso.freqTxHz))
             put("mode", qso.mode)
             put("qso_date", utcDate(qso.timeUtcMs))
             put("time_on", utcTime(qso.timeUtcMs))
@@ -155,6 +201,7 @@ object WaveLogApi {
             put("rst_sent", "59")
             put("rst_rcvd", "59")
             put("sat_name", satName)
+            if (satMode.isNotBlank()) put("sat_mode", satMode)
         }
         val (code, resp) = httpRequest("$base/index.php/api/v2/qso", "POST", apiKey, v2Body.toString())
         if (code in 200..299) return@withContext WavelogResult.Success("已上传 (v2)")
@@ -183,9 +230,10 @@ object WaveLogApi {
             val bytes = value.toByteArray(Charsets.UTF_8).size
             return "<$name:$bytes>$value"
         }
+        val satMode = satModeFrom(qso.freqTxHz, qso.freqRxHz)
         return buildString {
             append(field("call", qso.call))
-            append(field("band", "SAT"))
+            append(field("band", bandFromHz(qso.freqTxHz)))
             append(field("mode", qso.mode))
             append(field("freq", String.format(Locale.ENGLISH, "%.6f", qso.freqTxHz / 1_000_000.0)))
             if (qso.freqRxHz > 0) {
@@ -198,6 +246,7 @@ object WaveLogApi {
             if (gridsquare.isNotBlank()) append(field("gridsquare", gridsquare.take(4)))
             if (satName.isNotBlank()) {
                 append(field("sat_name", satName))
+                if (satMode.isNotBlank()) append(field("sat_mode", satMode))
                 append(field("prop_mode", "SAT"))
             }
             append("<eor>")
