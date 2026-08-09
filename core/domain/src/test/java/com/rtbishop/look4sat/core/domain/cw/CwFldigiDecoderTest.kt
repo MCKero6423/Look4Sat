@@ -146,4 +146,35 @@ class CwFldigiDecoderTest {
         val maxVal = out.maxOrNull() ?: 0.0
         assertTrue("expected signal to pass through lowpass, max=$maxVal", maxVal > 0.05)
     }
+
+    @Test
+    fun autoTune_decodesOffFreqSignal() {
+        // Signal at 900 Hz but decoder initialized at 600 Hz: auto-tune must
+        // steer the NCO to the real tone, otherwise nothing decodes.
+        val decoder = CwFldigiDecoder(sampleRate = sampleRate, frequency = 600.0)
+        val dotLen = CwFldigiConstants.KWPM / 18
+        val synth = { ch: Char ->
+            val len = if (ch == '.') dotLen else 3 * dotLen
+            FloatArray(len) { i ->
+                val t = i.toDouble() / sampleRate
+                (0.6 * sin(2.0 * PI * 900.0 * t)).toFloat()
+            }
+        }
+        // "CQ" at 900 Hz: -.-.  --.-
+        val text = StringBuilder()
+        val seq = listOf(listOf('-', '.', '-', '.'), listOf('-', '-', '.', '-'))
+        for ((ci, word) in seq.withIndex()) {
+            for ((i, ch) in word.withIndex()) {
+                decoder.processBuffer(synth(ch))
+                if (i < word.size - 1) decoder.processBuffer(FloatArray(dotLen))
+            }
+            if (ci < seq.size - 1) decoder.processBuffer(FloatArray(3 * dotLen))
+        }
+        decoder.processBuffer(FloatArray(6 * dotLen))
+        val result = decoder.decodedTextFlow.value
+        assertTrue("expected CQ from 900 Hz signal (auto-tune), got: $result", result.contains("C") && result.contains("Q"))
+        // pitch should have moved toward 900 Hz
+        val pitch = decoder.estimatedPitch.value ?: 0f
+        assertTrue("expected pitch near 900, got $pitch", pitch > 800f && pitch < 1000f)
+    }
 }

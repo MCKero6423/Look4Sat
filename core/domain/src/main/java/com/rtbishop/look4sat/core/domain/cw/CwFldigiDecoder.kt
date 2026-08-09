@@ -47,6 +47,12 @@ class CwFldigiDecoder(
         const val CW_QUERY = 3
         const val CW_SUCCESS = 0
         const val CW_ERROR = -1
+
+        // Auto-tune (spectral peak tracking, mirrors the old channelTracker)
+        const val TUNE_FFT_SIZE = 512
+        const val TUNE_MIN_FREQ = 300.0
+        const val TUNE_MAX_FREQ = 1500.0
+        const val TUNE_ENERGY_FRACTION = 0.35
     }
 
     private enum class CwRxState { IDLE, IN_TONE, AFTER_TONE }
@@ -63,6 +69,16 @@ class CwFldigiDecoder(
 
     private val _estimatedSpeed = MutableStateFlow<Float?>(null)
     val estimatedSpeed: StateFlow<Float?> = _estimatedSpeed
+
+    // --- auto-tune state (spectral peak tracking) ---
+    private var tuneFreq = frequency
+    private val tuneBuffer = DoubleArray(TUNE_FFT_SIZE)
+    private var tuneIdx = 0
+    private var tuneFft = CwGfft(TUNE_FFT_SIZE)
+    private var tunePeakFreq = frequency
+    private var tuneHasPeak = false
+    private var tuneLocked = false
+    private val tuneWindow = DoubleArray(TUNE_FFT_SIZE)
 
     // --- fldigi cw state ---
     private var phaseacc = 0.0
@@ -128,17 +144,99 @@ class CwFldigiDecoder(
     /** Main entry: feed PCM samples. */
     fun processBuffer(buffer: FloatArray) {
         for (sample in buffer) {
+            feedTuner(sample.toDouble())
             rxSample(sample.toDouble())
         }
     }
 
+    /**
+     * Spectral peak tracking (auto-tune). Collects raw samples, runs an FFT
+     * every TUNE_FFT_SIZE samples, finds the strongest peak in the CW range
+     * and smoothly steers tuneFreq toward it — mirroring the old
+     * channelTracker behaviour so off-tune signals still decode.
+     */
+    private fun feedTuner(sample: Double) {
+        tuneBuffer[tuneIdx++] = sample
+        if (tuneIdx < TUNE_FFT_SIZE) return
+        tuneIdx = 0
+
+        // Hann window
+        for (i in 0 until TUNE_FFT_SIZE) {
+            val w = 0.5 - 0.5 * kotlin.math.cos(2.0 * Math.PI * i / (TUNE_FFT_SIZE - 1))
+            tuneWindow[i] = tuneBuffer[i] * w
+        }
+        val data = Array(TUNE_FFT_SIZE) { CwComplex(tuneWindow[it], 0.0) }
+        tuneFft.forward(data)
+
+        // Find the strongest bin in the CW range (300..1500 Hz)
+        val binMin = (TUNE_MIN_FREQ * TUNE_FFT_SIZE / sampleRate).toInt()
+        val binMax = (TUNE_MAX_FREQ * TUNE_FFT_SIZE / sampleRate).toInt()
+        var bestBin = -1
+        var bestMag = 0.0
+        var totalMag = 0.0
+        for (b in binMin..binMax) {
+            val mag = data[b].abs()
+            totalMag += mag
+            if (mag > bestMag) {
+                bestMag = mag
+                bestBin = b
+            }
+        }
+        if (bestBin < 0) return
+        val meanMag = totalMag / (binMax - binMin + 1)
+        if (bestMag < meanMag * 2.0) return // no clear tone
+        // Absolute floor: silence or weak noise must not steer the NCO.
+        // A 0.6-amplitude tone in a 512-pt Hann FFT yields peak ≈ 150;
+        // anything below ~30 is noise/DC leakage.
+        if (bestMag < 30.0) return
+
+        val peakFreq = bestBin * sampleRate.toDouble() / TUNE_FFT_SIZE
+        tunePeakFreq = peakFreq
+        tuneHasPeak = true
+        _estimatedPitch.value = peakFreq.toFloat()
+
+        // Lock fast: a strong peak on the very first frame is reliable enough
+        // (CW tones are narrow and dominate the band). Steer immediately so
+        // the first character still decodes. Do NOT reset the RX state on the
+        // first lock — the AGC adapts in a few frames and a reset would wipe
+        // the element that triggered the tune.
+        if (!tuneLocked) {
+            tuneFreq = peakFreq
+            tuneLocked = true
+            _estimatedPitch.value = peakFreq.toFloat()
+        } else {
+            // Smooth tracking; retune instantly on big jumps (signal switched freq)
+            val diff = peakFreq - tuneFreq
+            if (kotlin.math.abs(diff) > 120.0) {
+                tuneFreq = peakFreq
+                resetRxState()
+            } else {
+                tuneFreq += diff * 0.2
+            }
+        }
+    }
+
+    /** Reset only the fldigi RX state machine (keep decoded text). */
+    private fun resetRxState() {
+        cw_receive_state = CwRxState.IDLE
+        old_cw_receive_state = CwRxState.IDLE
+        smpl_ctr = 0
+        cw_ptr = 0
+        rx_rep_buf.clear()
+        last_element = 0
+        space_sent = true
+        FFTphase = 0.0
+        phaseacc = 0.0
+    }
+
     private fun rxSample(value: Double) {
-        // NCO down-conversion (fldigi rx_FFTprocess)
+        // NCO down-conversion (fldigi rx_FFTprocess). tuneFreq tracks the
+        // strongest spectral peak so off-tune signals still decode.
         val z = CwComplex(
             value * kotlin.math.cos(FFTphase),
             value * kotlin.math.sin(FFTphase)
         )
-        FFTphase += 2.0 * Math.PI * frequency / sampleRate
+        FFTphase += 2.0 * Math.PI * tuneFreq / sampleRate
         if (FFTphase > 2.0 * Math.PI) FFTphase -= 2.0 * Math.PI
 
         val out = cw_FFT_filter.run(z) ?: return
@@ -422,5 +520,11 @@ class CwFldigiDecoder(
         _estimatedSpeed.value = null
         FFTphase = 0.0
         phaseacc = 0.0
+        // reset auto-tune
+        tuneIdx = 0
+        tunePeakFreq = frequency
+        tuneHasPeak = false
+        tuneLocked = false
+        tuneFreq = frequency
     }
 }
