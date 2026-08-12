@@ -40,9 +40,13 @@ captures/
 
 # Keystore files
 *.jks
+*.keystore
 /*.properties
 /keystore.properties
 /app/keystore.jks
+
+# Hermes agent workspace (plans, local notes)
+.hermes/
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
