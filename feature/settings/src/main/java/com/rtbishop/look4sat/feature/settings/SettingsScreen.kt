@@ -1071,6 +1071,13 @@ private fun CardCredits(modifier: Modifier = Modifier) {
                 text = stringResource(id = R.string.prefs_outro_license),
                 color = MaterialTheme.colorScheme.primary
             )
+            // AGPL-3.0 attribution for the vendored DeepCW model.
+            // See feature/cw/licenses/NOTICE.md for the full notice.
+            Text(
+                text = stringResource(id = R.string.prefs_outro_deepcw),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

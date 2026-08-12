@@ -314,5 +314,6 @@
         \n* BG7NTA
     </string>
     <string name="prefs_outro_license">The app comes with no warranty</string>
+    <string name="prefs_outro_deepcw" translatable="false">CW decoding uses the DeepCW model by e04, licensed under AGPL-3.0-only.\nhttps://github.com/e04/deepcw-engine</string>
 
 </resources>
