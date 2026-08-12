@@ -1,0 +1,98 @@
+name: build-check
+
+# Builds a signed debug APK for hands-on testing, and asserts the packaging
+# facts the DeepCW port depends on. Runs on demand and on CW branch pushes so
+# a 2 GB dev box does not have to assemble anything locally.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'feat/cw-**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run domain unit tests
+        run: ./gradlew :core:domain:test
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Verify APK packaging
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -1)
+          echo "APK: $APK"
+          unzip -l "$APK" > /tmp/apk_listing.txt
+
+          echo '--- native libs ---'
+          grep 'lib/' /tmp/apk_listing.txt || echo '(none)'
+
+          echo '--- assert arm64-v8a present (abiFilters removed) ---'
+          grep -q 'lib/arm64-v8a/' /tmp/apk_listing.txt
+
+          echo '--- assert the reverse-engineered JNI blob is gone ---'
+          if grep -q 'libnativedecoderjni' /tmp/apk_listing.txt; then
+            echo 'FAIL: removed JNI library is still packaged'
+            exit 1
+          fi
+
+          echo '--- assert the DeepCW model ships uncompressed ---'
+          grep 'deepcw/model.onnx' /tmp/apk_listing.txt
+          SIZE=$(unzip -l "$APK" 'assets/deepcw/model.onnx' | awk 'NR==4 {print $1}')
+          echo "model.onnx packaged size: $SIZE"
+          test "$SIZE" = "15139839"
+
+          echo '--- assert Indonesian locales survive resource shrinking ---'
+          grep -qE "values-in|values-id" /tmp/apk_listing.txt
+
+          echo 'All packaging assertions passed.'
+
+      - name: Assemble release APK (R8 / ProGuard check)
+        run: ./gradlew assembleRelease
+
+      - name: Sign release APK for device testing
+        env:
+          KEY_STORE: ${{ secrets.KEY_STORE }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEY_STORE:-}" ]; then
+            echo 'KEY_STORE secret not set; leaving the APK unsigned.'
+            exit 0
+          fi
+          echo "$KEY_STORE" | base64 -d > keystore.jks
+          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          BUILD_TOOLS=$(ls -d "${ANDROID_HOME}"/build-tools/*/ | sort -V | tail -1)
+          "${BUILD_TOOLS}apksigner" sign \
+            --ks keystore.jks \
+            --ks-pass "pass:${KEY_STORE_PASSWORD}" \
+            --ks-key-alias "${KEY_ALIAS}" \
+            --key-pass "pass:${KEY_PASSWORD}" \
+            "$APK"
+          rm keystore.jks
+          echo "Signed: $APK"
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: look4sat-deepcw-apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
