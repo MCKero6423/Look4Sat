@@ -130,6 +130,13 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
             Log.e(TAG, "DeepCW model failed to load", t)
             _errorMessage.value =
                 "CW model failed to load: ${t.message ?: t.javaClass.simpleName}"
+            // Persist the failure for devices without logcat access.
+            runCatching {
+                val sw = java.io.StringWriter()
+                t.printStackTrace(java.io.PrintWriter(sw))
+                java.io.File(appContext.filesDir, "deepcw_load_error.txt")
+                    .writeText("${t.javaClass.name}: ${t.message}\n${sw}\n")
+            }
             return false
         }
     }
@@ -154,6 +161,12 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         } catch (t: Throwable) {
             Log.e(TAG, "inference failed", t)
             _errorMessage.value = "CW decode failed: ${t.message ?: t.javaClass.simpleName}"
+            runCatching {
+                val sw = java.io.StringWriter()
+                t.printStackTrace(java.io.PrintWriter(sw))
+                java.io.File(appContext.filesDir, "deepcw_infer_error.txt")
+                    .writeText("${t.javaClass.name}: ${t.message}\n${sw}\n")
+            }
         } finally {
             inferenceLock.unlock()
         }
