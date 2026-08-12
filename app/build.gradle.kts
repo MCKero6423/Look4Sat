@@ -16,6 +16,10 @@ android {
         localeFilters += listOf(
             "en", "zh", "tr", "in", "id", "es", "ru", "si", "uk"
         )
+        // DeepCW 模型必须以未压缩形式打包: ONNX Runtime 通过 mmap 直接读取
+        // assets, 压缩后无法映射会导致 createSession 失败。noCompress 只在
+        // 打包 APK 的 app 模块生效, 在 feature 库模块声明无效。
+        noCompress += "onnx"
     }
     signingConfigs {
         if (keystoreProperties["storeFile"] != null) {
