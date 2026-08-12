@@ -34,6 +34,7 @@ kotlin = "2.4.10"
 kotlin-coroutines = "1.11.0"
 kotlin-serialization = "1.11.0"
 
+other-onnxruntime = "1.28.0"
 other-okhttp = "5.4.0"
 other-osmdroid = "6.1.20"
 
@@ -77,6 +78,8 @@ kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ve
 #noinspection UnusedVersionCatalogEntry
 kotlin-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlin-serialization" }
 
+#noinspection UnusedVersionCatalogEntry
+other-onnxruntime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "other-onnxruntime" }
 #noinspection UnusedVersionCatalogEntry
 other-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "other-okhttp" }
 #noinspection UnusedVersionCatalogEntry
