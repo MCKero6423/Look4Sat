@@ -141,6 +141,8 @@
     <string name="radar_cw_start">Start</string>
     <string name="radar_cw_stop">Stop</string>
     <string name="radar_cw_reset">Clear</string>
+    <string name="radar_cw_tone">Tone %1$d Hz</string>
+    <string name="radar_cw_waiting">Waiting for signal…</string>
 
     <!-- Map screen -->
     <string name="map_prev">Prev</string>

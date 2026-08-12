@@ -42,6 +42,7 @@ interface IMainContainer {
     fun provideTxRadioController(): IRadioController
     fun provideRxRadioController(): IRadioController
     fun provideAudioCapture(): IAudioCapture
+    fun provideCwDecoder(): com.rtbishop.look4sat.core.domain.cw.ICwDecoder
     fun provideSaveImage(): ISaveImage
     // WaveLog logging (4.5.2)
     val wavelogQueue: com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue

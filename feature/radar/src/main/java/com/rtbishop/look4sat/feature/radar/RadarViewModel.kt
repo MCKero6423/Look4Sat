@@ -34,7 +34,7 @@ import com.rtbishop.look4sat.core.domain.repository.ISensorsRepo
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import com.rtbishop.look4sat.core.domain.sstv.LineRecoveryStrategy
 import com.rtbishop.look4sat.core.domain.sstv.SstvDecoder
-import com.rtbishop.look4sat.core.domain.cw.CwDecoder
+import com.rtbishop.look4sat.core.domain.cw.ICwDecoder
 import com.rtbishop.look4sat.core.domain.usecase.IAudioCapture
 import com.rtbishop.look4sat.core.domain.usecase.IAddToCalendar
 import com.rtbishop.look4sat.core.domain.usecase.ISaveImage
@@ -62,6 +62,7 @@ class RadarViewModel(
     private val addToCalendar: IAddToCalendar,
     private val trackingService: IRadioTrackingService,
     private val audioCapture: IAudioCapture,
+    private val cwDecoderFactory: () -> ICwDecoder,
     private val saveImage: ISaveImage,
     private val showToast: IShowToast
 ) : ViewModel() {
@@ -71,7 +72,7 @@ class RadarViewModel(
     private var transponders: List<SatRadio> = emptyList()
     private var sstvDecoder: SstvDecoder? = null
     private var sstvRecordingJob: Job? = null
-    private var cwDecoder: CwDecoder? = null
+    private var cwDecoder: ICwDecoder? = null
     private var cwListeningJob: Job? = null
 
     // Celestial positions change slowly, recompute at most once per minute
@@ -219,6 +220,9 @@ class RadarViewModel(
 
     override fun onCleared() {
         sensorsRepo.disableSensor()
+        // OrtSession holds native memory; it must be released explicitly.
+        cwDecoder?.close()
+        cwDecoder = null
     }
 
     fun onAction(action: RadarAction) {
@@ -286,12 +290,8 @@ class RadarViewModel(
             RadarAction.CwStartListening -> startCwListening()
             RadarAction.CwStopListening -> stopCwListening()
             RadarAction.CwReset -> {
-                cwDecoder?.resetDecoder()
+                cwDecoder?.reset()
                 _uiState.update { it.copy(cw = it.cw.copy(decodedText = "")) }
-            }
-            is RadarAction.CwSetToneFreq -> {
-                _uiState.update { it.copy(cw = it.cw.copy(cwToneFreq = action.freq)) }
-                cwDecoder = CwDecoder(sampleRate = audioCapture.sampleRate, cwToneFreq = action.freq)
             }
             is RadarAction.CwToggleExpanded -> {
                 _uiState.update { it.copy(cw = it.cw.copy(isExpanded = action.expanded)) }
@@ -417,12 +417,7 @@ class RadarViewModel(
     }
 
     private fun initCwDecoder() {
-        if (cwDecoder == null) {
-            cwDecoder = CwDecoder(
-                sampleRate = audioCapture.sampleRate,
-                cwToneFreq = _uiState.value.cw.cwToneFreq
-            )
-        }
+        if (cwDecoder == null) cwDecoder = cwDecoderFactory()
     }
 
     private fun startCwListening() {
@@ -434,24 +429,33 @@ class RadarViewModel(
         // Stop SSTV if running (audio capture is shared)
         stopSstvRecording()
         initCwDecoder()
-        cwDecoder?.resetDecoder()
+        cwDecoder?.reset()
         _uiState.update { it.copy(cw = it.cw.copy(status = CwStatus.Listening)) }
         cwListeningJob = viewModelScope.launch {
-            // Collect decoded text flow
+            val decoder = cwDecoder ?: return@launch
+            // decodedText is replace semantics: DeepCW revises earlier characters
+            // as more context arrives, so mirror the value rather than appending.
             launch {
-                cwDecoder?.decodedTextFlow?.collect { text ->
+                decoder.decodedText.collect { text ->
                     _uiState.update { it.copy(cw = it.cw.copy(decodedText = text)) }
                 }
             }
-            // Collect signal strength
             launch {
-                cwDecoder?.signalStrength?.collect { strength ->
+                decoder.signalStrength.collect { strength ->
                     _uiState.update { it.copy(cw = it.cw.copy(signalStrength = strength)) }
                 }
             }
-            // Capture audio and feed to decoder
+            // Detected tone, shown read-only: the model analyses a fixed
+            // 400-1200 Hz window, so there is no pitch to configure.
+            launch {
+                decoder.estimatedPitch.collect { pitch ->
+                    if (pitch != null) {
+                        _uiState.update { it.copy(cw = it.cw.copy(cwToneFreq = pitch)) }
+                    }
+                }
+            }
             audioCapture.audioFlow().collect { buffer ->
-                cwDecoder?.processBuffer(buffer)
+                decoder.processBuffer(buffer, audioCapture.sampleRate)
             }
         }
     }
@@ -516,6 +520,7 @@ class RadarViewModel(
                     addToCalendar = container.provideAddToCalendar(),
                     trackingService = container.radioTrackingService,
                     audioCapture = container.provideAudioCapture(),
+                    cwDecoderFactory = { container.provideCwDecoder() },
                     saveImage = container.provideSaveImage(),
                     showToast = container.provideShowToast()
                 )

@@ -92,6 +92,7 @@ data class CwSubState(
     val status: CwStatus = CwStatus.Idle,
     val hasPermission: Boolean = false,
     val decodedText: String = "",
+    /** Tone detected by the decoder, read-only: DeepCW analyses a fixed 400-1200 Hz window. */
     val cwToneFreq: Float = 700f,
     val isExpanded: Boolean = false,
     val signalStrength: Float = 0f
@@ -121,7 +122,6 @@ sealed interface RadarAction {
     data object CwStartListening : RadarAction
     data object CwStopListening : RadarAction
     data object CwReset : RadarAction
-    data class CwSetToneFreq(val freq: Float) : RadarAction
     data class CwToggleExpanded(val expanded: Boolean) : RadarAction
     data class CwPermissionResult(val granted: Boolean) : RadarAction
 }

@@ -101,6 +101,11 @@ class MainContainer(private val context: Context) : IMainContainer {
 
     override fun provideAudioCapture(): IAudioCapture = AudioCapture()
 
+    // 每次调用返回新实例: 调用方负责 close() 释放 OrtSession, 且 Radar 内嵌
+    // 面板与独立 CW 页各自持有自己的解码器
+    override fun provideCwDecoder(): com.rtbishop.look4sat.core.domain.cw.ICwDecoder =
+        com.rtbishop.look4sat.core.data.cw.CwDeepDecoder(context)
+
     override fun provideSaveImage(): ISaveImage = SaveImage(context)
 
     // WaveLog logging (4.5.2): local queue + uploader (shared instance)

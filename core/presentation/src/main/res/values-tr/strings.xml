@@ -296,5 +296,7 @@
         \n• BA7OPF (pass matching feature)
         \n• BG7NTA</string>
     <string name="prefs_outro_license">Bu uygulama herhangi bir garanti sunmaz</string>
+    <string name="radar_cw_tone">Ton %1$d Hz</string>
+    <string name="radar_cw_waiting">Sinyal bekleniyor…</string>
 
 </resources>

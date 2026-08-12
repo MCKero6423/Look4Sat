@@ -123,6 +123,8 @@
     <string name="radar_cw_start">开始</string>
     <string name="radar_cw_stop">停止</string>
     <string name="radar_cw_reset">清空</string>
+    <string name="radar_cw_tone">音调 %1$d Hz</string>
+    <string name="radar_cw_waiting">等待信号…</string>
 
     <!-- Map screen -->
     <string name="map_prev">上一个</string>

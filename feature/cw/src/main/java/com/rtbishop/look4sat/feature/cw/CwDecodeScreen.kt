@@ -1,29 +1,28 @@
 /*
- * CwDecodeScreen.kt - Look4Sat CW decode page (Compose shell).
+ * Look4Sat. Amateur radio satellite tracker and pass predictor.
+ * Copyright (C) 2019-2026 Arty Bishop and contributors.
  *
- * Ported from Morse Expert 1.15 com.ve3nea.morse_expert.MainActivity (converted to a plain controller class):
- * - AndroidView embeds the original activity_main.xml (ConstraintLayout root, with decodedTextView/scaleView/
- *   statusTextView/verticalLayout/waterfallView);
- * - Lifecycle onCreate/onResume/onPause/onDestroy fully delegated to the controller, same order as the original Activity
- *   (onCreate must run before onResume; onDispose runs onPause then onDestroy);
- * - Mic permission (RECORD_AUDIO) is managed on the Compose side; onPermissionGranted() (= v()) is called once granted,
- *   an initialized flag guarantees it runs only once (v() news an a() which overwrites f11036E);
- * - The original options_menu Clear/Pause/Save/Record/Settings became a top button row (icons from the module's original drawables).
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Note: setImmersive(window, false) inside the controller's onCreate restores the host window to
- * decorFitsSystemWindows(true) (ported original behavior; affects the whole host Activity).
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.rtbishop.look4sat.feature.cw
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
-import android.view.LayoutInflater
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -36,169 +35,233 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.constraintlayout.widget.ConstraintLayout
-import com.ve3nea.morse_expert.MainActivity
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
+import com.rtbishop.look4sat.core.presentation.R as CoreR
+import kotlinx.coroutines.launch
 
+/**
+ * Full-page CW decoder backed by DeepCW.
+ *
+ * Layout follows the DeepCW reference app: waterfall on top, the live line
+ * under it, then the scrolling history. Pause/clear controls and the microphone
+ * permission flow carry over from the previous page.
+ *
+ * There is no settings dialog any more: the model analyses a fixed
+ * 400-1200 Hz window and tracks speed on its own, so there is nothing to tune.
+ */
 @Composable
 fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
     val context = LocalContext.current
-    val activity = remember(context) {
-        context as? Activity ?: error("CwDecodeScreen must be hosted in an Activity")
-    }
-    // Ported controller (plain class, not an Activity); new instance per page entry
-    val controller = remember { MainActivity() }
-    // Inflate the original layout early so AndroidView and the controller's onCreate share one root view
-    val rootView = remember(context) {
-        LayoutInflater.from(context).inflate(R.layout.activity_main, null) as ConstraintLayout
-    }
+    val container = remember { (context.applicationContext as IContainerProvider).getMainContainer() }
+    val decoder = remember { container.provideCwDecoder() }
+    val audioCapture = remember { container.provideAudioCapture() }
+    val waterfall = remember { CwWaterfallState() }
 
     var permissionGranted by remember {
         mutableStateOf(
-            context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
         )
     }
     var permanentlyDenied by remember { mutableStateOf(false) }
-    // v() news an a() which overwrites f11036E; must run exactly once
-    var initialized by remember { mutableStateOf(false) }
-    var showSettings by remember { mutableStateOf(false) }
+    var isListening by remember { mutableStateOf(false) }
 
-    // Lifecycle: onCreate before onResume; onDispose runs onPause then onDestroy
-    DisposableEffect(Unit) {
-        controller.onCreate(activity, rootView)
-        controller.onResume()
-        onDispose {
-            controller.onPause()
-            controller.onDestroy()
-        }
-    }
-
-    // Start the decode core after permission granted; both "already granted on entry" and "granted via dialog" go here
-    LaunchedEffect(permissionGranted) {
-        if (permissionGranted && !initialized) {
-            controller.onPermissionGranted() // = v(): 创建音频采集 + 解码核心
-            // v() only creates the core; the page is already resumed, so run onResume again to start recording immediately
-            // (AudioRecord is freshly created so startRecording won't double-start; GLSurfaceView.onResume is idempotent)
-            controller.onResume()
-            initialized = true
-        }
-    }
+    val decodedText by decoder.decodedText.collectAsState()
+    val estimatedPitch by decoder.estimatedPitch.collectAsState()
+    val signalStrength by decoder.signalStrength.collectAsState()
+    val inferenceMs by decoder.lastInferenceMs.collectAsState()
+    val errorMessage by decoder.errorMessage.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         permissionGranted = granted
-        permanentlyDenied = !granted &&
+        val activity = context as? Activity
+        permanentlyDenied = !granted && activity != null &&
             !activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)
+        if (granted) isListening = true
     }
 
-    // Original tap_back_again_to_close: single Back shows a hint; press again within 2 s to exit
-    BackHandler {
-        if (!controller.handleBackPress()) navigateUp()
+    // Capture runs only while listening; cancelling the effect stops the mic.
+    LaunchedEffect(isListening, permissionGranted) {
+        if (!isListening || !permissionGranted) return@LaunchedEffect
+        launch {
+            audioCapture.audioFlow().collect { chunk ->
+                decoder.processBuffer(chunk, audioCapture.sampleRate)
+                waterfall.pushSamples(chunk, audioCapture.sampleRate)
+            }
+        }
     }
 
-    if (showSettings) {
-        CwSettingsDialog(controller = controller, onDismiss = { showSettings = false })
+    LaunchedEffect(permissionGranted) {
+        if (permissionGranted) isListening = true
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-    ) {
-        // Original options_menu: Pause/Clear/Save (original icons) + Record/Settings (text buttons)
+    DisposableEffect(Unit) {
+        onDispose {
+            // OrtSession holds native memory and must be released explicitly.
+            decoder.close()
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { controller.togglePause() }) {
+            IconButton(onClick = { isListening = false; navigateUp() }) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_baseline_pause_24),
-                    contentDescription = stringResource(R.string.pause)
+                    painter = painterResource(CoreR.drawable.ic_back),
+                    contentDescription = stringResource(R.string.cw_back)
                 )
             }
-            IconButton(onClick = { controller.clearDecoded() }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_delete_24),
-                    contentDescription = stringResource(R.string.clear)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(CoreR.string.nav_cw),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = if (estimatedPitch != null) {
+                        stringResource(R.string.cw_status_tone, estimatedPitch!!.toInt(), inferenceMs)
+                    } else {
+                        stringResource(R.string.cw_status_listening)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = { controller.saveText() }) {
+            IconButton(onClick = { isListening = !isListening }) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_baseline_save_24),
-                    contentDescription = stringResource(R.string.save_text)
+                    painter = painterResource(
+                        if (isListening) CoreR.drawable.ic_pause else CoreR.drawable.ic_play
+                    ),
+                    contentDescription = stringResource(
+                        if (isListening) R.string.cw_pause else R.string.cw_resume
+                    )
                 )
             }
-            // recordSignals needs the decode core (f11037F); disabled until initialized
-            TextButton(
-                onClick = { if (initialized) controller.recordSignals() },
-                enabled = initialized
-            ) {
-                Text(stringResource(R.string.record_signals))
-            }
-            TextButton(onClick = { showSettings = true }) {
-                Text(stringResource(R.string.settings))
+            IconButton(onClick = { decoder.reset(); waterfall.clear() }) {
+                Icon(
+                    painter = painterResource(CoreR.drawable.ic_delete),
+                    contentDescription = stringResource(R.string.cw_clear)
+                )
             }
         }
 
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            AndroidView(
-                factory = { rootView },
-                modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .padding(horizontal = 8.dp)
+                .clip(RoundedCornerShape(8.dp))
+        ) {
+            CwWaterfallView(state = waterfall, signalStrength = signalStrength)
+        }
+
+        Text(
+            text = decodedText.takeLast(64).ifEmpty { "…" },
+            fontSize = 20.sp,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+        ) {
+            Text(
+                text = decodedText,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(8.dp),
+                fontSize = 16.sp,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            if (!permissionGranted) {
-                // Mic permission not granted: overlay + hint text + request button
+
+            errorMessage?.let { message ->
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0x99000000)),
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
+            if (!permissionGranted) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Text(
                             text = stringResource(R.string.cw_mic_permission),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.inverseOnSurface,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
                         Button(onClick = {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }) {
                             Text(stringResource(R.string.cw_grant_permission))
                         }
                         if (permanentlyDenied) {
-                            // "Never ask again" checked: guide user to system settings
                             TextButton(onClick = {
-                                activity.startActivity(
+                                context.startActivity(
                                     Intent(
                                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                        Uri.parse("package:${activity.packageName}")
+                                        Uri.fromParts("package", context.packageName, null)
                                     )
                                 )
                             }) {
@@ -209,5 +272,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(4.dp))
     }
 }

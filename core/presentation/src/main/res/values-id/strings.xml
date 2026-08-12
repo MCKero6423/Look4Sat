@@ -132,6 +132,8 @@
     <string name="radar_cw_start">Mulai</string>
     <string name="radar_cw_stop">Berhenti</string>
     <string name="radar_cw_reset">Bersihkan</string>
+    <string name="radar_cw_tone">Nada %1$d Hz</string>
+    <string name="radar_cw_waiting">Menunggu sinyal…</string>
     <string name="map_prev">Sebelumnya</string>
     <string name="map_next">Berikutnya</string>
     <string name="map_copyright" translatable="false">© Kontributor OpenStreetMap</string>

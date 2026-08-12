@@ -17,14 +17,16 @@
  */
 package com.rtbishop.look4sat.feature.radar
 
-import android.app.Activity
-import android.view.LayoutInflater
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,8 +73,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
@@ -80,8 +80,6 @@ import com.rtbishop.look4sat.core.presentation.CardButton
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.formatFrequency
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
-import com.rtbishop.look4sat.feature.cw.R as CwR
-import com.ve3nea.morse_expert.MainActivity
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -714,85 +712,70 @@ private fun CwDecoderPanel(
         }
 
         AnimatedVisibility(visible = cw.isExpanded) {
-            // PR #1 Morse Expert engine: mini layout with waterfall + decoded text.
-            // Keep the old Kotlin decoder state/actions as fallback code, but this panel no longer feeds it.
-            val context = LocalContext.current
-            val activity = remember { context as? Activity }
-            val controller = remember { MainActivity() }
-            val rootView = remember {
-                LayoutInflater.from(context).inflate(CwR.layout.cw_panel_main, null) as ConstraintLayout
-            }
-            var initialized by remember { mutableStateOf(false) }
-            var listening by remember { mutableStateOf(false) }
-
-            DisposableEffect(Unit) {
-                if (activity != null) {
-                    controller.onCreate(activity, rootView, false)
-                }
-                onDispose {
-                    controller.onPause()
-                    controller.onDestroy()
-                }
-            }
-
-            LaunchedEffect(cw.hasPermission) {
-                if (cw.hasPermission && !initialized) {
-                    controller.onPermissionGranted()
-                    controller.onResume()
-                    initialized = true
-                    listening = true
-                }
-            }
+            // DeepCW engine, driven through the ViewModel. Decoded text uses
+            // replace semantics: the model revises earlier characters as more
+            // audio arrives, so show the current value instead of appending.
+            val listening = cw.status == CwStatus.Listening
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (!listening) {
-                        Button(
-                            onClick = {
-                                if (!cw.hasPermission) {
-                                    requestMicPermission()
-                                } else if (!initialized) {
-                                    controller.onPermissionGranted()
-                                    controller.onResume()
-                                    initialized = true
-                                    listening = true
-                                } else {
-                                    controller.onResume()
-                                    listening = true
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.radar_cw_start))
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                controller.onPause()
-                                listening = false
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.radar_cw_stop))
-                        }
+                    Button(
+                        onClick = {
+                            when {
+                                !cw.hasPermission -> requestMicPermission()
+                                listening -> onAction(RadarAction.CwStopListening)
+                                else -> onAction(RadarAction.CwStartListening)
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            stringResource(
+                                if (listening) R.string.radar_cw_stop else R.string.radar_cw_start
+                            )
+                        )
                     }
                     OutlinedButton(
-                        onClick = { controller.clearDecoded() },
+                        onClick = { onAction(RadarAction.CwReset) },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.radar_cw_reset))
                     }
                 }
 
-                AndroidView(
-                    factory = { rootView },
+                // Detected tone is read-only: the model analyses a fixed
+                // 400-1200 Hz window, so there is no pitch to configure.
+                if (listening) {
+                    Text(
+                        text = stringResource(R.string.radar_cw_tone, cw.cwToneFreq.toInt()),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                )
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = cw.decodedText.ifEmpty {
+                            stringResource(R.string.radar_cw_waiting)
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(8.dp),
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }
