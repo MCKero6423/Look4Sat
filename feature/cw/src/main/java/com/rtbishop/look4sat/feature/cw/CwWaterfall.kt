@@ -20,12 +20,16 @@ package com.rtbishop.look4sat.feature.cw
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Rolling spectrogram history for the waterfall display.
@@ -35,40 +39,58 @@ import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
  */
 class CwWaterfallState(private val historyRows: Int = 96) {
 
+    // pushSamples runs on the audio capture thread while snapshot() runs on the
+    // Compose draw thread, so every touch of these two collections is guarded.
+    // ArrayDeque is not thread-safe: concurrent removeFirst()/toList() throws.
+    private val lock = Any()
     private val rows = ArrayDeque<FloatArray>(historyRows)
     private val pending = ArrayList<Float>(CwDeepSpectrogram.SAMPLE_RATE)
 
-    /** Bumped on every change so Compose knows to redraw. */
-    val revision = mutableIntStateOf(0)
+    /**
+     * Bumped on every change so Compose knows to redraw.
+     *
+     * A StateFlow, not `mutableIntStateOf`: this is written from the audio
+     * capture thread, and Compose snapshot state must only be mutated from the
+     * composition thread — doing otherwise crashes at runtime.
+     */
+    private val _revision = MutableStateFlow(0)
+    val revision: StateFlow<Int> = _revision.asStateFlow()
 
     /** Snapshot for drawing, oldest row first. */
-    fun snapshot(): List<FloatArray> = rows.toList()
+    fun snapshot(): List<FloatArray> = synchronized(lock) { rows.toList() }
 
     fun pushSamples(chunk: FloatArray, sampleRate: Int) {
         if (chunk.isEmpty()) return
         val resampled = CwDeepSpectrogram.resampleLinear(
             chunk, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
         )
-        pending.ensureCapacity(pending.size + resampled.size)
-        for (sample in resampled) pending.add(sample)
-
-        // Need at least one FFT window before a row can be produced.
-        if (pending.size < CwDeepSpectrogram.FFT_LENGTH) return
-
-        val audio = FloatArray(pending.size) { pending[it] }
-        pending.clear()
-
-        for (row in CwDeepSpectrogram.compute(audio)) {
-            if (rows.size >= historyRows) rows.removeFirst()
-            rows.addLast(row)
+        val audio: FloatArray
+        synchronized(lock) {
+            pending.ensureCapacity(pending.size + resampled.size)
+            for (sample in resampled) pending.add(sample)
+            // Need at least one FFT window before a row can be produced.
+            if (pending.size < CwDeepSpectrogram.FFT_LENGTH) return
+            audio = FloatArray(pending.size) { pending[it] }
+            pending.clear()
         }
-        revision.intValue++
+
+        // FFT outside the lock; only the append below needs exclusivity.
+        val computed = CwDeepSpectrogram.compute(audio)
+        synchronized(lock) {
+            for (row in computed) {
+                if (rows.size >= historyRows) rows.removeFirst()
+                rows.addLast(row)
+            }
+        }
+        _revision.value += 1
     }
 
     fun clear() {
-        rows.clear()
-        pending.clear()
-        revision.intValue++
+        synchronized(lock) {
+            rows.clear()
+            pending.clear()
+        }
+        _revision.value += 1
     }
 }
 
@@ -82,11 +104,13 @@ internal fun CwWaterfallView(
     signalStrength: Float,
     modifier: Modifier = Modifier
 ) {
-    // Reading the revision inside the draw scope is what triggers redraws as
-    // new spectra arrive; without it the canvas would render only once.
-    val revision = state.revision.intValue
+    val revision by state.revision.collectAsState()
 
     Canvas(modifier = modifier.fillMaxSize()) {
+        // Touch the revision inside the draw scope so a new spectrum triggers a
+        // redraw; without this read the canvas would only ever render once.
+        @Suppress("UNUSED_EXPRESSION") revision
+
         drawRect(color = Color(0xFF00060F), size = size)
 
         val rows = state.snapshot()

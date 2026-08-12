@@ -84,10 +84,27 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
     private var inputName = "spectrogram"
     private var outputName = "log_probs"
 
-    init {
+    private val appContext = context.applicationContext
+    private var loadAttempted = false
+
+    /**
+     * Loads metadata and the ONNX session on first use.
+     *
+     * Deliberately not done in `init`: loading pulls in ONNX Runtime's native
+     * library, and a failure there surfaces as [UnsatisfiedLinkError]. Thrown
+     * from a constructor it would take down the whole composable that created
+     * the decoder, so the work happens here where it can be reported through
+     * [errorMessage] instead.
+     *
+     * @return true when the session is ready to run.
+     */
+    private fun ensureLoaded(): Boolean {
+        if (session != null) return true
+        if (loadAttempted) return false
+        loadAttempted = true
         try {
             val metadata = JSONObject(
-                context.assets.open(METADATA_ASSET).bufferedReader().use { it.readText() }
+                appContext.assets.open(METADATA_ASSET).bufferedReader().use { it.readText() }
             )
             val charArray = metadata.getJSONArray("chars")
             chars = List(charArray.length()) { charArray.getString(it) }
@@ -95,18 +112,31 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
             inputName = metadata.getString("onnx_input_name")
             outputName = metadata.getString("onnx_output_name")
 
-            val modelBytes = context.assets.open(MODEL_ASSET).use { it.readBytes() }
-            environment = OrtEnvironment.getEnvironment()
-            session = environment?.createSession(modelBytes, OrtSession.SessionOptions())
+            val modelBytes = appContext.assets.open(MODEL_ASSET).use { it.readBytes() }
+            val env = OrtEnvironment.getEnvironment()
+            environment = env
+            val options = OrtSession.SessionOptions().apply {
+                // Keep a core free for audio capture and the UI; the default
+                // would spread inference across every core on the device.
+                val threads = (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, 4)
+                setIntraOpNumThreads(threads)
+            }
+            session = env.createSession(modelBytes, options)
             Log.i(TAG, "DeepCW ready: ${modelBytes.size} bytes, ${chars.size} classes")
+            return true
         } catch (t: Throwable) {
+            // Catches UnsatisfiedLinkError (missing/mismatched .so) as well as
+            // asset and session failures.
             Log.e(TAG, "DeepCW model failed to load", t)
-            _errorMessage.value = "CW model failed to load: ${t.message ?: t.javaClass.simpleName}"
+            _errorMessage.value =
+                "CW model failed to load: ${t.message ?: t.javaClass.simpleName}"
+            return false
         }
     }
 
     override suspend fun processBuffer(samples: FloatArray, sampleRate: Int) {
-        if (session == null || samples.isEmpty()) return
+        if (samples.isEmpty()) return
+        if (!ensureLoaded()) return
 
         val resampled = CwDeepSpectrogram.resampleLinear(
             samples, sampleRate, CwDeepSpectrogram.SAMPLE_RATE

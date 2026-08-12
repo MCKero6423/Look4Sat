@@ -11,6 +11,14 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
+    defaultConfig {
+        // ONNX Runtime 的 AAR 自带 4 个架构共 115MB 原生库(arm64 28M / armv7 20M /
+        // x86 33M / x86_64 34M)。x86 系列只有模拟器用得到, 全打包会让 APK 从 8MB
+        // 涨到 135MB。仅保留真机需要的两个 ABI。
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
     androidResources {
         // 显式保留全部语言(防 shrinkResources 丢弃 in/id 印尼语配置); AGP 9 用 localeFilters
         localeFilters += listOf(
