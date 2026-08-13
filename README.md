@@ -36,18 +36,18 @@ It is now and always will be completely ad-free and open-source.
 
 ## License
 
-Look4Sat is free software licensed under the [GNU General Public License v3.0](LICENSE).
+The Look4Sat application code is licensed under the GNU General Public License v3.0.
 
 The CW decoder in `feature/cw` bundles the [DeepCW](https://github.com/e04/deepcw-engine)
-neural decoding model, which is licensed under the
-[GNU Affero General Public License v3.0](feature/cw/licenses/DeepCW-AGPL-3.0.txt)
-(AGPL-3.0-only). Provenance, attribution and the applied int8 quantization are
-documented in [`feature/cw/licenses/NOTICE.md`](feature/cw/licenses/NOTICE.md).
-
-Because the combined work incorporates an AGPL-3.0 component, the requirements of
-AGPL-3.0 Section 13 apply to the combined work as a whole when it is distributed
-(GPL-3.0 Section 13 permits this combination). The CW model runs locally on-device
-and does not provide services over a network.
+neural decoding model, licensed under the GNU Affero General Public License v3.0 only
+(AGPL-3.0-only). Because the combined work incorporates an AGPL-3.0 component, the
+combined work is distributed under the
+[GNU Affero General Public License v3.0](LICENSE) — GPL-3.0 Section 13 permits the
+combination, and AGPL-3.0 Section 13 applies to the combined work as a whole.
+Model provenance, attribution and the applied int8 quantization are documented in
+[`feature/cw/licenses/NOTICE.md`](feature/cw/licenses/NOTICE.md); the original GPL-3.0
+text is preserved at `feature/cw/licenses/Look4Sat-GPL-3.0.txt`. The CW model runs
+locally on-device and does not provide services over a network.
 
 ## Star History
 
