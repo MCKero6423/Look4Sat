@@ -40,19 +40,18 @@ CPU; timed per-window on device and reported via `lastInferenceMs`).
 
 ## Model
 
-| | fp32 (original) | int8 (shipped) |
-|---|---|---|
-| Size | 15,139,839 bytes | 4,248,808 bytes |
-| Derivation | — | `quantize_dynamic` (weights → QUInt8, activations float32) |
-| Input | `spectrogram` [1,1,T,65] float32 | unchanged |
-| Output | `log_probs` [1,T,42] float32 | unchanged |
-| In APK | no (available as a release asset) | yes (`assets/deepcw/model.onnx`) |
+| | Value |
+|---|---|
+| File | `assets/deepcw/model.onnx` (fp32, as published upstream) |
+| Size | 15,139,839 bytes |
+| Modifications | none — vendored byte-for-byte |
+| Input | `spectrogram` [1,1,T,65] float32 |
+| Output | `log_probs` [1,T,42] float32 |
 
-The int8 model ships inside the APK: it is ~4× smaller and measurably identical
-to fp32 on synthetic CW at SNR ≥ −4 dB (both degrade together below that). The
-fp32 model is published as a separate release asset for anyone who wants the
-highest-fidelity reference. Both are AGPL-3.0-only — see
-[`licenses/NOTICE.md`](licenses/NOTICE.md) for provenance, commit SHA and hashes.
+The full fp32 model ships inside the APK for maximum decode fidelity. An int8
+`quantize_dynamic` build was trialled earlier (~4× smaller, measurably identical
+at SNR ≥ −4 dB) but the shipped artifact is now the unmodified fp32 model. See
+[`licenses/NOTICE.md`](licenses/NOTICE.md) for provenance, commit SHA and hash.
 
 Audio must be packaged **uncompressed** (`noCompress += "onnx"` in the app
 module): ONNX Runtime mmap's assets and refuses compressed ones.

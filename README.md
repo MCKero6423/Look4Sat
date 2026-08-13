@@ -44,7 +44,7 @@ neural decoding model, licensed under the GNU Affero General Public License v3.0
 combined work is distributed under the
 [GNU Affero General Public License v3.0](LICENSE) — GPL-3.0 Section 13 permits the
 combination, and AGPL-3.0 Section 13 applies to the combined work as a whole.
-Model provenance, attribution and the applied int8 quantization are documented in
+Model provenance and attribution are documented in
 [`feature/cw/licenses/NOTICE.md`](feature/cw/licenses/NOTICE.md); the original GPL-3.0
 text is preserved at `feature/cw/licenses/Look4Sat-GPL-3.0.txt`. The CW model runs
 locally on-device and does not provide services over a network.
