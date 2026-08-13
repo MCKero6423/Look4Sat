@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
 import com.rtbishop.look4sat.core.presentation.R as CoreR
-import kotlinx.coroutines.launch
 
 /**
  * Full-page CW decoder backed by DeepCW.
@@ -110,19 +109,19 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
         if (granted) isListening = true
     }
 
-    // Capture runs only while listening; cancelling the effect stops the mic.
+    // Capture runs only while listening. Keyed on both listening state and
+    // permission so granting the permission mid-flow restarts collection
+    // (isListening may already be true when the launcher returns).
     LaunchedEffect(isListening, permissionGranted) {
-        if (!isListening || !permissionGranted) return@LaunchedEffect
-        launch {
-            audioCapture.audioFlow().collect { chunk ->
-                decoder.processBuffer(chunk, audioCapture.sampleRate)
-                waterfall.pushSamples(chunk, audioCapture.sampleRate)
-            }
+        if (!isListening) return@LaunchedEffect
+        if (!permissionGranted) {
+            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            return@LaunchedEffect
         }
-    }
-
-    LaunchedEffect(permissionGranted) {
-        if (permissionGranted) isListening = true
+        audioCapture.audioFlow().collect { chunk ->
+            decoder.processBuffer(chunk, audioCapture.sampleRate)
+            waterfall.pushSamples(chunk, audioCapture.sampleRate)
+        }
     }
 
     DisposableEffect(Unit) {
