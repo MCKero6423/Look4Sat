@@ -14,9 +14,11 @@ network model obtained from the DeepCW project.
 | **License** | GNU Affero General Public License v3.0 only (AGPL-3.0-only) |
 | **License text** | [`DeepCW-AGPL-3.0.txt`](DeepCW-AGPL-3.0.txt) |
 | **Obtained at commit** | `8e264d243bbd4467bd19f3f28292219405b47e0e` |
-| **File size** | 15,139,839 bytes |
-| **SHA-256** | `ef120799457bca042d4690944f0faf93268eb4654e7f50f28784ad63bdc1fe02` |
-| **Modifications** | None. The model and its metadata are vendored verbatim. |
+| **Original file size** | 15,139,839 bytes |
+| **Original SHA-256** | `ef120799457bca042d4690944f0faf93268eb4654e7f50f28784ad63bdc1fe02` |
+| **Derived file size** | 4,248,808 bytes |
+| **Derived SHA-256** | `cd48259be0ea8c30ecbfff4a718644f361cb27b9228b030771b0c94756dcab98` |
+| **Derivation** | Dynamic int8 quantization (weights → QUInt8, activations stay float32) via `onnxruntime.quantization.quantize_dynamic`. Input/output names, shapes and dtypes are unchanged. Measured CER on synthetic CW audio is identical to the fp32 model at SNR >= -4 dB; at -6/-8 dB both models degrade similarly. |
 
 Related upstream repositories by the same author (not vendored here):
 
@@ -50,6 +52,7 @@ the repository hosting this file.
 ### Reproducing the vendored files
 
 ```bash
+# 1) Fetch the original fp32 model
 SHA=8e264d243bbd4467bd19f3f28292219405b47e0e
 curl -sLO https://raw.githubusercontent.com/e04/deepcw-engine/$SHA/model.onnx
 curl -sLO https://raw.githubusercontent.com/e04/deepcw-engine/$SHA/model.onnx.json
@@ -57,6 +60,15 @@ curl -sL -o DeepCW-AGPL-3.0.txt \
   https://raw.githubusercontent.com/e04/deepcw-engine/$SHA/LICENSE
 sha256sum model.onnx
 # expected: ef120799457bca042d4690944f0faf93268eb4654e7f50f28784ad63bdc1fe02
+
+# 2) Reproduce the int8 quantization this repository ships
+python - <<'PY'
+from onnxruntime.quantization import quantize_dynamic, QuantType
+quantize_dynamic("model.onnx", "model_int8.onnx", weight_type=QuantType.QUInt8)
+PY
+sha256sum model_int8.onnx
+# expected: cd48259be0ea8c30ecbfff4a718644f361cb27b9228b030771b0c94756dcab98
+# then copy model_int8.onnx over assets/deepcw/model.onnx
 ```
 
 ## ONNX Runtime
