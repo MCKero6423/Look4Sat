@@ -55,10 +55,17 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         const val TAG = "CwDeepDecoder"
         const val MODEL_ASSET = "deepcw/model.onnx"
         const val METADATA_ASSET = "deepcw/model.onnx.json"
+
+        /** Evicted audio is decoded into permanent history once this much accumulates. */
+        const val ARCHIVE_SECONDS = 15.0
+        val ARCHIVE_THRESHOLD: Int = (CwDeepSpectrogram.SAMPLE_RATE * ARCHIVE_SECONDS).toInt()
     }
 
     private val _decodedText = MutableStateFlow("")
     override val decodedText: StateFlow<String> = _decodedText.asStateFlow()
+
+    private val _historyText = MutableStateFlow("")
+    override val historyText: StateFlow<String> = _historyText.asStateFlow()
 
     private val _estimatedPitch = MutableStateFlow<Float?>(null)
     override val estimatedPitch: StateFlow<Float?> = _estimatedPitch.asStateFlow()
@@ -73,6 +80,16 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
     override val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private val buffer = CwDeepBuffer()
+
+    /**
+     * Evicted audio accumulates here until it reaches [ARCHIVE_SECONDS], then
+     * is decoded once and appended to [historyText]. Archiving in ~15 s chunks
+     * keeps the extra inference cheap (short window) while long enough to be
+     * decoded accurately — the content has already been through the 20 s window
+     * many times, so a slightly shorter archive decode loses almost nothing.
+     */
+    private val archiveBuffer = FloatArray(CwDeepBuffer.DEFAULT_MAX_SECONDS.toInt() * CwDeepSpectrogram.SAMPLE_RATE)
+    private var archiveSize = 0
 
     /** Held while inference runs so slow devices skip work instead of queuing it. */
     private val inferenceLock = Mutex()
@@ -157,6 +174,21 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
             samples, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
         )
         val shouldRedecode = buffer.append(resampled)
+
+        // Archive audio that scrolled out of the live window. It is decoded once
+        // when a full archive chunk has accumulated, so old text does not vanish.
+        val overflow = buffer.drainOverflow()
+        if (overflow.isNotEmpty()) {
+            for (v in overflow) {
+                if (archiveSize < archiveBuffer.size) archiveBuffer[archiveSize++] = v
+            }
+            if (archiveSize >= ARCHIVE_THRESHOLD) {
+                val audio = archiveBuffer.copyOf(archiveSize)
+                archiveSize = 0
+                archiveDecode(audio)
+            }
+        }
+
         if (!shouldRedecode || !buffer.hasEnoughAudio) return
 
         // Drop this cycle rather than queue when the previous run is still going.
@@ -186,6 +218,37 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         CwProbe.step("infer_begin frames=${window.size}")
 
         val spectrogram = CwDeepSpectrogram.compute(window)
+        val text = runInference(activeSession, activeEnvironment, spectrogram)
+
+        // Replace, never append: the model rewrites earlier characters as more
+        // context arrives, so appending would leave stale guesses on screen.
+        _decodedText.value = text
+
+        updateSignalMetrics(spectrogram)
+    }
+
+    /**
+     * Decode a chunk of audio that has scrolled out of the live window and
+     * append it to [historyText]. Unlike the live window this never replaces —
+     * the archived audio is final, so its text is permanent.
+     */
+    private suspend fun archiveDecode(audio: FloatArray) = withContext(Dispatchers.Default) {
+        val activeSession = session ?: return@withContext
+        val activeEnvironment = environment ?: return@withContext
+        if (audio.size < CwDeepSpectrogram.FFT_LENGTH) return@withContext
+        val spectrogram = CwDeepSpectrogram.compute(audio)
+        val text = runInference(activeSession, activeEnvironment, spectrogram)
+        if (text.isNotEmpty()) {
+            _historyText.value += text
+        }
+    }
+
+    /** Run the ONNX model over a pre-computed spectrogram and return the decoded text. */
+    private fun runInference(
+        activeSession: OrtSession,
+        activeEnvironment: OrtEnvironment,
+        spectrogram: Array<FloatArray>
+    ): String {
         val frames = spectrogram.size
         val bins = CwDeepSpectrogram.FREQUENCY_BINS
 
@@ -205,12 +268,7 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         }
         _lastInferenceMs.value = (System.currentTimeMillis() - startedAt).toInt()
         CwProbe.step("infer_done ms=${_lastInferenceMs.value}")
-
-        // Replace, never append: the model rewrites earlier characters as more
-        // context arrives, so appending would leave stale guesses on screen.
-        _decodedText.value = text
-
-        updateSignalMetrics(spectrogram)
+        return text
     }
 
     /**
@@ -248,6 +306,8 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
     override fun reset() {
         buffer.reset()
         _decodedText.value = ""
+        _historyText.value = ""
+        archiveSize = 0
         _estimatedPitch.value = null
         _signalStrength.value = 0f
         _lastInferenceMs.value = 0

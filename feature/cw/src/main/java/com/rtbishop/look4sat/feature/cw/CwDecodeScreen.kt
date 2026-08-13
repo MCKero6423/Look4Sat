@@ -94,6 +94,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
     var isListening by remember { mutableStateOf(false) }
 
     val decodedText by decoder.decodedText.collectAsState()
+    val historyText by decoder.historyText.collectAsState()
     val estimatedPitch by decoder.estimatedPitch.collectAsState()
     val signalStrength by decoder.signalStrength.collectAsState()
     val inferenceMs by decoder.lastInferenceMs.collectAsState()
@@ -207,7 +208,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
             Text(
-                text = decodedText,
+                text = (historyText + decodedText).ifEmpty { "…" },
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())

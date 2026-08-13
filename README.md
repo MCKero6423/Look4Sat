@@ -34,6 +34,21 @@ It is now and always will be completely ad-free and open-source.
 *  Custom TLE satellite data import is available via Three Line Element .txt files
 *  Offline first: calculations are made offline. Weekly TLE data update is recommended.
 
+## License
+
+Look4Sat is free software licensed under the [GNU General Public License v3.0](LICENSE).
+
+The CW decoder in `feature/cw` bundles the [DeepCW](https://github.com/e04/deepcw-engine)
+neural decoding model, which is licensed under the
+[GNU Affero General Public License v3.0](feature/cw/licenses/DeepCW-AGPL-3.0.txt)
+(AGPL-3.0-only). Provenance, attribution and the applied int8 quantization are
+documented in [`feature/cw/licenses/NOTICE.md`](feature/cw/licenses/NOTICE.md).
+
+Because the combined work incorporates an AGPL-3.0 component, the requirements of
+AGPL-3.0 Section 13 apply to the combined work as a whole when it is distributed
+(GPL-3.0 Section 13 permits this combination). The CW model runs locally on-device
+and does not provide services over a network.
+
 ## Star History
 
 <a href="https://www.star-history.com/?repos=rt-bishop%2FLook4Sat&type=timeline&legend=top-left">

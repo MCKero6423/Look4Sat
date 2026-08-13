@@ -118,4 +118,35 @@ class CwDeepBufferTest {
         val buffer = CwDeepBuffer()
         assertEquals(CwDeepSpectrogram.SAMPLE_RATE * 20, buffer.capacity)
     }
+
+    @Test
+    fun overflowCollectsEvictedSamplesInOrder() {
+        val buffer = CwDeepBuffer(sampleRate = 4, maxSeconds = 1.0) // capacity 4
+        buffer.append(floatArrayOf(1f, 2f, 3f, 4f))
+        assertEquals("nothing evicted before the window is full", 0, buffer.overflowCount)
+        buffer.append(floatArrayOf(5f, 6f)) // overwrites 1, 2
+        assertArrayEquals("evicted samples, oldest first", floatArrayOf(1f, 2f), buffer.drainOverflow(), 0f)
+        assertArrayEquals("live window still correct", floatArrayOf(3f, 4f, 5f, 6f), buffer.snapshot(), 0f)
+    }
+
+    @Test
+    fun drainOverflowClearsItself() {
+        val buffer = CwDeepBuffer(sampleRate = 4, maxSeconds = 1.0)
+        buffer.append(floatArrayOf(1f, 2f, 3f, 4f))
+        buffer.append(floatArrayOf(5f))
+        assertEquals(1, buffer.overflowCount)
+        buffer.drainOverflow()
+        assertEquals(0, buffer.overflowCount)
+        assertArrayEquals(FloatArray(0), buffer.drainOverflow(), 0f)
+    }
+
+    @Test
+    fun resetClearsOverflow() {
+        val buffer = CwDeepBuffer(sampleRate = 4, maxSeconds = 1.0)
+        buffer.append(floatArrayOf(1f, 2f, 3f, 4f))
+        buffer.append(floatArrayOf(5f))
+        assertEquals(1, buffer.overflowCount)
+        buffer.reset()
+        assertEquals(0, buffer.overflowCount)
+    }
 }

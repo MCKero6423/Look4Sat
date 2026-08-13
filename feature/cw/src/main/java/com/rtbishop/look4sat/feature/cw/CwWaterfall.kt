@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,7 +97,7 @@ class CwWaterfallState(private val historyRows: Int = 96) {
 
 /**
  * Draws the waterfall newest-row-last, one pixel column per frequency bin.
- * Colour ramp goes dark blue -> cyan -> yellow with magnitude.
+ * Colour ramp is the inferno palette (black -> purple -> orange -> yellow).
  */
 @Composable
 internal fun CwWaterfallView(
@@ -126,11 +127,14 @@ internal fun CwWaterfallView(
 
         for ((index, row) in rows.withIndex()) {
             val y = index * rowHeight
-            for (bin in row.indices) {
-                val magnitude = (row[bin] / peak).coerceIn(0f, 1f)
-                if (magnitude < 0.06f) continue
+            // Linear interpolation between adjacent bins via a horizontal
+            // gradient removes the blocky "pixel" look of 65 discrete columns.
+            for (bin in 0 until row.size - 1) {
+                val m0 = (row[bin] / peak).coerceIn(0f, 1f)
+                val m1 = (row[bin + 1] / peak).coerceIn(0f, 1f)
+                if (m0 < 0.06f && m1 < 0.06f) continue
                 drawRect(
-                    color = rampColor(magnitude),
+                    brush = Brush.horizontalGradient(listOf(inferno(m0), inferno(m1))),
                     topLeft = Offset(bin * binWidth, y),
                     size = Size(binWidth + 1f, rowHeight + 1f)
                 )
@@ -147,13 +151,32 @@ internal fun CwWaterfallView(
     }
 }
 
-private fun rampColor(magnitude: Float): Color = when {
-    magnitude < 0.5f -> {
-        val t = magnitude / 0.5f
-        Color(red = 0f, green = 0.35f * t, blue = 0.35f + 0.55f * t)
+/**
+ * matplotlib "inferno" colour map, approximated with piecewise-linear stops
+ * (black -> purple -> magenta-red -> orange -> pale yellow). The same palette
+ * used for the static spectrogram illustration, kept for visual consistency.
+ */
+private val INFERNO_STOPS = arrayOf(
+    floatArrayOf(0.00f, 0.000f, 0.000f, 0.016f), // black
+    floatArrayOf(0.25f, 0.231f, 0.059f, 0.439f), // deep purple
+    floatArrayOf(0.50f, 0.549f, 0.161f, 0.506f), // magenta
+    floatArrayOf(0.75f, 0.871f, 0.286f, 0.408f), // red-orange
+    floatArrayOf(1.00f, 0.988f, 1.000f, 0.643f)  // pale yellow
+)
+
+private fun inferno(t: Float): Color {
+    val x = t.coerceIn(0f, 1f)
+    for (i in 0 until INFERNO_STOPS.size - 1) {
+        val a = INFERNO_STOPS[i]
+        val b = INFERNO_STOPS[i + 1]
+        if (x <= b[0]) {
+            val f = (x - a[0]) / (b[0] - a[0])
+            return Color(
+                red = a[1] + (b[1] - a[1]) * f,
+                green = a[2] + (b[2] - a[2]) * f,
+                blue = a[3] + (b[3] - a[3]) * f
+            )
+        }
     }
-    else -> {
-        val t = (magnitude - 0.5f) / 0.5f
-        Color(red = t, green = 0.35f + 0.6f * t, blue = 0.9f - 0.8f * t)
-    }
+    return Color(0.988f, 1.0f, 0.643f)
 }

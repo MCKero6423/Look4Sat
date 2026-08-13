@@ -28,13 +28,20 @@ import kotlinx.coroutines.flow.StateFlow
 interface ICwDecoder {
 
     /**
-     * Decoded text for display.
+     * Decoded text for the *current* window.
      *
      * Note this is **replace** semantics, not append: a whole-segment model
      * revises earlier characters as more audio arrives, so consumers must show
      * the current value rather than accumulating emissions.
      */
     val decodedText: StateFlow<String>
+
+    /**
+     * Permanent transcript of everything that has scrolled out of the live
+     * window. Unlike [decodedText] this only ever grows (until [reset]); it is
+     * what the user reads back after a signal has passed.
+     */
+    val historyText: StateFlow<String>
 
     /** Detected tone frequency in Hz, or null before a tone is found. */
     val estimatedPitch: StateFlow<Float?>

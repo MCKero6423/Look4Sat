@@ -54,8 +54,21 @@ class CwDeepBuffer(
     private var filled = 0
     private var sinceLastRedecode = 0
 
+    /**
+     * Samples evicted from the ring once it is full. They are the audio that
+     * has scrolled out of the 20 s window, and are handed off (via
+     * [drainOverflow]) so the decoder can archive them into permanent history
+     * instead of silently dropping the corresponding text. Pre-allocated to
+     * [capacity]: overflow never exceeds one window before it is drained.
+     */
+    private val overflow = FloatArray(capacity)
+    private var overflowSize = 0
+
     /** Samples currently buffered, never above [capacity]. */
     val size: Int get() = filled
+
+    /** Samples currently held in the overflow (awaiting archival). */
+    val overflowCount: Int get() = overflowSize
 
     /** True once there is enough audio for the spectrogram to yield a frame. */
     val hasEnoughAudio: Boolean get() = filled >= CwDeepSpectrogram.FFT_LENGTH
@@ -71,10 +84,15 @@ class CwDeepBuffer(
             // A chunk longer than the window can only contribute its tail.
             val start = maxOf(0, chunk.size - capacity)
             for (i in start until chunk.size) {
+                if (filled == capacity) {
+                    // The slot we are about to overwrite holds the oldest
+                    // sample — move it to the overflow for archival.
+                    overflow[overflowSize++] = ring[writeIndex]
+                }
                 ring[writeIndex] = chunk[i]
                 writeIndex = (writeIndex + 1) % capacity
+                if (filled < capacity) filled++
             }
-            filled = minOf(capacity, filled + (chunk.size - start))
         }
 
         sinceLastRedecode += chunk.size
@@ -98,11 +116,25 @@ class CwDeepBuffer(
         return out
     }
 
-    /** Drop all audio and restart the re-decode interval. */
+    /**
+     * Return the evicted samples (chronological order) and clear the overflow.
+     * Safe to call every append; returns an empty array when nothing has been
+     * evicted yet.
+     */
+    fun drainOverflow(): FloatArray {
+        if (overflowSize == 0) return FloatArray(0)
+        val out = overflow.copyOf(overflowSize)
+        overflowSize = 0
+        return out
+    }
+
+    /** Drop all audio (including pending overflow) and restart the interval. */
     fun reset() {
         writeIndex = 0
         filled = 0
         sinceLastRedecode = 0
+        overflowSize = 0
         ring.fill(0f)
+        overflow.fill(0f)
     }
 }
