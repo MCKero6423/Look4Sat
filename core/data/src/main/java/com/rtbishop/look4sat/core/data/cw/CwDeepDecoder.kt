@@ -87,6 +87,11 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
     private val appContext = context.applicationContext
     private var loadAttempted = false
 
+    init {
+        CwProbe.init(appContext)
+        CwProbe.step("decoder_constructed")
+    }
+
     /**
      * Loads metadata and the ONNX session on first use.
      *
@@ -102,6 +107,7 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         if (session != null) return true
         if (loadAttempted) return false
         loadAttempted = true
+        CwProbe.step("load_begin")
         try {
             val metadata = JSONObject(
                 appContext.assets.open(METADATA_ASSET).bufferedReader().use { it.readText() }
@@ -122,11 +128,13 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
                 setIntraOpNumThreads(threads)
             }
             session = env.createSession(modelBytes, options)
+            CwProbe.step("load_session_ok")
             Log.i(TAG, "DeepCW ready: ${modelBytes.size} bytes, ${chars.size} classes")
             return true
         } catch (t: Throwable) {
             // Catches UnsatisfiedLinkError (missing/mismatched .so) as well as
             // asset and session failures.
+            CwProbe.step("load_failed:${t.javaClass.simpleName}")
             Log.e(TAG, "DeepCW model failed to load", t)
             _errorMessage.value =
                 "CW model failed to load: ${t.message ?: t.javaClass.simpleName}"
@@ -175,6 +183,7 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
     private suspend fun decodeWindow(window: FloatArray) = withContext(Dispatchers.Default) {
         val activeSession = session ?: return@withContext
         val activeEnvironment = environment ?: return@withContext
+        CwProbe.step("infer_begin frames=${window.size}")
 
         val spectrogram = CwDeepSpectrogram.compute(window)
         val frames = spectrogram.size
@@ -195,6 +204,7 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
             }
         }
         _lastInferenceMs.value = (System.currentTimeMillis() - startedAt).toInt()
+        CwProbe.step("infer_done ms=${_lastInferenceMs.value}")
 
         // Replace, never append: the model rewrites earlier characters as more
         // context arrives, so appending would leave stale guesses on screen.
