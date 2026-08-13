@@ -26,6 +26,7 @@ import com.rtbishop.look4sat.core.domain.cw.CwCtcDecoder
 import com.rtbishop.look4sat.core.domain.cw.CwDeepBuffer
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import com.rtbishop.look4sat.core.domain.cw.ICwDecoder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -185,7 +186,12 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
             if (archiveSize >= ARCHIVE_THRESHOLD) {
                 val audio = archiveBuffer.copyOf(archiveSize)
                 archiveSize = 0
-                archiveDecode(audio)
+                try {
+                    archiveDecode(audio)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    Log.e(TAG, "archive decode failed", t)
+                }
             }
         }
 
@@ -199,6 +205,11 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         try {
             decodeWindow(buffer.snapshot())
         } catch (t: Throwable) {
+            // Cancellation is normal when the user pauses: the capture coroutine
+            // is cancelled while an inference is in flight. Never swallow it as
+            // a decode error — rethrow so the coroutine machinery works, and do
+            // not flash a spurious "decode failed" banner.
+            if (t is CancellationException) throw t
             Log.e(TAG, "inference failed", t)
             _errorMessage.value = "CW decode failed: ${t.message ?: t.javaClass.simpleName}"
             runCatching {
