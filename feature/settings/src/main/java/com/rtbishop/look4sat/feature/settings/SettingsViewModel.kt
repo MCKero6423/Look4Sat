@@ -134,8 +134,6 @@ class SettingsViewModel(
                 if (action.screenName in hidden) hidden.remove(action.screenName) else hidden.add(action.screenName)
                 current.copy(hiddenScreens = hidden)
             }
-            is SettingsAction.ReorderScreens -> settingsRepo.updateOtherSettings { it.copy(screenOrder = action.order) }
-            SettingsAction.ResetScreenOrder -> settingsRepo.updateOtherSettings { it.copy(screenOrder = emptyList()) }
             is SettingsAction.UpdateMenuOrder -> settingsRepo.updateOtherSettings {
                 it.copy(screenOrder = action.mainOrder, subMenuOrder = action.subOrder)
             }

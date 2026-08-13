@@ -66,10 +66,6 @@ sealed interface SettingsAction {
     data class ToggleNightMode(val value: Boolean) : SettingsAction
     // UI settings: toggle a bottom-nav page's hidden state (Screen simpleName)
     data class ToggleScreen(val screenName: String) : SettingsAction
-    // UI settings: update page order
-    data class ReorderScreens(val order: List<String>) : SettingsAction
-    // UI settings: reset to default order
-    data object ResetScreenOrder : SettingsAction
     // UI settings: update main + More menu order (4.5.1 foldable menu)
     data class UpdateMenuOrder(val mainOrder: List<String>, val subOrder: List<String>) : SettingsAction
     // UI settings: reset main + More menu order

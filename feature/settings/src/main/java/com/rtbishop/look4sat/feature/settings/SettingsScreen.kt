@@ -105,8 +105,7 @@ import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
 import com.rtbishop.look4sat.core.presentation.TopBar
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
-import com.rtbishop.look4sat.core.presentation.defaultScreenOrder
-import com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder
+import com.rtbishop.look4sat.core.domain.navigation.MenuLayout
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -406,7 +405,6 @@ private fun SettingsScreen(
                     screenOrder = uiState.otherSettings.screenOrder,
                     subMenuOrder = uiState.otherSettings.subMenuOrder,
                     onToggle = { name -> onAction(SettingsAction.ToggleScreen(name)) },
-                    onReorder = { order -> onAction(SettingsAction.ReorderScreens(order)) },
                     onResetOrder = { onAction(SettingsAction.ResetMenuOrder) },
                     onUpdateMenu = { main, sub -> onAction(SettingsAction.UpdateMenuOrder(main, sub)) }
                 )
@@ -797,7 +795,6 @@ private fun UiSettingsCard(
     screenOrder: List<String>,
     subMenuOrder: List<String>,
     onToggle: (String) -> Unit,
-    onReorder: (List<String>) -> Unit,
     onResetOrder: () -> Unit,
     onUpdateMenu: (List<String>, List<String>) -> Unit
 ) {
@@ -813,25 +810,18 @@ private fun UiSettingsCard(
         R.string.nav_map to "Map",
         R.string.nav_prefs to "Settings"
     ) // name 必须与 Screen.screenId 一致 (R8 安全)
-    // Main menu items: exclude sub-menu items; Settings pinned last
-    val mainItems = remember(screens, screenOrder, subMenuOrder) {
-        val sub = subMenuOrder.ifEmpty { defaultSubMenuOrder }
-        screens.map { it.second }
-            .filter { it !in sub }
-            .sortedBy { name ->
-                screenOrder.indexOf(name).let { idx ->
-                    if (idx != -1) idx else defaultScreenOrder.indexOf(name).let {
-                        if (it != -1) it else Int.MAX_VALUE
-                    }
-                }
-            }
-            .sortedWith(compareBy { if (it == "Settings") 1 else 0 })
+    // Resolved by the same core:domain rule the bottom bar uses, so this list is
+    // exactly what the user will see on the bar.
+    val menuLayout = remember(screens, screenOrder, subMenuOrder, hiddenScreens) {
+        MenuLayout.resolve(
+            allScreenIds = screens.map { it.second },
+            screenOrder = screenOrder,
+            subMenuOrder = subMenuOrder,
+            hiddenScreenIds = hiddenScreens
+        )
     }
-    // More-menu items
-    val subItems = remember(screens, subMenuOrder) {
-        val sub = subMenuOrder.ifEmpty { defaultSubMenuOrder }
-        sub.filter { s -> screens.any { (_, name) -> name == s } }
-    }
+    val mainItems = menuLayout.mainIds
+    val subItems = menuLayout.moreIds
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -868,12 +858,12 @@ private fun UiSettingsCard(
                 moveLabel = stringResource(id = R.string.prefs_ui_move_out),
                 moveEnabled = { name -> name != "Settings" },
                 onMove = { name ->
-                    onUpdateMenu(
-                        mainItems.filter { it != name },
-                        (subMenuOrder.ifEmpty { defaultSubMenuOrder } + name).distinct()
+                    val moved = MenuLayout.moveToMore(
+                        name, screens.map { it.second }, screenOrder, subMenuOrder
                     )
+                    onUpdateMenu(moved.screenOrder, moved.subMenuOrder)
                 },
-                onReorder = { main -> onUpdateMenu(main, subMenuOrder) }
+                onReorder = { main -> onUpdateMenu(main, subItems) }
             )
             // More-menu area (pages behind "More")
             Text(
@@ -888,19 +878,12 @@ private fun UiSettingsCard(
                 // Buttons always visible; when the main menu hits 5, the last non-Settings item moves to More (swap)
                 moveEnabled = { true },
                 onMove = { name ->
-                    val mainWithoutSettings = mainItems.filter { it != "Settings" }
-                    val needSwap = mainWithoutSettings.size >= 5
-                    val evicted = if (needSwap) mainWithoutSettings.last() else null
-                    val newMain = if (needSwap) {
-                        (mainWithoutSettings.dropLast(1) + name).distinct()
-                    } else {
-                        (mainWithoutSettings + name).distinct()
-                    }
-                    val newSub = (subItems.filter { it != name } +
-                        if (evicted != null) listOf(evicted) else emptyList()).distinct()
-                    onUpdateMenu(newMain, newSub)
+                    val moved = MenuLayout.moveToMain(
+                        name, screens.map { it.second }, screenOrder, subMenuOrder
+                    )
+                    onUpdateMenu(moved.screenOrder, moved.subMenuOrder)
                 },
-                onReorder = { sub -> onUpdateMenu(screenOrder, sub) }
+                onReorder = { sub -> onUpdateMenu(mainItems, sub) }
             )
             TextButton(onClick = onResetOrder) {
                 Text(text = stringResource(id = R.string.prefs_ui_order_reset))

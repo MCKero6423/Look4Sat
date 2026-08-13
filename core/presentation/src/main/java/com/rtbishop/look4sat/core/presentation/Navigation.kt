@@ -54,12 +54,6 @@ sealed class Screen(val iconResId: Int, val titleResId: Int, val screenId: Strin
     data object Settings : Screen(R.drawable.ic_settings, R.string.nav_prefs, "Settings")
 }
 
-// UI settings: default main-menu page order (5 bottom-bar slots)
-val defaultScreenOrder = listOf("Satellites", "Passes", "Radar", "Map", "Settings")
-
-// UI settings: default More-menu order (pages behind "More")
-val defaultSubMenuOrder = listOf("Mutual", "Roaming", "CwDecode", "WavelogLog", "AMSAT")
-
 @Serializable
 data object RadarDestination : NavKey
 

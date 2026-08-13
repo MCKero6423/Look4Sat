@@ -80,6 +80,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
 import com.rtbishop.look4sat.core.domain.repository.MutualPassData
+import com.rtbishop.look4sat.core.domain.navigation.MenuLayout
 import com.rtbishop.look4sat.core.presentation.DeeplinkResolver
 import com.rtbishop.look4sat.core.presentation.ElevationThresholds
 import com.rtbishop.look4sat.core.presentation.LocalElevationThresholds
@@ -124,7 +125,7 @@ fun NavRoot(deeplink: String? = null) {
             rememberViewModelStoreNavEntryDecorator() // Required for ViewModel scoping per entry
         ),
         entryProvider = entryProvider {
-            entry<Screen.Passes> { MainScreen(navigateToRadar = { rootBackStack.add(RadarDestination) }) }
+            entry<Screen.Passes> { MainScreen() }
             entry<RadarDestination> {
                 Scaffold { innerPadding ->
                     RadarDestination(navigateUp = navigateBack)
@@ -136,7 +137,7 @@ fun NavRoot(deeplink: String? = null) {
 }
 
 @Composable
-fun MainScreen(navigateToRadar: () -> Unit = {}) {
+fun MainScreen() {
     val backStack = rememberNavBackStack(Screen.Passes)
     val currentKey = backStack.lastOrNull()
     val navigateBack: () -> Unit = { backStack.removeLastOrNull() }
@@ -145,27 +146,27 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val trackingState by container.radioTrackingService.state.collectAsStateWithLifecycle()
     val otherSettings by container.settingsRepo.otherSettings.collectAsStateWithLifecycle()
-    // UI settings: sort by screenOrder (empty = default order), then filter by hiddenScreens (Settings always kept)
-    val allNavItems = listOf(Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming, Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Map, Screen.Settings)
-        .sortedBy { screen ->
-            // Unknown pages (e.g. CwDecode not in old persisted order): use default-order position (Roaming<->Map), then fall back to last
-            val idx = otherSettings.screenOrder.indexOf(screen.screenId)
-            if (idx != -1) idx
-            else com.rtbishop.look4sat.core.presentation.defaultScreenOrder.indexOf(screen.screenId).let {
-                if (it != -1) it else Int.MAX_VALUE
-            }
-        }
-        .filter { it.screenId !in otherSettings.hiddenScreens || it is Screen.Settings }
-    // 4.5.1 foldable menu: main menu (5 bottom-bar slots) + More menu (overflow page)
-    // Legacy migration: persisted subMenuOrder lacks new pages (WavelogLog) -> append to the sub-menu tail
-    val subOrder = (otherSettings.subMenuOrder.ifEmpty { com.rtbishop.look4sat.core.presentation.defaultSubMenuOrder })
-        .let { list -> if ("WavelogLog" in list) list else list + "WavelogLog" }
-        .let { list -> if ("AMSAT" in list) list else list + "AMSAT" }
-    val mainNavItems = remember(allNavItems, subOrder) {
-        allNavItems.filter { it.screenId !in subOrder }.take(5)
+    // Menu layout is resolved in core:domain so the bar and the settings editor
+    // cannot disagree, and so Settings can never be pushed out of both menus.
+    val allNavItems = listOf(
+        Screen.Satellites, Screen.Passes, Screen.Radar, Screen.Mutual, Screen.Roaming,
+        Screen.CwDecode, Screen.WavelogLog, Screen.AmSat, Screen.Map, Screen.Settings
+    )
+    val menuLayout = remember(
+        otherSettings.screenOrder, otherSettings.subMenuOrder, otherSettings.hiddenScreens
+    ) {
+        MenuLayout.resolve(
+            allScreenIds = allNavItems.map { it.screenId },
+            screenOrder = otherSettings.screenOrder,
+            subMenuOrder = otherSettings.subMenuOrder,
+            hiddenScreenIds = otherSettings.hiddenScreens
+        )
     }
-    val moreNavItems = remember(allNavItems, subOrder) {
-        subOrder.mapNotNull { id -> allNavItems.find { it.screenId == id } }
+    val mainNavItems = remember(menuLayout) {
+        menuLayout.mainIds.mapNotNull { id -> allNavItems.find { it.screenId == id } }
+    }
+    val moreNavItems = remember(menuLayout) {
+        menuLayout.moreIds.mapNotNull { id -> allNavItems.find { it.screenId == id } }
     }
     var moreExpanded by remember { mutableStateOf(false) }
     // Intercept Back while the More menu is open: close the menu first
@@ -185,18 +186,9 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
                 mainNavItems.forEach { screen ->
-                    val isSelected = when (currentKey) {
-                        is Screen.Satellites -> screen is Screen.Satellites
-                        is Screen.Passes -> screen is Screen.Passes
-                        is Screen.Radar -> screen is Screen.Radar
-                        is Screen.Mutual -> screen is Screen.Mutual
-                        is Screen.CwDecode -> screen is Screen.CwDecode
-                        is Screen.WavelogLog -> screen is Screen.WavelogLog
-                        is Screen.AmSat -> screen is Screen.AmSat
-                        is Screen.Map -> screen is Screen.Map
-                        is Screen.Settings -> screen is Screen.Settings
-                        else -> false
-                    }
+                    // Screen subclasses are data objects, so identity is enough and
+                    // newly added pages highlight without touching this call site.
+                    val isSelected = currentKey == screen
                     item(
                         icon = { Icon(painterResource(screen.iconResId), stringResource(screen.titleResId)) },
                         label = { Text(stringResource(screen.titleResId)) },
@@ -257,7 +249,6 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                                     container.setMutualPassData(MutualPassData())
                                     container.satelliteRepo.selectPass(catNum, aosTime)
                                     backStack.add(Screen.Radar)
-    //                            navigateToRadar()
                                 }
                             }
                             entry<Screen.Radar> {

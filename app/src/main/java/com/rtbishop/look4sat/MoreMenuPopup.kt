@@ -66,17 +66,10 @@ fun MoreMenuPopup(
         ) {
             Column(modifier = Modifier.padding(vertical = 4.dp)) {
                 items.forEach { screen ->
-                    val isSelected = when (currentKey) {
-                        is Screen.Satellites -> screen is Screen.Satellites
-                        is Screen.Passes -> screen is Screen.Passes
-                        is Screen.Radar -> screen is Screen.Radar
-                        is Screen.Mutual -> screen is Screen.Mutual
-                        is Screen.CwDecode -> screen is Screen.CwDecode
-                        is Screen.WavelogLog -> screen is Screen.WavelogLog
-                        is Screen.Map -> screen is Screen.Map
-                        is Screen.Settings -> screen is Screen.Settings
-                        else -> false
-                    }
+                    // Screen subclasses are data objects, so identity is enough. The
+                    // old per-type when was missing AmSat and Roaming, leaving those
+                    // pages unhighlighted while open.
+                    val isSelected = currentKey == screen
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
