@@ -87,11 +87,11 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * 新: AMSAT 卫星状态改用官方 AMSAT API(v1 JSON,更快更稳)
-        * AMSAT 状态页适配全面屏(刷新按钮和更新时间始终可点)
-        * WaveLog: QRZ 对方网格查询(⚙ 弹窗粘贴 Cookie + 测试查询)
-        * WaveLog: LoTW 卫星列表更新按钮(内置 112 颗卫星)
-        * WaveLog: 信号报告 59/59(v1 和 v2)
+        * 新: CW 解码改用 DeepCW 神经网络,弱信号摩尔斯码解码率大幅提升
+        * 新: CW 解码历史永久保留(文字不再消失)
+        * CW 瀑布图: 全新 inferno 配色与平滑渐变
+        * 恢复 64 位(arm64)支持
+        * 修复: 暂停/恢复不再误报"解码失败"
     </string>
 
     <!-- Radar screen -->
