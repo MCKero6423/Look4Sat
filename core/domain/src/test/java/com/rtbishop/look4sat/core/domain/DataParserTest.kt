@@ -21,6 +21,7 @@ import com.rtbishop.look4sat.core.domain.utility.DataParser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 @ExperimentalCoroutinesApi
@@ -109,6 +110,47 @@ class DataParserTest {
     @Test
     fun `Given invalid CSV stream returns empty list`() = runTest(testDispatcher) {
         assert(dataParser.parseCSVStream(invalidCSVStream).isEmpty())
+    }
+
+    private fun csvWithEpoch(epoch: String) = """
+        OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT
+        ISS (ZARYA),1998-067A,$epoch,15.48582035,.0004694,51.6447,309.4881,203.6966,299.8876,0,U,25544,999,31220,.31985E-4,.1288E-4,0
+    """.trimIndent().byteInputStream()
+
+    @Test
+    fun `Given CSV epoch one minute past midnight the day fraction is correct`() = runTest(testDispatcher) {
+        // Regression: the day fraction used to be built by string surgery
+        // (Double.toString().substring(1)), but toString switches to scientific
+        // notation below 1e-3, so the leading significant digit was truncated.
+        // 00:01:00 produced "25001.944444444444445E-4" -> 2.50019..., an epoch
+        // roughly 26 years off, with no exception to reveal it.
+        val sat = dataParser.parseCSVStream(csvWithEpoch("2025-01-01T00:01:00.000000"))[0]
+        assertEquals(25001.0 + 60.0 / 86400.0, sat.epoch, 1e-9)
+    }
+
+    @Test
+    fun `Given CSV epoch one second past midnight the day fraction is correct`() = runTest(testDispatcher) {
+        val sat = dataParser.parseCSVStream(csvWithEpoch("2025-01-01T00:00:01.000000"))[0]
+        assertEquals(25001.0 + 1.0 / 86400.0, sat.epoch, 1e-9)
+    }
+
+    @Test
+    fun `Given CSV epoch exactly at midnight the day fraction is zero`() = runTest(testDispatcher) {
+        val sat = dataParser.parseCSVStream(csvWithEpoch("2025-01-01T00:00:00.000000"))[0]
+        assertEquals(25001.0, sat.epoch, 1e-9)
+    }
+
+    @Test
+    fun `Given CSV epoch at midday the day fraction is one half`() = runTest(testDispatcher) {
+        val sat = dataParser.parseCSVStream(csvWithEpoch("2025-01-01T12:00:00.000000"))[0]
+        assertEquals(25001.5, sat.epoch, 1e-9)
+    }
+
+    @Test
+    fun `Given CSV epoch late in the day the day fraction stays below one`() = runTest(testDispatcher) {
+        val sat = dataParser.parseCSVStream(csvWithEpoch("2025-01-01T23:59:59.999000"))[0]
+        assert(sat.epoch > 25001.999) { "expected almost a full day, got ${sat.epoch}" }
+        assert(sat.epoch < 25002.0) { "day fraction must not roll into the next day, got ${sat.epoch}" }
     }
 
     @Test

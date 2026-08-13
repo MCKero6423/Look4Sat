@@ -70,8 +70,13 @@ class DataParser(private val dispatcher: CoroutineDispatcher) {
         val min = timestamp.substring(14, 16).toInt() * 60000
         val sec = timestamp.substring(17, 19).toInt() * 1000
         val ms = timestamp.substring(20, 26).toInt() / 1000.0
-        val frac = ((hour + min + sec + ms) / 86400000.0).toString().substring(1)
-        val epoch = "${year.substring(2)}$day$frac".toDouble()
+        // Add the day fraction numerically. Building it by string surgery breaks
+        // below 1e-3, where Double.toString() switches to scientific notation and
+        // dropping the first character removes a significant digit instead of the
+        // leading zero: 00:01:00 yielded "25001.944444444444445E-4" -> 2.50019,
+        // a silently valid epoch about 26 years off.
+        val dayFraction = (hour + min + sec + ms) / 86400000.0
+        val epoch = "${year.substring(2)}$day".toDouble() + dayFraction
         OrbitalData(
             name = name,
             epoch = epoch,
