@@ -1,0 +1,24 @@
+LOOK4SAT (MCKERO6423 FORK) — LICENSING NOTICE
+
+This repository combines two separately-licensed components:
+
+  1. Look4Sat application code (all modules except the DeepCW model)
+     — Copyright (C) 2019-2026 Arty Bishop (rt-bishop) and contributors
+     — Licensed under the GNU General Public License v3.0 (GPL-3.0)
+
+  2. The DeepCW neural decoding model in feature/cw/src/main/assets/deepcw/
+     — Copyright (C) e04 (https://github.com/e04/deepcw-engine)
+     — Licensed under the GNU Affero General Public License v3.0 only
+       (AGPL-3.0-only)
+
+Because this combined work incorporates an AGPL-3.0 component, it is
+distributed under the GNU Affero General Public License v3.0. GPL-3.0
+Section 13 permits this combination; AGPL-3.0 Section 13 applies to the
+combined work as a whole.
+
+See feature/cw/licenses/NOTICE.md for model provenance, attribution, and
+the applied int8 quantization. The original GPL-3.0 text for the Look4Sat
+application code is preserved at feature/cw/licenses/Look4Sat-GPL-3.0.txt.
+
+--------------------------------------------------------------------------------
+
