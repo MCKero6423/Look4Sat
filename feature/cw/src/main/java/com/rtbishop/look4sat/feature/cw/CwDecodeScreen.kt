@@ -77,7 +77,7 @@ import com.rtbishop.look4sat.core.presentation.R as CoreR
  * 400-1200 Hz window and tracks speed on its own, so there is nothing to tune.
  */
 @Composable
-fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
+fun CwDecodeScreen() {
     val context = LocalContext.current
     val container = remember { (context.applicationContext as IContainerProvider).getMainContainer() }
     val decoder = remember { container.provideCwDecoder() }
@@ -95,9 +95,7 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
 
     val decodedText by decoder.decodedText.collectAsState()
     val historyText by decoder.historyText.collectAsState()
-    val estimatedPitch by decoder.estimatedPitch.collectAsState()
     val signalStrength by decoder.signalStrength.collectAsState()
-    val inferenceMs by decoder.lastInferenceMs.collectAsState()
     val errorMessage by decoder.errorMessage.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -139,27 +137,13 @@ fun CwDecodeScreen(navigateUp: () -> Unit = {}) {
                 .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { isListening = false; navigateUp() }) {
-                Icon(
-                    painter = painterResource(CoreR.drawable.ic_back),
-                    contentDescription = stringResource(R.string.cw_back)
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(CoreR.string.nav_cw),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = if (estimatedPitch != null) {
-                        stringResource(R.string.cw_status_tone, estimatedPitch!!.toInt(), inferenceMs)
-                    } else {
-                        stringResource(R.string.cw_status_listening)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = stringResource(CoreR.string.nav_cw),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            )
             IconButton(onClick = { isListening = !isListening }) {
                 Icon(
                     painter = painterResource(

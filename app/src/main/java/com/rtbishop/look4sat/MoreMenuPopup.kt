@@ -1,13 +1,13 @@
 /*
  * MoreMenuPopup.kt - bottom-nav "More" second-level menu popup panel (4.5.1).
  *
- * Overlays the content area (above the bottom bar, right-aligned), vertical menu items (icon+text+arrow),
- * current page highlighted; tap the scrim to close, tap an item to navigate. Open/close animation is driven by the caller
- * (MainScreen's AnimatedVisibility + spring).
+ * A slim right-aligned strip above the bottom bar, vertical menu items (icon+text+arrow),
+ * current page highlighted; tap outside to close, tap an item to navigate. No dimming scrim, so the
+ * page stays readable. Open/close animation is driven by the caller (MainScreen's AnimatedVisibility).
  */
 package com.rtbishop.look4sat
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,16 +46,22 @@ fun MoreMenuPopup(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
+            // Transparent catcher: taps outside the card dismiss the menu without
+            // dimming the page behind it.
             .clickable(onClick = onDismiss)
     ) {
         Card(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(12.dp),
+                .padding(12.dp)
+                .widthIn(max = 232.dp)
+                // Swallow taps on the card so they do not reach the dismiss
+                // catcher underneath.
+                .clickable(enabled = false) {},
             shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
             )
         ) {
             Column(modifier = Modifier.padding(vertical = 4.dp)) {

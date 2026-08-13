@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cw_back">返回</string>
     <string name="cw_pause">暂停解码</string>
     <string name="cw_resume">继续解码</string>
     <string name="cw_clear">清空解码文本</string>
-    <string name="cw_status_listening">正在监听…</string>
-    <string name="cw_status_tone">%1$d Hz · %2$d 毫秒</string>
     <string name="cw_mic_permission">CW 解码需要麦克风权限</string>
     <string name="cw_grant_permission">授予权限</string>
     <string name="cw_open_settings">打开应用设置</string>

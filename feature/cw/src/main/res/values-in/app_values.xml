@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cw_back">Kembali</string>
     <string name="cw_pause">Jeda pendekodean</string>
     <string name="cw_resume">Lanjutkan pendekodean</string>
     <string name="cw_clear">Hapus teks hasil dekode</string>
-    <string name="cw_status_listening">Mendengarkan…</string>
-    <string name="cw_status_tone">%1$d Hz · %2$d ms</string>
     <string name="cw_mic_permission">Izin mikrofon diperlukan untuk pendekodean CW</string>
     <string name="cw_grant_permission">Berikan izin</string>
     <string name="cw_open_settings">Buka pengaturan aplikasi</string>

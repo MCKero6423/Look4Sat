@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cw_back">Geri</string>
     <string name="cw_pause">Çözmeyi duraklat</string>
     <string name="cw_resume">Çözmeyi sürdür</string>
     <string name="cw_clear">Çözülen metni temizle</string>
-    <string name="cw_status_listening">Dinleniyor…</string>
-    <string name="cw_status_tone">%1$d Hz · %2$d ms</string>
     <string name="cw_mic_permission">CW çözümü için mikrofon izni gerekli</string>
     <string name="cw_grant_permission">İzin ver</string>
     <string name="cw_open_settings">Uygulama ayarlarını aç</string>

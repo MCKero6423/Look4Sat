@@ -22,18 +22,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -67,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -346,14 +343,18 @@ fun MainScreen(navigateToRadar: () -> Unit = {}) {
                         }
                     }
                 }
-                // More-menu popup panel (overlays content above the bottom bar; spring bounce)
+                // More-menu popup panel (slim strip anchored to the bottom-right corner)
                 AnimatedVisibility(
                     visible = moreExpanded,
                     modifier = Modifier.fillMaxSize(),
-                    enter = expandVertically(
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                    ) + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                    enter = scaleIn(
+                        animationSpec = tween(150),
+                        transformOrigin = TransformOrigin(1f, 1f)
+                    ) + fadeIn(animationSpec = tween(150)),
+                    exit = scaleOut(
+                        animationSpec = tween(120),
+                        transformOrigin = TransformOrigin(1f, 1f)
+                    ) + fadeOut(animationSpec = tween(120))
                 ) {
                     MoreMenuPopup(
                         items = moreNavItems,
