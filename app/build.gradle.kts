@@ -42,6 +42,9 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.findByName("release")
+            // ONNX Runtime 走 JNI, R8 混淆会重命名 ai.onnxruntime.* 类导致 native
+            // 崩溃。convention 插件已开启 isMinifyEnabled, 必须补 keep 规则。
+            proguardFiles("proguard-rules.pro")
         }
     }
 }
