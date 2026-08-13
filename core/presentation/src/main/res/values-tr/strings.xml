@@ -98,8 +98,11 @@
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
         * YENİ: CW çözücü artık DeepCW sinir ağını kullanıyor — zayıf sinyal Morse çözümü çok daha iyi
+        * YENİ: en yüksek doğruluk için tam fp32 DeepCW modeli dahil
         * YENİ: CW çözüm geçmişi kalıcı olarak saklanır (metin artık kaybolmaz)
         * CW şelale: yeni inferno renk şeması ve yumuşak geçişler
+        * Daha Fazla menüsü: sağda ince panel, karartma yok
+        * CW sayfası: işlevsiz geri düğmesi ve yanıltıcı durum satırı kaldırıldı
         * 64-bit (arm64) desteği geri geldi
         * Düzeltme: duraklat/devam artık hatalı "çözümleme başarısız" mesajı göstermiyor
     </string>

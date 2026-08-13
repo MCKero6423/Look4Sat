@@ -88,8 +88,11 @@
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
         * 新: CW 解码改用 DeepCW 神经网络,弱信号摩尔斯码解码率大幅提升
+        * 新: 内置完整版 fp32 模型,解码精度最高
         * 新: CW 解码历史永久保留(文字不再消失)
         * CW 瀑布图: 全新 inferno 配色与平滑渐变
+        * 更多菜单: 改为靠右窄面板,不再压暗页面
+        * CW 页面: 移除无效的返回键与误导性状态提示
         * 恢复 64 位(arm64)支持
         * 修复: 暂停/恢复不再误报"解码失败"
     </string>

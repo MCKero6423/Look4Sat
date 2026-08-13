@@ -94,8 +94,11 @@
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
         * BARU: Decoder CW kini memakai jaringan saraf DeepCW — jauh lebih baik menafsir Morse sinyal lemah
+        * BARU: menyertakan model fp32 penuh untuk akurasi tertinggi
         * BARU: Riwayat CW tersimpan permanen (teks tidak lagi hilang)
         * Waterfall CW: skema warna inferno baru dengan gradasi halus
+        * Menu Lainnya: panel ramping di kanan, tanpa lapisan gelap
+        * Halaman CW: tombol kembali yang tidak berfungsi dan baris status yang menyesatkan dihapus
         * Dukungan 64-bit (arm64) dipulihkan
         * Perbaikan: jeda/lanjut tidak lagi menampilkan galat "gagal menafsir" yang keliru
     </string>

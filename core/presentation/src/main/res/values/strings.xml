@@ -100,8 +100,11 @@
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
         * NEW: CW decoder now uses the DeepCW neural network — far better weak-signal Morse decoding
+        * NEW: ships the full fp32 DeepCW model for maximum decode accuracy
         * NEW: CW decode history is kept permanently (text no longer disappears)
         * CW waterfall: new inferno colour scheme with smooth gradients
+        * More menu: slim right-hand panel, no dimming overlay
+        * CW page: removed the dead back button and the misleading status line
         * Restored 64-bit (arm64) support
         * Fixed: pause/resume no longer shows a spurious "decode failed" error
     </string>
