@@ -117,6 +117,8 @@ class SatelliteRepo(
         invertAosTimeWindow: Boolean,
         modes: List<String>
     ) {
+        // Reject concurrent calls to prevent duplicate calculations
+        if (_isCalculating.value) return
         _isCalculating.value = true
         // Normalize to the start of the current minute so that coarse 60-second stepping
         // in getLeoPass always begins from the same phase, producing stable AOS/LOS times
