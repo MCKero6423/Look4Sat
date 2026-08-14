@@ -63,6 +63,22 @@ class AprsPacketLocaleTest {
     }
 
     @Test
+    fun altitude_clampsNegativeToKeepSixDigitField() {
+        // "%06d" of a negative value yields "/A=-00164": the '-' takes a digit
+        // slot, so the extension is no longer a valid fixed-width field.
+        assertEquals("/A=000000", AprsPacket.formatAltitude(-50.0))
+        assertEquals("/A=000000", AprsPacket.formatAltitude(-1.0))
+        assertEquals("/A=000328", AprsPacket.formatAltitude(100.0))
+    }
+
+    @Test
+    fun courseSpeed_wrapsCourseIntoValidRange() {
+        assertEquals("/000/019", AprsPacket.formatCourseSpeed(10.0, 360f))
+        assertEquals("/359/019", AprsPacket.formatCourseSpeed(10.0, -1f))
+        assertEquals("/090/019", AprsPacket.formatCourseSpeed(10.0, 90f))
+    }
+
+    @Test
     fun ambiguousPosition_staysAsciiUnderArabicLocale() {
         Locale.setDefault(Locale.forLanguageTag("ar-EG"))
 

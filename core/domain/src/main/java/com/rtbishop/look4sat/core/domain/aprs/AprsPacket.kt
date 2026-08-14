@@ -39,17 +39,28 @@ object AprsPacket {
         return String.format(Locale.ROOT, "r/%.3f/%.3f/%d", latitude, longitude, distKm)
     }
 
-    /** Altitude extension /A=00000 (feet) */
+    /**
+     * Altitude extension /A=000000 (feet). The field is a fixed six-digit
+     * decimal, so a negative altitude (below sea level, or a bad GPS fix) must
+     * be clamped: "%06d" of -164 yields "/A=-00164", which is not a valid
+     * extension and corrupts the rest of the comment field.
+     */
     fun formatAltitude(altitudeMeters: Double?): String {
         if (altitudeMeters == null) return ""
-        return String.format(Locale.ROOT, "/A=%06d", (altitudeMeters * 3.2808399).toInt())
+        val feet = (altitudeMeters * 3.2808399).toInt().coerceIn(0, 999999)
+        return String.format(Locale.ROOT, "/A=%06d", feet)
     }
 
-    /** Speed/course extension (knots/degrees) */
+    /**
+     * Speed/course extension /CCC/SSS (degrees/knots). Course wraps into
+     * 0..359 and speed is clamped to three digits, because "%03d" of an
+     * out-of-range value widens the field and breaks the fixed-width format.
+     */
     fun formatCourseSpeed(speedMps: Double?, bearing: Float?): String {
         if (speedMps == null || bearing == null) return ""
-        val knots = (speedMps * 1.94384449).toInt()
-        return String.format(Locale.ROOT, "/%03d/%03d", bearing.toInt(), knots)
+        val knots = (speedMps * 1.94384449).toInt().coerceIn(0, 999)
+        val course = ((bearing.toInt() % 360) + 360) % 360
+        return String.format(Locale.ROOT, "/%03d/%03d", course, knots)
     }
 }
 
