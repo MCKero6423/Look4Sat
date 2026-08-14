@@ -35,6 +35,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.TimeZone
 
@@ -49,6 +51,10 @@ class SatelliteRepo(
 
     private val _isCalculating = MutableStateFlow(false)
     override val isCalculating: StateFlow<Boolean> = _isCalculating
+
+    // Serializes pass calculation. Callers queue instead of being dropped: a
+    // dropped call would silently discard the filter the user just applied.
+    private val calculationMutex = Mutex()
 
     private val _satellites = MutableStateFlow<List<OrbitalObject>>(emptyList())
     override val satellites: StateFlow<List<OrbitalObject>> = _satellites
@@ -117,47 +123,55 @@ class SatelliteRepo(
         invertAosTimeWindow: Boolean,
         modes: List<String>
     ) {
-        // Reject concurrent calls to prevent duplicate calculations
-        if (_isCalculating.value) return
-        _isCalculating.value = true
-        // Normalize to the start of the current minute so that coarse 60-second stepping
-        // in getLeoPass always begins from the same phase, producing stable AOS/LOS times
-        val normalizedTime = time / 60_000L * 60_000L
-        val currentSatellites = _satellites.value
-        withContext(dispatcher) {
-            val idsWithModes = localStorage.getIdsWithModes(modes)
-            val stationPos = settingsRepo.stationPosition.value
-            val filteredSatellites = if (idsWithModes.isEmpty()) {
-                currentSatellites
-            } else {
-                currentSatellites.filter { it.data.catnum in idsWithModes }
-            }
-            // Compute passes for each satellite in parallel
-            val passLists = coroutineScope {
-                filteredSatellites.map { satellite ->
-                    async { satellite.getPasses(stationPos, normalizedTime, hoursAhead) }
-                }.awaitAll()
-            }
-            // Flatten and filter in a single pass
-            val timeFuture = normalizedTime + (hoursAhead * 60L * 60L * 1000L)
-            val newPasses = ArrayList<OrbitalPass>()
-            for (list in passLists) {
-                for (pass in list) {
-                    if (
-                        pass.losTime > time
-                        && pass.aosTime < timeFuture
-                        && pass.maxElevation > minElevation
-                        && (pass.isDeepSpace || isAosInRange(pass.aosTime, aosStartMinute, aosEndMinute, invertAosTimeWindow))
-                    ) {
-                        newPasses.add(pass)
+        // Queue behind any in-flight calculation rather than dropping this call:
+        // every invocation carries filter settings the user just chose, so a
+        // dropped one leaves the list showing results for the previous filter.
+        calculationMutex.withLock {
+            _isCalculating.value = true
+            try {
+                // Normalize to the start of the current minute so that coarse 60-second stepping
+                // in getLeoPass always begins from the same phase, producing stable AOS/LOS times
+                val normalizedTime = time / 60_000L * 60_000L
+                val currentSatellites = _satellites.value
+                withContext(dispatcher) {
+                    val idsWithModes = localStorage.getIdsWithModes(modes)
+                    val stationPos = settingsRepo.stationPosition.value
+                    val filteredSatellites = if (idsWithModes.isEmpty()) {
+                        currentSatellites
+                    } else {
+                        currentSatellites.filter { it.data.catnum in idsWithModes }
                     }
+                    // Compute passes for each satellite in parallel
+                    val passLists = coroutineScope {
+                        filteredSatellites.map { satellite ->
+                            async { satellite.getPasses(stationPos, normalizedTime, hoursAhead) }
+                        }.awaitAll()
+                    }
+                    // Flatten and filter in a single pass
+                    val timeFuture = normalizedTime + (hoursAhead * 60L * 60L * 1000L)
+                    val newPasses = ArrayList<OrbitalPass>()
+                    for (list in passLists) {
+                        for (pass in list) {
+                            if (
+                                pass.losTime > time
+                                && pass.aosTime < timeFuture
+                                && pass.maxElevation > minElevation
+                                && (pass.isDeepSpace || isAosInRange(pass.aosTime, aosStartMinute, aosEndMinute, invertAosTimeWindow))
+                            ) {
+                                newPasses.add(pass)
+                            }
+                        }
+                    }
+                    newPasses.sortBy { it.aosTime }
+                    delay(1000) // Simulate loading time for better UX
+                    _passes.update { newPasses }
                 }
+            } finally {
+                // finally: a thrown/cancelled calculation must not leave the
+                // progress indicator spinning forever.
+                _isCalculating.value = false
             }
-            newPasses.sortBy { it.aosTime }
-            delay(1000) // Simulate loading time for better UX
-            _passes.update { newPasses }
         }
-        _isCalculating.value = false
     }
 
     private fun isAosInRange(
