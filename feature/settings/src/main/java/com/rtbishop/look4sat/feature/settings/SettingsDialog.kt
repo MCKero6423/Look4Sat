@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -519,13 +520,17 @@ fun RadioControlDialog(
     val isSingleRadio = isIcom && splitMode.value
 
     // Reset split mode when switching away from IC-705
-    if (!isIcom && splitMode.value) splitMode.value = false
+    LaunchedEffect(isIcom) {
+        if (!isIcom && splitMode.value) splitMode.value = false
+    }
 
     val baudRates = if (isIcom) RadioControlSettings.BAUD_RATES_ICOM
                    else         RadioControlSettings.BAUD_RATES_YAESU
 
     // If current baud rate is not in the new list, default to the first available
-    if (baudRate.intValue !in baudRates) baudRate.intValue = baudRates.first()
+    LaunchedEffect(baudRates) {
+        if (baudRate.intValue !in baudRates) baudRate.intValue = baudRates.first()
+    }
 
     val pairedDevices: List<Pair<String, String>> = remember {
         buildList {
