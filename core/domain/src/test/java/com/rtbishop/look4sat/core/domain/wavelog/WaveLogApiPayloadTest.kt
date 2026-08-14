@@ -39,6 +39,23 @@ class WaveLogApiPayloadTest {
         assertEquals(uplinkHz.toDouble(), adifFreq, 1.0)
     }
 
+    @Test
+    fun v1_adif_preservesSixCharacterGrid() {
+        val qso = WavelogQso(
+            id = "test",
+            timeUtcMs = 0L,
+            call = "BG7NTA",
+            mode = "FM",
+            freqTxHz = uplinkHz,
+            freqRxHz = downlinkHz,
+            satName = "SO-50"
+        )
+
+        val adif = WaveLogApi.toAdif(qso, "OM89ab", "SO-50")
+
+        assertTrue(adif.contains("<gridsquare:6>OM89ab"))
+    }
+
     /** Mirrors WaveLog Logbook_model::parse_frequency: int = Hz, "12.3M" suffix = MHz. */
     private fun parseLikeWaveLog(raw: String): Long {
         val s = raw.trim()

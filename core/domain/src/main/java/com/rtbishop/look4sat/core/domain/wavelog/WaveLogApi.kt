@@ -225,7 +225,7 @@ object WaveLogApi {
     }
 
     /** v1 ADIF string (freq in MHz, length = UTF-8 byte count, sat_name normalized) */
-    private fun toAdif(qso: WavelogQso, gridsquare: String, satName: String): String {
+    internal fun toAdif(qso: WavelogQso, gridsquare: String, satName: String): String {
         fun field(name: String, value: String): String {
             val bytes = value.toByteArray(Charsets.UTF_8).size
             return "<$name:$bytes>$value"
@@ -243,7 +243,11 @@ object WaveLogApi {
             append(field("time_on", utcTimeCompact(qso.timeUtcMs)))
             append(field("rst_sent", "59"))
             append(field("rst_rcvd", "59"))
-            if (gridsquare.isNotBlank()) append(field("gridsquare", gridsquare.take(4)))
+            // Send the grid at full precision. Truncating to 4 characters threw
+            // away the 6-character locator the QRZ lookup provides, coarsening the
+            // stored position from ~4.6 km to ~100 km and making a QSO logged via
+            // v1 disagree with the same QSO logged via v2 (which sends it whole).
+            if (gridsquare.isNotBlank()) append(field("gridsquare", gridsquare))
             if (satName.isNotBlank()) {
                 append(field("sat_name", satName))
                 if (satMode.isNotBlank()) append(field("sat_mode", satMode))
