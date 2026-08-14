@@ -82,6 +82,14 @@ fun AprsCard() {
             }
             // Enable switch
             AprsSwitchRow(R.string.prefs_aprs_enable, config.enabled) { enabled ->
+                // The service refuses to run without a callsign (it toasts and
+                // calls stopSelf), but it never writes enabled=false back. Saving
+                // enabled=true here would leave the switch stuck on while nothing
+                // is reporting, so send the user to the settings dialog instead.
+                if (enabled && config.callsign.isBlank()) {
+                    showDialog = true
+                    return@AprsSwitchRow
+                }
                 config = config.copy(enabled = enabled)
                 AprsStore.saveConfig(context, config)
                 if (enabled) requestNotifPermissionIfNeeded()
@@ -283,6 +291,11 @@ private fun AprsSettingsDialog(
             TextButton(onClick = {
                 onSave(
                     config.copy(
+                        // A configuration with no callsign cannot be enabled:
+                        // AprsForegroundService rejects it immediately. Persisting
+                        // enabled=true here would recreate the same "switch on,
+                        // service stopped" state when an existing callsign is erased.
+                        enabled = config.enabled && callsign.trim().isNotBlank(),
                         server = server.ifBlank { "euro.aprs2.net" },
                         port = port.toIntOrNull() ?: 14580,
                         callsign = callsign.trim().uppercase(),
