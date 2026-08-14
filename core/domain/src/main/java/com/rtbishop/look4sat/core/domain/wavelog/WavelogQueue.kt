@@ -81,6 +81,7 @@ class WavelogQueue(private val store: IWavelogQueueStore) {
     }
 
     /** Update a QSO's counterpart grid (async backfill from the QRZ scraper, 4.5.5) */
+    @Synchronized
     fun updateGridsquare(id: String, grid: String) {
         save(all().map { if (it.id == id) it.copy(gridsquare = grid) else it })
     }
