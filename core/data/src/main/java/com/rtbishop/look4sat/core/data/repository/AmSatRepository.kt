@@ -92,28 +92,38 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
         val byName = reports.groupBy { it.name }
         val monthAbbr = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
         val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        // Anchor the columns on UTC midnight. Slicing a rolling "N x 2 hours ago"
+        // window into six groups of twelve does not line up with calendar days
+        // unless the fetch happens just before 24:00 UTC: at 00:00 UTC every one
+        // of the 72 slots sat under the wrong date label, and at 12:00 UTC half of
+        // them did, so the column headed "today" showed yesterday's reports.
+        val todayStartSec = (nowSec / 86400L) * 86400L
         val labels = (0 until 6).map { d ->
-            utc.timeInMillis = (nowSec - d * 86400L) * 1000
+            utc.timeInMillis = (todayStartSec - d * 86400L) * 1000
             "${monthAbbr[utc.get(Calendar.MONTH)]} ${utc.get(Calendar.DAY_OF_MONTH)}"
         }
         return names.map { name ->
-            val slots = (0 until 72).map { slotIdx ->
-                val slotStart = nowSec - (slotIdx + 1) * 7200L
-                val slotEnd = nowSec - slotIdx * 7200L
-                val inSlot = byName[name].orEmpty().filter { it.reportedTimeUtcSec in slotStart until slotEnd }
-                if (inSlot.isEmpty()) {
-                    SatSlot(statusColor = NO_REPORT_GRAY, count = 0)
-                } else {
-                    val newest = inSlot.maxByOrNull { it.reportedTimeUtcSec }!!
-                    SatSlot(
-                        statusColor = statusColorOf(newest.report),
-                        count = inSlot.size,
-                        reportIds = inSlot.map { it.id }
-                    )
-                }
-            }
+            val reportsForSat = byName[name].orEmpty()
             val days = (0 until 6).map { d ->
-                SatDay(dateLabel = labels[d], slots = slots.subList(d * 12, (d + 1) * 12))
+                val dayStart = todayStartSec - d * 86400L
+                // Newest slot first: the UI picks the first non-gray slot of a day
+                // as that day's status.
+                val slots = (0 until 12).map { slotInDay ->
+                    val slotStart = dayStart + (11 - slotInDay) * 7200L
+                    val slotEnd = slotStart + 7200L
+                    val inSlot = reportsForSat.filter { it.reportedTimeUtcSec in slotStart until slotEnd }
+                    if (inSlot.isEmpty()) {
+                        SatSlot(statusColor = NO_REPORT_GRAY, count = 0)
+                    } else {
+                        val newest = inSlot.maxByOrNull { it.reportedTimeUtcSec }!!
+                        SatSlot(
+                            statusColor = statusColorOf(newest.report),
+                            count = inSlot.size,
+                            reportIds = inSlot.map { it.id }
+                        )
+                    }
+                }
+                SatDay(dateLabel = labels[d], slots = slots)
             }
             SatStatus(name = name, days = days)
         }

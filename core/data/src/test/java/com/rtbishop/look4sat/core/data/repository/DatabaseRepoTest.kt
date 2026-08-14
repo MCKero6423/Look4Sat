@@ -125,6 +125,12 @@ private class FakeRemoteSource : IRemoteSource {
     override suspend fun getFileStream(uri: String): InputStream? = fileStreams[uri]?.invoke()
 
     override suspend fun getNetworkStream(url: String): InputStream? = networkStreams[url]?.invoke()
+
+    override suspend fun getStatusHtml(): String? = null
+
+    override suspend fun getAmSatCatalog(): String? = null
+
+    override suspend fun getAmSatReports(hours: Int, limit: Int): String? = null
 }
 
 private class FakeLocalSource : ILocalSource {
@@ -200,7 +206,7 @@ private class FakeSettingsRepo(dataSources: DataSourcesSettings = defaultDataSou
 
     override fun setStationPosition(latitude: Double, longitude: Double, altitude: Double): Boolean = true
 
-    override fun setStationPosition(): Boolean = true
+    override suspend fun setStationPosition(): Boolean = true
 
     override fun setStationPosition(locator: String): Boolean = true
 
