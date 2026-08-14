@@ -48,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -201,6 +202,11 @@ fun LogTab(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
                 groupEntries.forEach { entry ->
+                // key() ties the row's swipe/countdown state to the QSO id. Without it
+                // Compose reuses state by position, so a list reorder mid-countdown
+                // (a new QSO is inserted at index 0) moves the pending deletion onto a
+                // different record and deletes the wrong one.
+                key(entry.id) {
                 SwipeDeleteRow(
                     onDelete = {
                         queue.remove(entry.id)
@@ -234,6 +240,7 @@ fun LogTab(
                         )
                     }
                 }
+                } // key(entry.id)
                 }
             }
         }

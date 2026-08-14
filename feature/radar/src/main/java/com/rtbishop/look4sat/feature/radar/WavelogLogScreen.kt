@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -116,6 +117,7 @@ fun WavelogLogScreen(
                     // Rule between groups (md --- effect)
                     HorizontalDivider(thickness = 1.5.dp, color = GridLineColor)
                     groupEntries.forEach { entry ->
+                    key(entry.id) {
                     SwipeDeleteRow(
                         onDelete = {
                             queue.remove(entry.id)
@@ -153,6 +155,7 @@ fun WavelogLogScreen(
                         }
                     }
                 }
+                } // key(entry.id)
                 }
             }
         }
