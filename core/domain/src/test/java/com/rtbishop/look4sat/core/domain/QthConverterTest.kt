@@ -70,7 +70,9 @@ class QthConverterTest {
     fun `Given boundary POS stays in valid grid`() {
         // antipodal / edge cases must not overflow the A-R / 0-9 / a-x alphabet
         assert(positionToQth(-90.0, -180.0, 8) == "AA00aa00")
-        assert(positionToQth(90.0, 180.0, 8) == "RR00aa00")
+        // Exact positive bounds belong to the final cell, not a modulo-wrapped
+        // R-field/0-square combination that decodes 10°/20° away.
+        assert(positionToQth(90.0, 180.0, 8) == "RR99xx99")
         assert(positionToQth(0.0, 0.0, 8) == "JJ00aa00")
         // roundtrip stability: 8-char roundtrip is stable across a sample of positions
         val positions = listOf(
@@ -83,6 +85,55 @@ class QthConverterTest {
             val qth2 = positionToQth(pos!!.latitude, pos.longitude, 8)
             assert(qth == qth2) { "Roundtrip failed for ($lat, $lon): $qth -> $qth2" }
         }
+    }
+
+    @Test
+    fun `Encoded locator always decodes back within one cell`() {
+        // An 8-char cell is 30" lon x 15" lat, so a correct encode/decode pair
+        // can never differ by more than that. Field clamping used to break this
+        // near +90 / +180 and produced errors up to 10 deg lat / 20 deg lon.
+        var worstLat = 0.0
+        var worstLon = 0.0
+        var worst = ""
+        var lat = -90.0
+        while (lat <= 90.0) {
+            var lon = -180.0
+            while (lon <= 180.0) {
+                val qth = positionToQth(lat, lon, 8)
+                    ?: error("valid position rejected: ($lat, $lon)")
+                val pos = qthToPosition(qth) ?: error("own output rejected: $qth")
+                val dLat = kotlin.math.abs(pos.latitude - lat)
+                val dLon = kotlin.math.abs(pos.longitude - lon)
+                if (dLat > worstLat || dLon > worstLon) {
+                    worstLat = maxOf(worstLat, dLat)
+                    worstLon = maxOf(worstLon, dLon)
+                    worst = "($lat, $lon) -> $qth -> (${pos.latitude}, ${pos.longitude})"
+                }
+                lon += 0.5
+            }
+            lat += 0.5
+        }
+        assert(worstLat <= 0.01 && worstLon <= 0.01) {
+            "roundtrip drifted by (${worstLat}, ${worstLon}) deg, worst: $worst"
+        }
+    }
+
+    @Test
+    fun `Given out of range longitude returns null`() {
+        // Maidenhead only covers -180..180; 181..360 used to be accepted and
+        // encoded into a plausible-looking locator 20-200 deg away.
+        assert(positionToQth(0.0, 181.0) == null)
+        assert(positionToQth(0.0, 270.0) == null)
+        assert(positionToQth(0.0, 360.0) == null)
+    }
+
+    @Test
+    fun `Given locator with out of range field returns null`() {
+        // Fields run A-R; S-X in the first pair decoded past the poles.
+        assert(qthToPosition("SS00aa") == null)
+        assert(qthToPosition("XX99xx") == null)
+        assert(qthToPosition("AS00aa") == null)
+        assert(qthToPosition("AX99xx") == null)
     }
 
     @Test

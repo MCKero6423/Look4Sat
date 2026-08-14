@@ -74,8 +74,14 @@ fun qthToPosition(locator: String): GeoPos? {
  */
 fun positionToQth(latitude: Double, longitude: Double, precision: Int = 8): String? {
     if (!isValidPosition(latitude, longitude)) return null
-    val newLongitude = longitude + 180
-    val newLatitude = latitude + 90
+    // The grid spans [0, 360) lon and [0, 180) lat once shifted. Clamping the
+    // field index alone (coerceIn below) is not enough: at exactly +90 lat or
+    // +180 lon the field saturates to R while the square/subsquare terms come
+    // from a modulo that has already wrapped to 0, so the encoded locator
+    // decoded back 10 degrees of latitude / 20 degrees of longitude away.
+    // Nudge the upper bound into the last cell instead.
+    val newLongitude = (longitude + 180).coerceIn(0.0, 360.0 - 1e-9)
+    val newLatitude = (latitude + 90).coerceIn(0.0, 180.0 - 1e-9)
     val lonFirst = (65 + (newLongitude / 20).toInt().coerceIn(0, 17)).toChar()
     val latFirst = (65 + (newLatitude / 10).toInt().coerceIn(0, 17)).toChar()
     val lonSecond = ((newLongitude % 20) / 2).toInt()
@@ -94,11 +100,13 @@ fun positionToQth(latitude: Double, longitude: Double, precision: Int = 8): Stri
 }
 
 private fun isValidPosition(lat: Double, lon: Double): Boolean {
-    return (lat >= -90.0 && lat <= 90.0) && (lon >= -180.0 && lon <= 360.0)
+    return lat in -90.0..90.0 && lon in -180.0..180.0
 }
 
 private fun isValidLocator(locator: String): Boolean {
-    return locator.matches("[a-xA-X]{2}\\d{2}[a-xA-X]{2}(?:\\d{2}(?:[a-xA-X]{2})?)?".toRegex())
+    // Maidenhead fields are A-R (18 x 18). Subsquare letters are A-X (24).
+    // Accepting S-X in the first pair decodes to latitude >90 / longitude >180.
+    return locator.matches("[a-rA-R]{2}\\d{2}[a-xA-X]{2}(?:\\d{2}(?:[a-xA-X]{2})?)?".toRegex())
 }
 
 /**

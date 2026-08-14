@@ -181,7 +181,10 @@ class SettingsRepo(
     }
 
     override fun setStationPosition(latitude: Double, longitude: Double, altitude: Double): Boolean {
-        val newLongitude = if (longitude > 180.0) longitude - 180 else longitude
+        // Wrap an out-of-range longitude into -180..180. Subtracting 180 (the
+        // previous behaviour) mapped 270 to +90 instead of -90, i.e. the wrong
+        // hemisphere, and 360 to +180 instead of 0.
+        val newLongitude = ((longitude + 180.0).mod(360.0)) - 180.0
         val locator = positionToQth(latitude, newLongitude) ?: return false
         setStationPosition(latitude, newLongitude, altitude, locator)
         return true
