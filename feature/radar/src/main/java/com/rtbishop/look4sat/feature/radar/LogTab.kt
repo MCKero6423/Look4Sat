@@ -465,7 +465,12 @@ internal fun SwipeDeleteRow(
                 .background(MaterialTheme.colorScheme.surfaceContainer)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
-                        onDragStart = { if (pending) { pending = false } },
+                        onDragStart = {
+                            if (pending) {
+                                pending = false
+                                offsetX = 0f
+                            }
+                        },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
                             offsetX = (offsetX + dragAmount).coerceIn(-rowWidth.toFloat(), 0f)
