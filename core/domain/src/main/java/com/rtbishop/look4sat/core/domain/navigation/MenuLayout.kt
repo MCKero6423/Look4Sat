@@ -99,16 +99,20 @@ object MenuLayout {
         val current = resolve(allScreenIds, screenOrder, subMenuOrder, emptyList())
         val main = current.mainIds.toMutableList()
         val more = current.moreIds.toMutableList()
+        val wasInMore = screenId in more
         more.remove(screenId)
         if (screenId !in main) {
             val at = main.indexOf(SETTINGS_ID).let { if (it == -1) main.size else it }
             main.add(at, screenId)
         }
-        val movable = main.filter { it != SETTINGS_ID && it != screenId }
-        if (main.size > MAIN_SLOTS && movable.isNotEmpty()) {
-            val evicted = movable.last()
-            main.remove(evicted)
-            more.add(0, evicted)
+        // Only evict when we actually added a new page from More; internal reordering must not evict.
+        if (wasInMore) {
+            val movable = main.filter { it != SETTINGS_ID && it != screenId }
+            if (main.size > MAIN_SLOTS && movable.isNotEmpty()) {
+                val evicted = movable.last()
+                main.remove(evicted)
+                more.add(0, evicted)
+            }
         }
         return Assignment(screenOrder = main, subMenuOrder = more)
     }

@@ -863,7 +863,11 @@ private fun UiSettingsCard(
                     )
                     onUpdateMenu(moved.screenOrder, moved.subMenuOrder)
                 },
-                onReorder = { main -> onUpdateMenu(main, subItems) }
+                onReorder = { main -> 
+                    // Settings is locked last; exclude it so resolve continues to use its default position
+                    val userOrder = main.filter { it != "Settings" }
+                    onUpdateMenu(userOrder, subMenuOrder) 
+                }
             )
             // More-menu area (pages behind "More")
             Text(
@@ -883,7 +887,7 @@ private fun UiSettingsCard(
                     )
                     onUpdateMenu(moved.screenOrder, moved.subMenuOrder)
                 },
-                onReorder = { sub -> onUpdateMenu(mainItems, sub) }
+                onReorder = { sub -> onUpdateMenu(screenOrder, sub) }
             )
             TextButton(onClick = onResetOrder) {
                 Text(text = stringResource(id = R.string.prefs_ui_order_reset))
