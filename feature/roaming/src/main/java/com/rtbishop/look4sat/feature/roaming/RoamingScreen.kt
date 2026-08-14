@@ -89,7 +89,11 @@ fun RoamingScreen() {
     var hasPermission by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { }
+    ) { results ->
+        val fine = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarse = results[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        hasPermission = fine || coarse
+    }
     LaunchedEffect(Unit) {
         hourPrefix = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()).substring(0, 3)
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
