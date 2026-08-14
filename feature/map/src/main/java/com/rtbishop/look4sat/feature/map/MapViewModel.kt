@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Date
+import kotlin.math.abs
 
 class MapViewModel(
     private val satelliteRepo: ISatelliteRepo,
@@ -266,30 +267,10 @@ class MapViewModel(
     }
 
     private suspend fun getSatTrack(orbitalObject: OrbitalObject, pos: GeoPos, date: Date) {
-        val satTracks = mutableListOf<List<GeoPos>>()
-        val currentTrack = mutableListOf<GeoPos>()
         val endDate = Date(date.time + (orbitalObject.data.orbitalPeriod * 2.4 * 60000L).toLong())
-        var oldLongitude = 0.0
-        satelliteRepo.getTrack(orbitalObject, pos, date.time, endDate.time).forEach { satPos ->
-            val currentPosition = satPos.toMapGeoPos()
-            if (oldLongitude < -170.0 && currentPosition.longitude > 170.0) {
-                // adding left terminal position
-                currentTrack.add(GeoPos(currentPosition.latitude, -180.0))
-                val finishedTrack = mutableListOf<GeoPos>().apply { addAll(currentTrack) }
-                satTracks.add(finishedTrack)
-                currentTrack.clear()
-            } else if (oldLongitude > 170.0 && currentPosition.longitude < -170.0) {
-                // adding right terminal position
-                currentTrack.add(GeoPos(currentPosition.latitude, 180.0))
-                val finishedTrack = mutableListOf<GeoPos>().apply { addAll(currentTrack) }
-                satTracks.add(finishedTrack)
-                currentTrack.clear()
-            }
-            oldLongitude = currentPosition.longitude
-            currentTrack.add(currentPosition)
-        }
-        satTracks.add(currentTrack)
-        _uiState.update { it.copy(track = satTracks) }
+        val track = satelliteRepo.getTrack(orbitalObject, pos, date.time, endDate.time)
+            .map { it.toMapGeoPos() }
+        _uiState.update { it.copy(track = splitAtAntimeridian(track)) }
     }
 
     companion object {
@@ -305,4 +286,48 @@ class MapViewModel(
             }
         }
     }
+}
+
+/**
+ * Splits a ground track into polylines that never span the antimeridian.
+ *
+ * Each crossing closes the current polyline on the edge it leaves through and
+ * opens the next one on the opposite edge, both at the interpolated crossing
+ * latitude. Without the entry point a new segment started inland (e.g. at -178)
+ * and the drawn track broke visibly at 180 degrees; reusing the next sample's
+ * latitude for the edge made the closing leg jump north or south.
+ */
+internal fun splitAtAntimeridian(track: List<GeoPos>): List<List<GeoPos>> {
+    val segments = mutableListOf<List<GeoPos>>()
+    val current = mutableListOf<GeoPos>()
+    var previous: GeoPos? = null
+    track.forEach { position ->
+        val last = previous
+        if (last != null && abs(position.longitude - last.longitude) > 180.0) {
+            val exitEdge = if (last.longitude > 0.0) 180.0 else -180.0
+            val edgeLatitude = crossingLatitude(last, position, exitEdge)
+            current.add(GeoPos(edgeLatitude, exitEdge))
+            segments.add(current.toList())
+            current.clear()
+            current.add(GeoPos(edgeLatitude, -exitEdge))
+        }
+        previous = position
+        current.add(position)
+    }
+    segments.add(current.toList())
+    return segments
+}
+
+/** Latitude where the leg between [from] and [to] crosses [edgeLongitude]. */
+internal fun crossingLatitude(from: GeoPos, to: GeoPos, edgeLongitude: Double): Double {
+    // Unwrap the destination so the leg is continuous, then interpolate.
+    val unwrappedTo = when {
+        from.longitude > 0.0 && to.longitude < 0.0 -> to.longitude + 360.0
+        from.longitude < 0.0 && to.longitude > 0.0 -> to.longitude - 360.0
+        else -> to.longitude
+    }
+    val span = unwrappedTo - from.longitude
+    if (abs(span) < 1e-12) return from.latitude
+    val fraction = (edgeLongitude - from.longitude) / span
+    return from.latitude + (to.latitude - from.latitude) * fraction
 }
