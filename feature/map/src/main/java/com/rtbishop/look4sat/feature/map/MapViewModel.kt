@@ -220,26 +220,23 @@ class MapViewModel(
         var orbitalPass = defaultPass
         var aosTime = 0L.toTimerString()
         var isTimeAos = true
-        allPasses.find { pass -> pass.catNum == sat.data.catnum && pass.progress < 1 }
-            ?.let { satPass ->
-                orbitalPass = satPass
-                if (!satPass.isDeepSpace) {
-                    when {
-                        date.time < satPass.aosTime -> {
-                            // Pass hasn't started yet — count down to AOS
-                            isTimeAos = true
-                            aosTime = (satPass.aosTime - date.time).toTimerString()
-                        }
-
-                        date.time < satPass.losTime -> {
-                            // Pass is in progress — count down to LOS
-                            isTimeAos = false
-                            aosTime = (satPass.losTime - date.time).toTimerString()
-                        }
-                        // else: pass has ended (losTime <= date.time) — keep default "00:00:00"
-                    }
+        // Select by time, not by OrbitalPass.progress: that field defaults to 0
+        // and is only ever filled in by PassesViewModel's own local copy, never
+        // written back to the repository. Filtering on `progress < 1` therefore
+        // always matched the satellite's *first* pass, so once it ended the map
+        // countdown stuck at 00:00:00 and never advanced to the next pass.
+        currentOrNextPass(sat.data.catnum, date.time)?.let { satPass ->
+            orbitalPass = satPass
+            if (!satPass.isDeepSpace) {
+                if (date.time < satPass.aosTime) {
+                    isTimeAos = true
+                    aosTime = (satPass.aosTime - date.time).toTimerString()
+                } else if (date.time < satPass.losTime) {
+                    isTimeAos = false
+                    aosTime = (satPass.losTime - date.time).toTimerString()
                 }
             }
+        }
         val azimuth = satPos.azimuth.toDegrees()
         val elevation = satPos.elevation.toDegrees()
         val osmPos = satPos.toMapGeoPos()
@@ -265,6 +262,10 @@ class MapViewModel(
         )
         return satData to orbitalPass
     }
+
+    /** Ongoing pass for [catnum] if any, otherwise its next upcoming pass. */
+    private fun currentOrNextPass(catnum: Int, timeMillis: Long): OrbitalPass? =
+        selectCurrentOrNextPass(allPasses, catnum, timeMillis)
 
     private suspend fun getSatTrack(orbitalObject: OrbitalObject, pos: GeoPos, date: Date) {
         val endDate = Date(date.time + (orbitalObject.data.orbitalPeriod * 2.4 * 60000L).toLong())
@@ -330,4 +331,21 @@ internal fun crossingLatitude(from: GeoPos, to: GeoPos, edgeLongitude: Double): 
     if (abs(span) < 1e-12) return from.latitude
     val fraction = (edgeLongitude - from.longitude) / span
     return from.latitude + (to.latitude - from.latitude) * fraction
+}
+/**
+ * Picks the pass to describe for [catnum] at [timeMillis]: the one in progress,
+ * or else the earliest one still to come.
+ *
+ * Deliberately ignores OrbitalPass.progress. That field is a UI-side value filled
+ * in by PassesViewModel on its own copy of the list; the repository always
+ * reports 0, so any `progress` predicate here silently matches everything.
+ */
+internal fun selectCurrentOrNextPass(
+    passes: List<OrbitalPass>,
+    catnum: Int,
+    timeMillis: Long
+): OrbitalPass? {
+    val forSatellite = passes.filter { it.catNum == catnum }
+    return forSatellite.firstOrNull { timeMillis >= it.aosTime && timeMillis < it.losTime }
+        ?: forSatellite.filter { it.aosTime > timeMillis }.minByOrNull { it.aosTime }
 }
