@@ -181,8 +181,22 @@ class CwDeepDecoder(context: Context) : ICwDecoder {
         val overflow = buffer.drainOverflow()
         if (overflow.isNotEmpty()) {
             for (v in overflow) {
-                if (archiveSize < archiveBuffer.size) archiveBuffer[archiveSize++] = v
+                // Flush before appending when the buffer is full, so large batches
+                // (e.g. 47999 samples already accumulated + 64000 new overflow)
+                // do not silently drop audio that scrolled out of the live window.
+                if (archiveSize >= archiveBuffer.size) {
+                    val audio = archiveBuffer.copyOf(archiveSize)
+                    archiveSize = 0
+                    try {
+                        archiveDecode(audio)
+                    } catch (t: Throwable) {
+                        if (t is CancellationException) throw t
+                        Log.e(TAG, "archive decode failed", t)
+                    }
+                }
+                archiveBuffer[archiveSize++] = v
             }
+            // Final flush when threshold is reached (e.g. exactly 48000 accumulated).
             if (archiveSize >= ARCHIVE_THRESHOLD) {
                 val audio = archiveBuffer.copyOf(archiveSize)
                 archiveSize = 0
