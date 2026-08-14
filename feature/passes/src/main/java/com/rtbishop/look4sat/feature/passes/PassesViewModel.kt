@@ -221,6 +221,11 @@ class PassesViewModel(
             if (!pass.isDeepSpace && time > pass.aosTime) {
                 val deltaNow = time.minus(pass.aosTime).toFloat()
                 val deltaTotal = pass.losTime.minus(pass.aosTime).toFloat()
+                // Guard against division by zero (corrupted TLE, degenerate orbit, etc.)
+                if (deltaTotal <= 0f) {
+                    // Skip passes with zero or negative duration
+                    continue
+                }
                 val newProgress = (deltaNow / deltaTotal).round(2)
                 if (newProgress >= 1.0f) continue
                 if (newProgress != pass.progress) {
