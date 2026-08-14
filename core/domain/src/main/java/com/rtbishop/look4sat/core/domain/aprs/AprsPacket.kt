@@ -2,6 +2,7 @@ package com.rtbishop.look4sat.core.domain.aprs
 
 import kotlin.math.abs
 import kotlin.math.round
+import java.util.Locale
 
 /**
  * APRS-IS protocol core (pure Kotlin, no Android dependencies).
@@ -35,20 +36,20 @@ object AprsPacket {
 
     /** Optional distance filter: filter r/lat/lon/dist */
     fun formatRangeFilter(latitude: Double, longitude: Double, distKm: Int): String {
-        return String.format("r/%.3f/%.3f/%d", latitude, longitude, distKm)
+        return String.format(Locale.ROOT, "r/%.3f/%.3f/%d", latitude, longitude, distKm)
     }
 
     /** Altitude extension /A=00000 (feet) */
     fun formatAltitude(altitudeMeters: Double?): String {
         if (altitudeMeters == null) return ""
-        return String.format("/A=%06d", (altitudeMeters * 3.2808399).toInt())
+        return String.format(Locale.ROOT, "/A=%06d", (altitudeMeters * 3.2808399).toInt())
     }
 
     /** Speed/course extension (knots/degrees) */
     fun formatCourseSpeed(speedMps: Double?, bearing: Float?): String {
         if (speedMps == null || bearing == null) return ""
         val knots = (speedMps * 1.94384449).toInt()
-        return String.format("/%03d/%03d", bearing.toInt(), knots)
+        return String.format(Locale.ROOT, "/%03d/%03d", bearing.toInt(), knots)
     }
 }
 
@@ -100,17 +101,17 @@ class AprsPosition(
         val hundredths = iRound % 100
         val frac = when (positionAmbiguity) {
             1 -> "  .  "
-            2 -> String.format("%d .  ", minutes / 10)
-            3 -> String.format("%02d.  ", minutes)
-            4 -> String.format("%02d.%d ", minutes, hundredths / 10)
-            else -> String.format("%02d.%02d", minutes, hundredths)
+            2 -> String.format(Locale.ROOT, "%d .  ", minutes / 10)
+            3 -> String.format(Locale.ROOT, "%02d.  ", minutes)
+            4 -> String.format(Locale.ROOT, "%02d.%d ", minutes, hundredths / 10)
+            else -> String.format(Locale.ROOT, "%02d.%02d", minutes, hundredths)
         }
         return if (isLat) {
             val ns = if (value >= 0) 'N' else 'S'
-            String.format("%02d%s%c", degrees, frac, ns)
+            String.format(Locale.ROOT, "%02d%s%c", degrees, frac, ns)
         } else {
             val ew = if (value >= 0) 'E' else 'W'
-            String.format("%03d%s%c", degrees, frac, ew)
+            String.format(Locale.ROOT, "%03d%s%c", degrees, frac, ew)
         }
     }
 }
