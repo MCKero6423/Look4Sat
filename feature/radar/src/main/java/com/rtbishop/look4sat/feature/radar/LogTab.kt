@@ -290,7 +290,10 @@ private fun ExpandedLogInput(
                 val grid = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.lookupGrid(
                     call, com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.parseCookies(rawCookie)
                 )
-                if (grid != null) queue.updateGridsquare(qsoId, grid)
+                if (grid != null) {
+                    queue.updateGridsquare(qsoId, grid)
+                    onSaved() // 触发 refreshTick++ 刷新列表
+                }
             }
         }
     }
