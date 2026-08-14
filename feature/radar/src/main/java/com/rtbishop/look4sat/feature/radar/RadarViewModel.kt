@@ -127,9 +127,18 @@ class RadarViewModel(
 
     private fun collectPassAndStartTickLoop() {
         viewModelScope.launch {
-            val pass = findCurrentPass() ?: return@launch
-            val allRadios = loadPassData(pass)
+            var pass = findCurrentPass() ?: return@launch
+            var allRadios = loadPassData(pass)
             while (isActive) {
+                val timeNow = System.currentTimeMillis()
+                // If current pass has ended, switch to next pass
+                if (timeNow > pass.losTime) {
+                    val nextPass = findCurrentPass()
+                    if (nextPass != null && nextPass != pass) {
+                        pass = nextPass
+                        allRadios = loadPassData(pass)
+                    }
+                }
                 tickPass(pass, allRadios)
                 delay(1000.milliseconds)
             }
