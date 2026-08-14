@@ -112,6 +112,36 @@ class RoamingStateTest {
     }
 
     @Test
+    fun `exact cell boundaries belong to the upper cell`() {
+        // The decompiled range table closes both adjacent cells (-20..0 then
+        // 0..20) and `when` takes the first match, so an exact boundary used to
+        // fall back into the previous cell: (0,0) encoded as II99xx99.
+        assertEquals("JJ00aa00", stateOf(0.0, 0.0).loc)
+        assertEquals("JJ01ma00", stateOf(1.0, 1.0).loc)
+        assertEquals("OL42aa00", stateOf(22.0, 108.0).loc)
+        assertEquals("OL42gm00", stateOf(22.5, 108.5).loc)
+        assertEquals("OL42dg00", stateOf(22.25, 108.25).loc)
+    }
+
+    @Test
+    fun `matches the independent Maidenhead converter across the grid`() {
+        // Two independent implementations of the same standard must agree;
+        // divergence previously affected every exact-boundary coordinate.
+        var lat = -90.0
+        while (lat <= 90.0) {
+            var lon = -180.0
+            while (lon <= 180.0) {
+                val ported = stateOf(lat, lon).loc
+                val reference =
+                    com.rtbishop.look4sat.core.domain.utility.positionToQth(lat, lon, 8)
+                assertEquals("mismatch at ($lat, $lon)", reference?.lowercase(), ported.lowercase())
+                lon += 5.0
+            }
+            lat += 5.0
+        }
+    }
+
+    @Test
     fun `gps state after fix matches showLocation`() {
         val state = stateOf(22.314066, 108.706575)
         assertEquals(true, state.gpsOn)

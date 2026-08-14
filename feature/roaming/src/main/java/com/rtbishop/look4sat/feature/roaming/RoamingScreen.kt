@@ -447,7 +447,14 @@ private val latMargin = mapOf(
 
 // Ported lines 311-611: longitude -> (20 deg zone letter, 2 deg digit, 2' letter, 30" digit)
 private fun encodeLon(inputLon: Double): List<String> {
-    var longitude = inputLon
+    // The decompiled range table uses closed bounds on both adjacent cells
+    // (e.g. -20..0 followed by 0..20), and `when` picks the first match. Exact
+    // field/square/subsquare boundaries therefore fell into the previous cell:
+    // lon=0 produced I... instead of J..., lon=108 lost one square/subsquare.
+    // A tiny positive nudge implements the standard half-open [low, high)
+    // convention without rewriting the faithful lookup table; keep +180 inside
+    // the final R cell.
+    var longitude = if (inputLon < 180.0) inputLon + 1e-10 else 180.0 - 1e-10
     var d = 0.0
     val str = when {
         (longitude >= -180.0) && (longitude <= -160.0) -> { longitude += 180.0; "A" }
@@ -528,7 +535,9 @@ private fun encodeLon(inputLon: Double): List<String> {
 
 // Ported lines 612-914: latitude -> (10 deg zone letter, 1 deg digit, 1' letter, 15" digit)
 private fun encodeLat(inputLat: Double): List<String> {
-    var latitude = inputLat
+    // Same closed-bound issue as encodeLon: nudge into the half-open cell so an
+    // exact boundary latitude does not fall back into the previous field.
+    var latitude = if (inputLat < 90.0) inputLat + 1e-10 else 90.0 - 1e-10
     var d2 = 0.0
     var d3 = 0.0
     val str5 = when {
