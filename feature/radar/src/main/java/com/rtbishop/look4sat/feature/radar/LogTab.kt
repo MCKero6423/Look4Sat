@@ -82,6 +82,9 @@ import kotlin.math.roundToInt
 
 private val WaveLogYellow = Color(0xFFFFC107)
 
+/** Repeat "done" events for the same callsign inside this window are treated as one QSO. */
+private const val DUPLICATE_WINDOW_MS = 2000L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogTab(
@@ -253,15 +256,20 @@ private fun ExpandedLogInput(
     val scope = rememberCoroutineScope()
     var callsign by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
-    var submitting by remember { mutableStateOf(false) }
+    // Last accepted callsign + timestamp, used to swallow duplicate IME "done" events.
+    // A plain in-flight flag cannot help: submit() is synchronous, so it always
+    // clears before the next key event arrives.
+    var lastSaved by remember { mutableStateOf("" to 0L) }
 
     val savedMsg = stringResource(id = R.string.wavelog_saved)
 
     fun submit() {
-        if (submitting) return
         val call = callsign.trim().uppercase()
         if (call.length < 3) return
-        submitting = true
+        val now = System.currentTimeMillis()
+        val (lastCall, lastAt) = lastSaved
+        if (call == lastCall && now - lastAt < DUPLICATE_WINDOW_MS) return
+        lastSaved = call to now
         // Freq taken directly from the transponder bar (radio Doppler-corrected each second; value at the Enter moment)
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
@@ -281,7 +289,6 @@ private fun ExpandedLogInput(
         callsign = ""
         onSaved()
         showToast(savedMsg)
-        submitting = false
         // QRZ counterpart grid async backfill (4.5.5): only queried when Cookie is set; silent on failure
         scope.launch {
             val prefs = context.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)

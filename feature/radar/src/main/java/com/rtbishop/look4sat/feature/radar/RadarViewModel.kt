@@ -130,13 +130,14 @@ class RadarViewModel(
             var pass = findCurrentPass() ?: return@launch
             var allRadios = loadPassData(pass)
             while (isActive) {
-                val timeNow = System.currentTimeMillis()
-                // If current pass has ended, switch to next pass
-                if (timeNow > pass.losTime) {
-                    val nextPass = findCurrentPass()
-                    if (nextPass != null && nextPass != pass) {
-                        pass = nextPass
-                        allRadios = loadPassData(pass)
+                // Once the tracked pass is over, follow the same satellite into its
+                // next pass. findCurrentPass() cannot do this: it keys off
+                // selectedPass, which only changes when the user taps a pass, so it
+                // would keep resolving to the pass that just ended.
+                if (System.currentTimeMillis() > pass.losTime) {
+                    findNextPassAfter(pass)?.let { next ->
+                        pass = next
+                        allRadios = loadPassData(next)
                     }
                 }
                 tickPass(pass, allRadios)
@@ -152,6 +153,17 @@ class RadarViewModel(
             ?: passes.find { it.catNum == catNum && aosTime in it.aosTime..it.losTime }
             ?: passes.find { it.catNum == catNum }
             ?: passes.firstOrNull()
+    }
+
+    /**
+     * Earliest pass that starts after [current] ends. Prefers the satellite being
+     * tracked so the radar keeps following it; falls back to any satellite so the
+     * page moves on instead of freezing on an expired pass.
+     */
+    private fun findNextPassAfter(current: OrbitalPass): OrbitalPass? {
+        val later = satelliteRepo.passes.value.filter { it.aosTime > current.losTime }
+        return later.filter { it.catNum == current.catNum }.minByOrNull { it.aosTime }
+            ?: later.minByOrNull { it.aosTime }
     }
 
     // Loads transmitters and satellite track for pass, sets initial state, returns full radio list
