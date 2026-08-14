@@ -64,6 +64,16 @@ class AprsForegroundService : Service() {
     }
 
     private fun startReporting() {
+        // onStartCommand reaches here for every ACTION_START and for the null
+        // intent that START_STICKY delivers on restart. Without this guard each
+        // call built a fresh AprsReporter and overwrote the field, leaving the
+        // previous one running with its own scope and timer: the server then
+        // received one duplicate position report per leaked instance per cycle,
+        // and ACTION_STOP could only ever stop the newest one.
+        reporter?.let { existing ->
+            if (existing.isRunning) return
+            existing.stop()
+        }
         val cfg = AprsStore.loadConfig(this)
         if (!cfg.enabled || cfg.callsign.isBlank()) {
             runCatching {
