@@ -280,7 +280,13 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
             modifier = Modifier.weight(2f).padding(start = 4.dp)
         )
         status.days.forEach { day ->
-            val slot = day.slots.firstOrNull { it.statusColor != noReportGray } ?: day.slots.first()
+            // A day can legitimately carry no slots: the parser skips cells it
+            // cannot find, so a page that ships fewer than 12 cells for a day
+            // yields an empty list. first() would crash the whole status screen,
+            // so fall back to a gray placeholder instead.
+            val slot = day.slots.firstOrNull { it.statusColor != noReportGray }
+                ?: day.slots.firstOrNull()
+                ?: SatSlot(statusColor = noReportGray, count = 0)
             DayCell(
                 slot = slot,
                 modifier = Modifier.weight(0.8f).padding(horizontal = 1.dp),
