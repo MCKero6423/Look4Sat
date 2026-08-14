@@ -101,6 +101,14 @@
         * Halaman CW: tombol kembali yang tidak berfungsi dan baris status yang menyesatkan dihapus
         * Dukungan 64-bit (arm64) dipulihkan
         * Perbaikan: jeda/lanjut tidak lagi menampilkan galat "gagal menafsir" yang keliru
+        * Perbaikan: memindahkan halaman ke menu utama tidak lagi menyembunyikan Pengaturan secara permanen
+        * Perbaikan: AMSAT/WavelogLog kini dapat dipindahkan ke menu utama
+        * Perbaikan: penguraian epoch satelit untuk waktu dalam 86 detik pertama tengah malam UTC
+        * Perbaikan: halaman radar kini otomatis beralih ke pass berikutnya setelah pass saat ini berakhir
+        * Perbaikan: perhitungan Doppler radar kini menggunakan nilai slider offset langsung
+        * Perbaikan: perhitungan kemajuan pass dijaga terhadap pembagian dengan nol
+        * Perbaikan: panggilan calculatePasses bersamaan tidak lagi memicu perhitungan duplikat
+        * Perbaikan: pengiriman QSO duplikat WaveLog dan kondisi balapan pembaruan grid square
     </string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>

@@ -105,6 +105,14 @@
         * CW sayfası: işlevsiz geri düğmesi ve yanıltıcı durum satırı kaldırıldı
         * 64-bit (arm64) desteği geri geldi
         * Düzeltme: duraklat/devam artık hatalı "çözümleme başarısız" mesajı göstermiyor
+        * Düzeltme: sayfaları ana menüye taşımak artık Ayarlar'ı kalıcı olarak gizlemiyor
+        * Düzeltme: AMSAT/WavelogLog artık ana menüye taşınabiliyor
+        * Düzeltme: UTC gece yarısından sonraki ilk 86 saniye içinde uydu epoch ayrıştırma hatası
+        * Düzeltme: radar sayfası mevcut geçiş sona erdiğinde otomatik olarak sonraki geçişe geçiyor
+        * Düzeltme: radar Doppler hesaplaması artık canlı kayma kaydırıcı değerini kullanıyor
+        * Düzeltme: geçiş ilerleme hesaplaması sıfıra bölme durumuna karşı korumalı
+        * Düzeltme: eşzamanlı calculatePasses çağrıları artık yinelenen hesaplamaları tetiklemiyor
+        * Düzeltme: WaveLog yinelenen QSO gönderimleri ve ızgara kare güncellemesi yarış durumları
     </string>
 
     <!-- Radar screen -->

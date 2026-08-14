@@ -107,6 +107,14 @@
         * CW page: removed the dead back button and the misleading status line
         * Restored 64-bit (arm64) support
         * Fixed: pause/resume no longer shows a spurious "decode failed" error
+        * Fixed: moving pages to main menu no longer hides Settings permanently
+        * Fixed: AMSAT/WavelogLog can now be moved to main menu
+        * Fixed: satellite epoch parsing for times within first 86 seconds of UTC midnight
+        * Fixed: radar page now auto-switches to next pass after current pass ends
+        * Fixed: radar Doppler calculation now uses live offset slider value
+        * Fixed: pass progress calculation guards against division by zero
+        * Fixed: concurrent calculatePasses calls no longer trigger duplicate calculations
+        * Fixed: WaveLog duplicate QSO submissions and grid square update race conditions
     </string>
 
     <!-- Radar screen -->
