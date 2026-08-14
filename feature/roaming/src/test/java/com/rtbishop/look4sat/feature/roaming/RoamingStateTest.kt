@@ -142,6 +142,44 @@ class RoamingStateTest {
     }
 
     @Test
+    fun `neighbour grid stays inside the A to R alphabet worldwide`() {
+        // The ported edge branches stepped field letters with raw character
+        // arithmetic and produced cells like "@A91" (A-1) or "SS00" (R+1).
+        var lat = -89.5
+        while (lat <= 89.5) {
+            var lon = -179.5
+            while (lon <= 179.5) {
+                stateOf(lat, lon).grids.forEach { cell ->
+                    assertEquals("cell length at ($lat, $lon): $cell", 4, cell.length)
+                    assert(cell[0] in 'A'..'R' && cell[1] in 'A'..'R') {
+                        "field letters out of range at ($lat, $lon): $cell"
+                    }
+                    assert(cell[2].isDigit() && cell[3].isDigit()) {
+                        "square digits out of range at ($lat, $lon): $cell"
+                    }
+                }
+                lon += 7.0
+            }
+            lat += 7.0
+        }
+    }
+
+    @Test
+    fun `neighbour grid carries the field letter on every moved cell`() {
+        // North edge: latitude square 9 -> 0 must advance the latitude field for
+        // all three cells of the top row, not just the middle one.
+        assertEquals(
+            listOf("AB00", "AB10", "AB20", "AA09", "AA19", "AA29", "AA08", "AA18", "AA28"),
+            stateOf(-80.5, -177.5).grids
+        )
+        // South-west corner of the world wraps in both axes.
+        assertEquals(
+            listOf("RA91", "AA01", "AA11", "RA90", "AA00", "AA10", "RR99", "AR09", "AR19"),
+            stateOf(-89.5, -179.5).grids
+        )
+    }
+
+    @Test
     fun `gps state after fix matches showLocation`() {
         val state = stateOf(22.314066, 108.706575)
         assertEquals(true, state.gpsOn)
