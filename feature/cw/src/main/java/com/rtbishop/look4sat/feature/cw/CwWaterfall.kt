@@ -31,6 +31,7 @@ import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * Rolling spectrogram history for the waterfall display.
@@ -46,6 +47,10 @@ class CwWaterfallState(private val historyRows: Int = 96) {
     private val lock = Any()
     private val rows = ArrayDeque<FloatArray>(historyRows)
     private val pending = ArrayList<Float>(CwDeepSpectrogram.SAMPLE_RATE)
+    // Incremented by clear(). A pushSamples call records the generation before
+    // doing FFT outside the lock and discards its result if a clear occurred in
+    // the meantime, otherwise pre-clear audio would reappear after the button tap.
+    private var generation = 0L
 
     /**
      * Bumped on every change so Compose knows to redraw.
@@ -66,6 +71,7 @@ class CwWaterfallState(private val historyRows: Int = 96) {
             chunk, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
         )
         val audio: FloatArray
+        val generationAtStart: Long
         synchronized(lock) {
             pending.ensureCapacity(pending.size + resampled.size)
             for (sample in resampled) pending.add(sample)
@@ -73,25 +79,34 @@ class CwWaterfallState(private val historyRows: Int = 96) {
             if (pending.size < CwDeepSpectrogram.FFT_LENGTH) return
             audio = FloatArray(pending.size) { pending[it] }
             pending.clear()
+            generationAtStart = generation
         }
 
         // FFT outside the lock; only the append below needs exclusivity.
         val computed = CwDeepSpectrogram.compute(audio)
         synchronized(lock) {
+            // Drop the result when the user cleared the display while this FFT
+            // was running: those samples belong to the discarded history.
+            if (generation != generationAtStart) return
             for (row in computed) {
                 if (rows.size >= historyRows) rows.removeFirst()
                 rows.addLast(row)
             }
         }
-        _revision.value += 1
+        // update {} not `value += 1`: this runs on the audio capture thread while
+        // clear() runs on the main thread, and `+=` is a non-atomic
+        // read-modify-write. A lost increment means a dropped redraw, and two
+        // writes landing on the same value make StateFlow report no change at all.
+        _revision.update { it + 1 }
     }
 
     fun clear() {
         synchronized(lock) {
+            generation++
             rows.clear()
             pending.clear()
         }
-        _revision.value += 1
+        _revision.update { it + 1 }
     }
 }
 
