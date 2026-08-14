@@ -593,13 +593,14 @@ private fun DopplerFrequencyCalculator(
             value = offsetKHz,
             onValueChange = { newVal ->
                 offsetKHz = newVal
+                val newOffsetHz = newVal.toDoubleOrNull()?.let { it * 1000 }?.toLong() ?: 0L
                 // Trigger recompute based on last edited field
                 if (lastEditedBy == EditedField.TX) {
                     val txMHz = txInputMHz.toDoubleOrNull()
                     if (txMHz != null && txMHz > 0) {
                         val txHz = (txMHz * 1_000_000).toLong()
                         val rxHz = DopplerFrequencyCalculator.computeDownlinkFromUplinkWithOffset(
-                            txHz, transponder, orbitalPos, offsetHz
+                            txHz, transponder, orbitalPos, newOffsetHz
                         )
                         rxInputMHz = if (rxHz != null) String.format(Locale.ENGLISH, "%.6f", rxHz / 1_000_000.0) else ""
                     }
@@ -608,7 +609,7 @@ private fun DopplerFrequencyCalculator(
                     if (rxMHz != null && rxMHz > 0) {
                         val rxHz = (rxMHz * 1_000_000).toLong()
                         val txHz = DopplerFrequencyCalculator.computeUplinkFromDownlinkWithOffset(
-                            rxHz, transponder, orbitalPos, offsetHz
+                            rxHz, transponder, orbitalPos, newOffsetHz
                         )
                         txInputMHz = if (txHz != null) String.format(Locale.ENGLISH, "%.6f", txHz / 1_000_000.0) else ""
                     }
