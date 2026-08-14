@@ -35,7 +35,8 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
     override suspend fun fetchStatus(): SatStatusPage? = withContext(Dispatchers.IO) {
         val nowSec = System.currentTimeMillis() / 1000
         val catalogJson = remoteSource.getAmSatCatalog() ?: return@withContext null
-        val reportsJson = remoteSource.getAmSatReports(hours = 168, limit = 500) ?: return@withContext null
+        val reportsJson = remoteSource.getAmSatReports(hours = REPORTS_HOURS, limit = REPORTS_LIMIT)
+            ?: return@withContext null
         
         val names = parseCatalog(catalogJson)
         val reports = parseReports(reportsJson)
@@ -98,13 +99,25 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
         // of the 72 slots sat under the wrong date label, and at 12:00 UTC half of
         // them did, so the column headed "today" showed yesterday's reports.
         val todayStartSec = (nowSec / 86400L) * 86400L
-        val labels = (0 until 6).map { d ->
+        // Only show days the API actually covered. Its reports endpoint caps the
+        // response at 500 rows regardless of the requested limit and fills them
+        // newest-first, so with ~90 catalogued satellites the oldest days come
+        // back empty. Rendering a fixed six columns turned "not fetched" into an
+        // all-gray "nobody reported" column, which is a different claim.
+        val oldestReportSec = reports.minOfOrNull { it.reportedTimeUtcSec }
+        val coveredDays = if (oldestReportSec == null) {
+            1
+        } else {
+            val oldestDayStart = (oldestReportSec / 86400L) * 86400L
+            (((todayStartSec - oldestDayStart) / 86400L) + 1).toInt().coerceIn(1, MAX_DAYS)
+        }
+        val labels = (0 until coveredDays).map { d ->
             utc.timeInMillis = (todayStartSec - d * 86400L) * 1000
             "${monthAbbr[utc.get(Calendar.MONTH)]} ${utc.get(Calendar.DAY_OF_MONTH)}"
         }
         return names.map { name ->
             val reportsForSat = byName[name].orEmpty()
-            val days = (0 until 6).map { d ->
+            val days = (0 until coveredDays).map { d ->
                 val dayStart = todayStartSec - d * 86400L
                 // Newest slot first: the UI picks the first non-gray slot of a day
                 // as that day's status.
@@ -156,6 +169,20 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
     }
 
     companion object {
+        /** Longest history the status grid will render. */
+        private const val MAX_DAYS = 6
+
+        /**
+         * The reports endpoint clamps its response to 500 rows and ignores a
+         * larger limit (measured: limit=1000 still answers with
+         * `meta.count = 500`), so asking for more is pointless. Rows arrive
+         * newest-first, which is why the oldest days can be missing entirely.
+         */
+        private const val REPORTS_LIMIT = 500
+
+        /** Request a full week so the six rendered days have data when available. */
+        private const val REPORTS_HOURS = 168
+
         // AMSAT official status colors (from amsat.org/status)
         private const val ACTIVE_BLUE = 0xFF648FFF
         private const val TLM_ORANGE = 0xFFFFB000
