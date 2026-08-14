@@ -67,9 +67,11 @@ class Ic705Controller(
     override suspend fun connect(): Boolean = withContext(Dispatchers.IO) {
         if (isConnected) return@withContext true
         if (deviceAddress.isBlank()) return@withContext false
+        var opened: android.bluetooth.BluetoothSocket? = null
         try {
             val device  = bluetoothManager.adapter.getRemoteDevice(deviceAddress)
             val btSocket = device.createInsecureRfcommSocketToServiceRecord(sppId)
+            opened = btSocket
             btSocket.connect()
             socket       = btSocket
             outputStream = btSocket.outputStream
@@ -84,6 +86,13 @@ class Ic705Controller(
             true
         } catch (e: Exception) {
             Log.e(tag, "Connect error: ${e.message}")
+            // Close the socket we opened. Without this a failure after connect()
+            // (e.g. outputStream throwing) leaks the Bluetooth socket, because
+            // disconnect() only closes what already reached the fields.
+            runCatching { opened?.close() }
+            socket = null
+            outputStream = null
+            inputStream = null
             isConnected = false
             false
         }

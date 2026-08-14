@@ -35,27 +35,36 @@ class AprsIsClient(
     fun connect() {
         disconnect()
         val s = Socket()
-        s.connect(InetSocketAddress(host, port), 30_000)
-        s.soTimeout = timeoutSec * 1000
-        s.tcpNoDelay = true
-        synchronized(lock) {
-            socket = s
-            writer = PrintWriter(OutputStreamWriter(s.getOutputStream(), Charsets.ISO_8859_1), true)
-            reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.ISO_8859_1), 256)
-        }
-        // Login line
-        val login = AprsPacket.formatLogin(callsign, ssid, passcode, version) + filter
-        writer?.println(login)
-        // Read the login response (aprsc replies # logresp ... verified/unverified)
-        runCatching {
-            s.soTimeout = 8000
-            val resp = reader?.readLine()
-            if (resp != null && (resp.contains("Invalid", ignoreCase = true) ||
-                    resp.contains("unverified", ignoreCase = true))) {
-                throw IllegalArgumentException(resp.trim())
-            }
-            // Restore timeout
+        try {
+            s.connect(InetSocketAddress(host, port), 30_000)
             s.soTimeout = timeoutSec * 1000
+            s.tcpNoDelay = true
+            synchronized(lock) {
+                socket = s
+                writer = PrintWriter(OutputStreamWriter(s.getOutputStream(), Charsets.ISO_8859_1), true)
+                reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.ISO_8859_1), 256)
+            }
+            // Login line
+            val login = AprsPacket.formatLogin(callsign, ssid, passcode, version) + filter
+            writer?.println(login)
+            // Read the login response (aprsc replies # logresp ... verified/unverified)
+            runCatching {
+                s.soTimeout = 8000
+                val resp = reader?.readLine()
+                if (resp != null && (resp.contains("Invalid", ignoreCase = true) ||
+                        resp.contains("unverified", ignoreCase = true))) {
+                    throw IllegalArgumentException(resp.trim())
+                }
+                // Restore timeout
+                s.soTimeout = timeoutSec * 1000
+            }
+        } catch (e: Exception) {
+            // Close the local socket before re-throwing, so it does not leak when
+            // an exception is raised after s.connect() but before socket = s.
+            // Otherwise periodic reconnect attempts (AprsReporter every 1–60 min)
+            // accumulate leaked fds until the process cannot open any more files.
+            runCatching { s.close() }
+            throw e
         }
     }
 

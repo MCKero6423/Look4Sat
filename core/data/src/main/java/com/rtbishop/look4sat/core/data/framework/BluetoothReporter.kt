@@ -76,10 +76,12 @@ class BluetoothReporter(
     private fun ensureRotatorConnected() {
         if (rotatorConnected || rotatorConnecting || rotatorDeviceId.isBlank()) return
         reporterScope.launch {
+            var opened: android.bluetooth.BluetoothSocket? = null
             try {
                 rotatorConnecting = true
                 val device = bluetoothManager.adapter.getRemoteDevice(rotatorDeviceId)
                 val socket = device.createInsecureRfcommSocketToServiceRecord(sppId)
+                opened = socket
                 socket.connect()
                 rotatorSocket = socket
                 rotatorStream = socket.outputStream
@@ -87,6 +89,11 @@ class BluetoothReporter(
                 Log.i(tag, "Rotator connected to $rotatorDeviceId")
             } catch (e: Exception) {
                 Log.e(tag, "Rotator connect error: ${e.message}")
+                // Close the socket we opened, otherwise a failure after connect()
+                // leaks it: nothing else holds a reference once this returns.
+                runCatching { opened?.close() }
+                rotatorSocket = null
+                rotatorStream = null
                 rotatorConnected = false
             } finally {
                 rotatorConnecting = false
@@ -97,10 +104,12 @@ class BluetoothReporter(
     private fun ensureFrequencyConnected() {
         if (frequencyConnected || frequencyConnecting || frequencyDeviceId.isBlank()) return
         reporterScope.launch {
+            var opened: android.bluetooth.BluetoothSocket? = null
             try {
                 frequencyConnecting = true
                 val device = bluetoothManager.adapter.getRemoteDevice(frequencyDeviceId)
                 val socket = device.createInsecureRfcommSocketToServiceRecord(sppId)
+                opened = socket
                 socket.connect()
                 frequencySocket = socket
                 frequencyStream = socket.outputStream
@@ -108,6 +117,11 @@ class BluetoothReporter(
                 Log.i(tag, "Frequency connected to $frequencyDeviceId")
             } catch (e: Exception) {
                 Log.e(tag, "Frequency connect error: ${e.message}")
+                // Close the socket we opened, otherwise a failure after connect()
+                // leaks it: nothing else holds a reference once this returns.
+                runCatching { opened?.close() }
+                frequencySocket = null
+                frequencyStream = null
                 frequencyConnected = false
             } finally {
                 frequencyConnecting = false
