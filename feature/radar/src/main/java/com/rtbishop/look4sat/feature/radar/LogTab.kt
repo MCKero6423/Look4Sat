@@ -253,12 +253,15 @@ private fun ExpandedLogInput(
     val scope = rememberCoroutineScope()
     var callsign by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
+    var submitting by remember { mutableStateOf(false) }
 
     val savedMsg = stringResource(id = R.string.wavelog_saved)
 
     fun submit() {
+        if (submitting) return
         val call = callsign.trim().uppercase()
         if (call.length < 3) return
+        submitting = true
         // Freq taken directly from the transponder bar (radio Doppler-corrected each second; value at the Enter moment)
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
@@ -278,6 +281,7 @@ private fun ExpandedLogInput(
         callsign = ""
         onSaved()
         showToast(savedMsg)
+        submitting = false
         // QRZ counterpart grid async backfill (4.5.5): only queried when Cookie is set; silent on failure
         scope.launch {
             val prefs = context.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)
