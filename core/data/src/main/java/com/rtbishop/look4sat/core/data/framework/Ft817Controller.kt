@@ -42,6 +42,9 @@ class Ft817Controller(
     private val commandDelayMs = 200L
     private val maxAckReadFailures = 3
 
+    /** Largest frequency the 4-byte BCD / 10 Hz CAT field can represent. */
+    private val maxFrequencyHz = 999_999_990L
+
     private var socket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
     private var inputStream: InputStream? = null
@@ -100,6 +103,16 @@ class Ft817Controller(
     }
 
     override suspend fun setFrequency(frequencyHz: Long): Boolean = withContext(Dispatchers.IO) {
+        // The FT-817 CAT frequency field is 4 BCD bytes at 10 Hz resolution,
+        // so the protocol cannot express anything above 999,999,990 Hz. Below
+        // that the encoder is exact; above it, the %08d formatting silently
+        // drops the leading digit and the radio receives a frequency ten
+        // times lower (e.g. 1267.6 MHz becomes 126.76 MHz), and the tracking
+        // loop's read-back then locks onto the wrong band. Reject instead.
+        if (frequencyHz > maxFrequencyHz) {
+            Log.e(tag, "setFrequency rejected: $frequencyHz Hz exceeds FT-817 CAT limit $maxFrequencyHz")
+            return@withContext false
+        }
         ioMutex.withLock {
             sendCommandWithAck(Ft817CatProtocol.buildSetFreqCommand(frequencyHz))
         }
