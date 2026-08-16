@@ -71,14 +71,19 @@ class NetworkReporter(
     private fun ensureRotatorConnected() {
         if (rotatorConnected || rotatorConnecting || rotatorServer.isBlank()) return
         reporterScope.launch {
+            var opened: SocketChannel? = null
             try {
                 rotatorConnecting = true
-                rotatorSocket = SocketChannel.open(InetSocketAddress(rotatorServer, rotatorPort))
+                opened = SocketChannel.open(InetSocketAddress(rotatorServer, rotatorPort))
+                rotatorSocket = opened
                 rotatorConnected = true
                 println("NetworkReporter: Rotator connected to $rotatorServer:$rotatorPort")
             } catch (e: Exception) {
                 println("NetworkReporter rotator connect error: ${e.message}")
                 rotatorConnected = false
+                // Close a socket that connected but failed during setup, so a
+                // broken channel is never left referenced without a closer.
+                opened?.close()
             } finally {
                 rotatorConnecting = false
             }
@@ -88,14 +93,17 @@ class NetworkReporter(
     private fun ensureFrequencyConnected() {
         if (frequencyConnected || frequencyConnecting || frequencyServer.isBlank()) return
         reporterScope.launch {
+            var opened: SocketChannel? = null
             try {
                 frequencyConnecting = true
-                frequencySocket = SocketChannel.open(InetSocketAddress(frequencyServer, frequencyPort))
+                opened = SocketChannel.open(InetSocketAddress(frequencyServer, frequencyPort))
+                frequencySocket = opened
                 frequencyConnected = true
                 println("NetworkReporter: Frequency connected to $frequencyServer:$frequencyPort")
             } catch (e: Exception) {
                 println("NetworkReporter frequency connect error: ${e.message}")
                 frequencyConnected = false
+                opened?.close()
             } finally {
                 frequencyConnecting = false
             }
@@ -111,6 +119,17 @@ class NetworkReporter(
         } catch (e: Exception) {
             println("NetworkReporter write error: ${e.message}")
             onError()
+            // The channel failed a write: drop it and its closure obligation.
+            // Leaving it referenced lets the next connect overwrite the field
+            // and leak the old channel. Only the field the caller passed is
+            // cleared, matching the connected=false the onError sets.
+            if (socket === rotatorSocket) {
+                rotatorSocket?.close()
+                rotatorSocket = null
+            } else if (socket === frequencySocket) {
+                frequencySocket?.close()
+                frequencySocket = null
+            }
         }
     }
 
