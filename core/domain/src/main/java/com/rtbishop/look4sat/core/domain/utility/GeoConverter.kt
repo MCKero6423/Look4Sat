@@ -81,9 +81,18 @@ fun clipLat(latitude: Double): Double {
 }
 
 fun clipLon(longitude: Double): Double {
+    // Reduce with a modulo so a single pass always terminates. The previous
+    // while-loop never returned for extreme inputs: Infinity stays Infinity
+    // after subtracting 360, so the loop ran forever, and a ~1e12 degree value
+    // took billions of iterations. NaN still passes through to clip() and is
+    // returned as NaN, which is the same behaviour as before.
+    if (!longitude.isFinite()) return longitude
     var result = longitude
-    while (result < MIN_LONGITUDE) result += 360.0
-    while (result > MAX_LONGITUDE) result -= 360.0
+    result = ((result + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
+    // The closed interval [-180, 180] keeps +180 for a value that lands exactly
+    // on the positive boundary (old loop: 180 stays 180, only > 180 wraps);
+    // -180 is reserved for values that actually came from the west side.
+    if (result == -180.0 && longitude > 0.0) result = 180.0
     return clip(result, MIN_LONGITUDE, MAX_LONGITUDE)
 }
 
