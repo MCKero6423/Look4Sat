@@ -28,6 +28,12 @@ import android.util.Log
  */
 internal object CwProbe {
 
+    /** Keep the diagnostic file bounded: the decoder writes two lines per
+     * 1.5 s inference tick (~170 KB/hour), so without a cap it grows without
+     * limit on every release build. Truncate instead of deleting so the
+     * probe keeps the last diagnostics before a crash. */
+    private const val MAX_FILE_BYTES = 1_048_576L // 1 MiB
+
     private var dir: java.io.File? = null
 
     fun init(context: Context) {
@@ -39,6 +45,7 @@ internal object CwProbe {
         runCatching {
             val line = "${System.currentTimeMillis()} $label"
             val file = java.io.File(target, "probe_cw.txt")
+            if (file.length() > MAX_FILE_BYTES) file.delete()
             file.appendText("$line\n")
             Log.i("CwProbe", line)
         }
