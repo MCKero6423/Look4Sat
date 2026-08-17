@@ -77,24 +77,31 @@ class AprsIsClient(
             val w = writer ?: return null
             w.println(packetLine)
             if (w.checkError()) return Pair(false, "write failed")
-        }
-        // Try to read the server response (short 3 s timeout; APRS-IS replies with an error line on bad format)
-        return runCatching {
-            val s = socket ?: return@runCatching Pair(true, "OK")
-            val oldTimeout = s.soTimeout
-            s.soTimeout = 3000
-            try {
-                val resp = reader?.readLine()
-                if (resp != null && (resp.contains("Invalid", ignoreCase = true) ||
-                        resp.contains("error", ignoreCase = true))) {
-                    Pair(false, resp.trim())
-                } else {
-                    Pair(true, if (resp.isNullOrBlank()) "OK" else resp.trim())
+            // Read the server response inside the same lock: disconnect() (called
+            // concurrently from stop()/reconnect on another thread) nulls
+            // writer/reader/socket and closes them. Reading outside the lock raced
+            // with that: the response read could hit a just-closed socket and the
+            // swallowing runCatching reported Pair(true,"OK") for a packet that
+            // never left, or read through a stale reference. Serialising keeps
+            // the read on the connection this thread just wrote to. The 3 s read
+            // timeout bounds how long a concurrent disconnect waits.
+            return runCatching {
+                val s = socket ?: return@runCatching Pair(true, "OK")
+                val oldTimeout = s.soTimeout
+                s.soTimeout = 3000
+                try {
+                    val resp = reader?.readLine()
+                    if (resp != null && (resp.contains("Invalid", ignoreCase = true) ||
+                            resp.contains("error", ignoreCase = true))) {
+                        Pair(false, resp.trim())
+                    } else {
+                        Pair(true, if (resp.isNullOrBlank()) "OK" else resp.trim())
+                    }
+                } finally {
+                    s.soTimeout = oldTimeout
                 }
-            } finally {
-                s.soTimeout = oldTimeout
-            }
-        }.getOrElse { Pair(true, "OK") }
+            }.getOrElse { Pair(true, "OK") }
+        }
     }
 
     /** Read one line (server response; throws on timeout) */
