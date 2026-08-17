@@ -267,12 +267,18 @@ class RadioTrackingService(
 
             if (tuningRadio.isEmpty()) {
                 if (txNow != null && txNow.isConnected && txRadioFreq != null) {
-                    txNow.setFrequency(txRadioFreq)
-                    lastSetTxFreq = txRadioFreq.toDouble()
+                    // Only remember the frequency we actually wrote: if the radio
+                    // rejects it (FT-817 CAT limit) or the link dropped, keeping
+                    // lastSetTxFreq updated would make the manual-tuning detector
+                    // see a phantom dial change on the next read-back.
+                    if (txNow.setFrequency(txRadioFreq)) {
+                        lastSetTxFreq = txRadioFreq.toDouble()
+                    }
                 }
                 if (rxNow != null && rxNow.isConnected && rxRadioFreq != null) {
-                    rxNow.setFrequency(rxRadioFreq)
-                    lastSetRxFreq = rxRadioFreq.toDouble()
+                    if (rxNow.setFrequency(rxRadioFreq)) {
+                        lastSetRxFreq = rxRadioFreq.toDouble()
+                    }
                 }
             }
 
@@ -450,13 +456,15 @@ class RadioTrackingService(
                 // 0x25/00 = active (RX) VFO, 0x25/01 = inactive (TX) VFO.
                 if (rxRadioFreq != null) {
                     Log.d(tag, "Split loop RX (0x25/00): ${rxRadioFreq}Hz")
-                    radio.setWorkingFrequency(rxRadioFreq)
-                    lastSetRxFreq = rxRadioFreq.toDouble()
+                    if (radio.setWorkingFrequency(rxRadioFreq)) {
+                        lastSetRxFreq = rxRadioFreq.toDouble()
+                    }
                 }
                 if (txRadioFreq != null) {
                     Log.d(tag, "Split loop TX (0x25/01): ${txRadioFreq}Hz")
-                    radio.setTxVfoFrequency(txRadioFreq)
-                    lastSetTxFreq = txRadioFreq.toDouble()
+                    if (radio.setTxVfoFrequency(txRadioFreq)) {
+                        lastSetTxFreq = txRadioFreq.toDouble()
+                    }
                 }
             }
 
