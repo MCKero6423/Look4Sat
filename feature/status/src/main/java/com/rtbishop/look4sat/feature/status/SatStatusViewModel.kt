@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.rtbishop.look4sat.core.domain.model.SatReport
 import com.rtbishop.look4sat.core.domain.model.SatStatus
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -50,6 +51,8 @@ class SatStatusViewModel(
                         it.copy(isLoading = false, isRefreshing = false, error = "fetch_failed")
                     }
                 }
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = exception.message ?: "fetch_failed")
@@ -76,6 +79,8 @@ class SatStatusViewModel(
                 } else {
                     _uiState.update { it.copy(isRefreshing = false, error = "fetch_failed") }
                 }
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.update { it.copy(isRefreshing = false, error = exception.message ?: "fetch_failed") }
             }

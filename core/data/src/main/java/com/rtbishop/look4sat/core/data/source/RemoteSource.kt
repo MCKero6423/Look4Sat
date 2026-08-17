@@ -20,6 +20,7 @@ package com.rtbishop.look4sat.core.data.source
 import android.content.ContentResolver
 import androidx.core.net.toUri
 import com.rtbishop.look4sat.core.domain.source.IRemoteSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -37,6 +38,8 @@ class RemoteSource(
         try {
             val fileUri = uri.toUri()
             contentResolver.openInputStream(fileUri)?.buffered()
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             println("RemoteSource file stream exception: $exception")
             null
@@ -53,6 +56,8 @@ class RemoteSource(
                 if (!response.isSuccessful) return@use null
                 response.body?.string()
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             println("RemoteSource amsat status exception: $exception")
             null
@@ -66,6 +71,8 @@ class RemoteSource(
                 if (!response.isSuccessful) return@withContext null
                 ByteArrayInputStream(response.body.bytes())
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             println("RemoteSource network stream exception: $exception")
             null
@@ -82,6 +89,8 @@ class RemoteSource(
                 if (!response.isSuccessful) return@use null
                 response.body?.string()
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             println("RemoteSource amsat catalog exception: $exception")
             null
@@ -98,6 +107,8 @@ class RemoteSource(
                 if (!response.isSuccessful) return@use null
                 response.body?.string()
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             println("RemoteSource amsat reports exception: $exception")
             null
