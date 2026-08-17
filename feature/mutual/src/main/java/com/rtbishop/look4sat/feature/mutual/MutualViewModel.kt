@@ -400,7 +400,15 @@ class MutualViewModel(
 
                 val refinedAos = refineEdge(sat, posA, posB, aos, 1_000L, true)
                 val refinedLos = refineEdge(sat, posA, posB, los, 1_000L, false)
-                if (refinedLos <= refinedAos) continue
+                if (refinedLos <= refinedAos) {
+                    // Refine collapsed the window (e.g. a near-horizon pass whose
+                    // AOS/LOS both sit at the edge of the 70 s refine window).
+                    // Advance the search regardless: skipping without moving
+                    // searchStart would make findNextMutualPass return the same
+                    // pass forever once the refine windows can no longer span it.
+                    searchStart = los + 120_000L
+                    continue
+                }
 
                 val mutualPass = sampleMutualPass(sat, posA, posB, refinedAos, refinedLos,
                     minElevADeg, minElevBDeg, sampleInterval)
