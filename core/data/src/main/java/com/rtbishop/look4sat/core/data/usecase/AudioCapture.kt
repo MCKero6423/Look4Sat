@@ -56,8 +56,14 @@ class AudioCapture : IAudioCapture {
                 if (read > 0) emit(if (read == chunkSize) buffer.copyOf() else buffer.copyOfRange(0, read))
             }
         } finally {
-            recorder.stop()
-            recorder.release()
+            // stop() on a recorder that never started throws
+            // IllegalStateException; wrapping each cleanup step separately
+            // keeps the original error (e.g. a permission denial during
+            // startRecording) intact and guarantees release() still runs.
+            // Without this, a start failure masked the real cause AND leaked
+            // the recorder because release() was skipped.
+            runCatching { recorder.stop() }
+            runCatching { recorder.release() }
         }
     }.flowOn(Dispatchers.IO)
 }
