@@ -126,8 +126,6 @@ private class FakeRemoteSource : IRemoteSource {
 
     override suspend fun getNetworkStream(url: String): InputStream? = networkStreams[url]?.invoke()
 
-    override suspend fun getStatusHtml(): String? = null
-
     override suspend fun getAmSatCatalog(): String? = null
 
     override suspend fun getAmSatReports(hours: Int, limit: Int): String? = null

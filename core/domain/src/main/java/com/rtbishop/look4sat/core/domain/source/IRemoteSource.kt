@@ -23,9 +23,6 @@ interface IRemoteSource {
     suspend fun getFileStream(uri: String): InputStream?
     suspend fun getNetworkStream(url: String): InputStream?
 
-    /** Fetch AMSAT status page HTML (with UA; null = failure) */
-    suspend fun getStatusHtml(): String?
-
     /** Fetch AMSAT API catalog (JSON string; null on failure) */
     suspend fun getAmSatCatalog(): String?
 
