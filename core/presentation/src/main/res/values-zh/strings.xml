@@ -67,6 +67,8 @@
     <string name="sat_search_clear">清空</string>
     <string name="sat_clear_all">全部清空</string>
     <string name="sat_select_all">全选</string>
+    <string name="sat_group_selected_count">已选 (%1$d)</string>
+    <string name="sat_group_available_count">可选 (%1$d)</string>
     <string name="sat_empty_list_message">请确保您的搜索查询正确且数据库已更新</string>
     <string name="sat_warning_title">警告\!</string>
     <string name="sat_warning_message">此应用收录了超过9000颗卫星信息\n同时追踪所有卫星并不现实\n建议始终通过搜索和分类筛选功能仅勾选您感兴趣的卫星</string>
@@ -294,4 +296,8 @@
         \n• BG7NTA</string>
     <string name="prefs_outro_license">该应用程序不提供任何保修.</string>
 
+    <string name="prefs_net_frequency_offset_hint" translatable="false">频率偏移 (Hz)</string>
+    <string name="prefs_net_frequency_offset_help" translatable="false">范围: -50000 到 50000 Hz。正值提高上报频率; 负值降低。</string>
+    <string name="prefs_other_compass_offset">雷达罗盘偏移</string>
+    <string name="prefs_other_compass_offset_elev">雷达罗盘偏移 (仰角)</string>
 </resources>

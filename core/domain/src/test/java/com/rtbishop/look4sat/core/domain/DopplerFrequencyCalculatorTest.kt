@@ -3,12 +3,17 @@ package com.rtbishop.look4sat.core.domain
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DopplerFrequencyCalculatorTest {
 
     private fun linearTransponder(
+        uuid: String = "linear",
         upLow: Long = 145_000_000L,
         upHigh: Long = 145_500_000L,
         downLow: Long = 435_000_000L,
@@ -18,7 +23,7 @@ class DopplerFrequencyCalculatorTest {
         downlinkMode: String? = "USB",
         uplinkMode: String? = "LSB"
     ) = SatRadio(
-        uuid = "linear", info = info, isAlive = true,
+        uuid = uuid, info = info, isAlive = true,
         downlinkLow = downLow, downlinkHigh = downHigh,
         downlinkMode = downlinkMode, uplinkLow = upLow, uplinkHigh = upHigh,
         uplinkMode = uplinkMode, isInverted = inverted, catnum = 12345
@@ -69,8 +74,90 @@ class DopplerFrequencyCalculatorTest {
     }
 
     @Test
+    fun isNamedLinearTransponder_returnsTrueForAbbreviatedLinName() {
+        // AO-7 style: "Mode V/A (A) Lin SSB" — "Lin" abbreviation, no "transponder" word
+        val ao7Entry = linearTransponder(info = "Mode V/A (A) Lin SSB", downlinkMode = "USB", uplinkMode = "USB")
+        assertTrue(DopplerFrequencyCalculator.isNamedLinearTransponder(ao7Entry))
+        val ao7CwEntry = linearTransponder(info = "Mode V/A (A) Lin CW", downlinkMode = "CW", uplinkMode = "CW")
+        assertTrue(DopplerFrequencyCalculator.isNamedLinearTransponder(ao7CwEntry))
+        val ao7ModeBEntry = linearTransponder(info = "Mode U/V (B) Lin", downlinkMode = "USB", uplinkMode = "LSB")
+        assertTrue(DopplerFrequencyCalculator.isNamedLinearTransponder(ao7ModeBEntry))
+    }
+
+    @Test
+    fun isNamedLinearTransponder_returnsTrueForLinearWithoutTransponderWord() {
+        // AO-73 style: "Mode U/V Linear" — has "Linear" but no "transponder"
+        val ao73Entry = linearTransponder(info = "Mode U/V Linear", downlinkMode = "USB", uplinkMode = "LSB")
+        assertTrue(DopplerFrequencyCalculator.isNamedLinearTransponder(ao73Entry))
+    }
+
+    @Test
+    fun isNamedLinearTransponder_returnsFalseForDownlinkContainingLinInsideWord() {
+        // "Downlink" contains "lin" but is not a linear-transponder name
+        val downlinkEntry = linearTransponder(info = "Mode U Downlink", downlinkMode = "FM", uplinkMode = "FM")
+        assertFalse(DopplerFrequencyCalculator.isNamedLinearTransponder(downlinkEntry))
+    }
+
+    @Test
     fun isNamedLinearTransponder_returnsFalseForFmRepeater() {
         assertFalse(DopplerFrequencyCalculator.isNamedLinearTransponder(fmTransponder()))
+    }
+
+    @Test
+    fun deduplicateTransponders_mergesSameFrequencyRange() {
+        // AO-7's Mode A: same range, SSB and CW entries
+        val ssb = linearTransponder(
+            uuid = "ssb-uuid", info = "Mode V/A (A) Lin SSB",
+            downlinkMode = "USB", uplinkMode = "USB"
+        )
+        val cw = linearTransponder(
+            uuid = "cw-uuid", info = "Mode V/A (A) Lin CW",
+            downlinkMode = "CW", uplinkMode = "CW"
+        )
+        val modeB = linearTransponder(
+            uuid = "modeb-uuid", info = "Mode U/V (B) Lin",
+            upLow = 432_125_000L, upHigh = 432_175_000L,
+            downLow = 145_925_000L, downHigh = 145_975_000L,
+            downlinkMode = "USB", uplinkMode = "LSB"
+        )
+        val result = DopplerFrequencyCalculator.deduplicateTransponders(listOf(ssb, cw, modeB))
+        assertEquals(2, result.size)
+        // SSB entry should be preferred over CW (same range)
+        assertEquals("ssb-uuid", result[0].uuid)
+        assertEquals("modeb-uuid", result[1].uuid)
+    }
+
+    @Test
+    fun deduplicateTransponders_prefersNonCwEntry() {
+        // JO-97: CW entry has invert=false (wrong), SSB has invert=true (correct)
+        val cw = linearTransponder(
+            uuid = "cw-uuid", info = "U/V CW Transponder",
+            downlinkMode = "CW", uplinkMode = "CW",
+            upLow = 435_100_000L, upHigh = 435_120_000L,
+            downLow = 145_855_000L, downHigh = 145_875_000L
+        )
+        val ssb = linearTransponder(
+            uuid = "ssb-uuid", info = "U/V SSB Transponder",
+            downlinkMode = "USB", uplinkMode = "LSB",
+            upLow = 435_100_000L, upHigh = 435_120_000L,
+            downLow = 145_855_000L, downHigh = 145_875_000L,
+            inverted = true
+        )
+        val result = DopplerFrequencyCalculator.deduplicateTransponders(listOf(cw, ssb))
+        assertEquals(1, result.size)
+        assertEquals("ssb-uuid", result[0].uuid)
+        // Verify the correct invert flag is preserved
+        assertTrue(result[0].isInverted)
+    }
+
+    @Test
+    fun deduplicateTransponders_preservesUniqueEntries() {
+        val t1 = linearTransponder(uuid = "t1", upLow = 145_000_000L, upHigh = 145_500_000L,
+            downLow = 435_000_000L, downHigh = 435_500_000L)
+        val t2 = linearTransponder(uuid = "t2", upLow = 435_000_000L, upHigh = 435_500_000L,
+            downLow = 145_000_000L, downHigh = 145_500_000L)
+        val result = DopplerFrequencyCalculator.deduplicateTransponders(listOf(t1, t2))
+        assertEquals(2, result.size)
     }
 
     @Test
@@ -79,8 +166,6 @@ class DopplerFrequencyCalculatorTest {
         val orbitalPos = pos(0.0)
         val uplink = DopplerFrequencyCalculator.computeUplinkFromDownlink(435_200_000L, xpdr, orbitalPos)
         assertNotNull(uplink)
-        assertTrue(uplink!! > 0)
-        // With zero Doppler, result equals mapDownlinkToUplink output
         assertEquals(145_200_000L, uplink)
     }
 
@@ -95,24 +180,23 @@ class DopplerFrequencyCalculatorTest {
 
     @Test
     fun computeUplinkFromDownlink_withDoppler_positiveRangeRate() {
-        // Satellite receding (positive range rate) → ground must transmit higher freq to compensate
+        // Satellite receding (positive range rate) → ground must transmit higher freq to compensate.
         val xpdr = linearTransponder()
-        val orbitalPos = pos(7.0)  // ~7 km/s receding
+        val orbitalPos = pos(7.0)
         val uplink = DopplerFrequencyCalculator.computeUplinkFromDownlink(435_200_000L, xpdr, orbitalPos)
         assertNotNull(uplink)
-        // Uplink freq should be Doppler shifted UP (compensating for receding)
         assertTrue(uplink!! > 145_200_000L)
     }
 
     @Test
-    fun computeUplinkFromDownlink_fm_transponder_returnsNull() {
+    fun computeUplinkFromDownlink_fmTransponder_returnsNull() {
         val orbitalPos = pos()
         val result = DopplerFrequencyCalculator.computeUplinkFromDownlink(435_600_000L, fmTransponder(), orbitalPos)
         assertNull(result)
     }
 
     @Test
-    fun computeDownlinkFromUplink_fm_transponder_returnsNull() {
+    fun computeDownlinkFromUplink_fmTransponder_returnsNull() {
         val orbitalPos = pos()
         val result = DopplerFrequencyCalculator.computeDownlinkFromUplink(145_900_000L, fmTransponder(), orbitalPos)
         assertNull(result)
@@ -171,13 +255,11 @@ class DopplerFrequencyCalculatorTest {
         val orbitalPos = pos(0.0)
         val uplink = DopplerFrequencyCalculator.computeUplinkFromDownlink(435_200_000L, xpdr, orbitalPos)
         assertNotNull(uplink)
-        // Inverted: offset from high end → maps to high end of uplink
         assertEquals(145_300_000L, uplink)
     }
 
     @Test
     fun computeUplinkFromDownlink_roundTrip() {
-        // downlink → uplink → downlink should round-trip
         val xpdr = linearTransponder()
         val orbitalPos = pos(3.5)
         val originalDownlink = 435_250_000L
@@ -185,7 +267,6 @@ class DopplerFrequencyCalculatorTest {
         assertNotNull(uplink)
         val roundTripDownlink = DopplerFrequencyCalculator.computeDownlinkFromUplink(uplink!!, xpdr, orbitalPos)
         assertNotNull(roundTripDownlink)
-        // Doppler round-trip: small residual due to freq-dependent Doppler
         val error = kotlin.math.abs(roundTripDownlink!! - originalDownlink)
         assertTrue("Round-trip error too large: $error", error < 10000)
     }

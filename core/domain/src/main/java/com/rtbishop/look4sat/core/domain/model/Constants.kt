@@ -15,18 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.rtbishop.look4sat.core.domain.repository
+package com.rtbishop.look4sat.core.domain.model
 
-import com.rtbishop.look4sat.core.domain.model.SatItem
-import kotlinx.coroutines.flow.Flow
-
-interface ISelectionRepo {
-    fun getCurrentModes(): List<String>
-    fun getModesList(): List<String>
-    suspend fun getEntriesFlow(): Flow<List<SatItem>>
-    suspend fun setModes(modes: List<String>)
-    suspend fun setQuery(query: String)
-    suspend fun setSelection(selectAll: Boolean)
-    suspend fun setSelection(ids: List<Int>, isTicked: Boolean)
-    suspend fun saveSelection()
+object Constants {
+    const val FREQ_OFFSET_MIN_HZ = -50_000L
+    const val FREQ_OFFSET_MAX_HZ = 50_000L
 }

@@ -39,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 class SettingsViewModel(
+    private val container: IMainContainer,
     private val databaseRepo: IDatabaseRepo,
     private val settingsRepo: ISettingsRepo,
     private val showToast: IShowToast,
@@ -55,7 +56,8 @@ class SettingsViewModel(
             otherSettings = settingsRepo.otherSettings.value,
             rcSettings = settingsRepo.rcSettings.value,
             radioControlSettings = settingsRepo.radioControlSettings.value,
-            dataSourcesSettings = settingsRepo.dataSourcesSettings.value
+            dataSourcesSettings = settingsRepo.dataSourcesSettings.value,
+            pairedBluetoothDevices = container.providePairedBluetoothDevices()
         )
     )
 
@@ -140,6 +142,9 @@ class SettingsViewModel(
             SettingsAction.ResetMenuOrder -> settingsRepo.updateOtherSettings {
                 it.copy(screenOrder = emptyList(), subMenuOrder = emptyList())
             }
+            is SettingsAction.SetRadarCompassOffset -> settingsRepo.updateOtherSettings { it.copy(radarCompassOffset = action.value) }
+            is SettingsAction.SetRadarCompassOffsetElev -> settingsRepo.updateOtherSettings { it.copy(radarCompassOffsetElev = action.value) }
+
             // Remote control & data sources
             is SettingsAction.UpdateRC -> settingsRepo.updateRCSettings(action.settings)
             is SettingsAction.UpdateRadioControl -> settingsRepo.updateRadioControlSettings(action.settings)
@@ -315,6 +320,7 @@ class SettingsViewModel(
         fun factory(container: IMainContainer) = viewModelFactory {
             initializer {
                 SettingsViewModel(
+                    container = container,
                     databaseRepo = container.databaseRepo,
                     settingsRepo = container.settingsRepo,
                     showToast = container.provideShowToast(),

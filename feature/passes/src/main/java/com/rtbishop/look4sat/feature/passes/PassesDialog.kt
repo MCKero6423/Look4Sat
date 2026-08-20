@@ -58,19 +58,12 @@ import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.presentation.LocalSpacing
 import com.rtbishop.look4sat.core.presentation.MainTheme
 import com.rtbishop.look4sat.core.presentation.R
-import com.rtbishop.look4sat.core.presentation.SharedDialog
+import com.rtbishop.look4sat.core.presentation.ConfirmDialog
 import com.rtbishop.look4sat.core.presentation.ElevationHighColor
 import com.rtbishop.look4sat.core.presentation.ElevationLowColor
 import com.rtbishop.look4sat.core.presentation.elevationColor
+import com.rtbishop.look4sat.core.domain.source.Sources
 import kotlin.math.roundToInt
-
-private val allModes = listOf(
-    "AFSK", "AFSK S-Net", "AFSK SALSAT", "AHRPT", "AM", "APT", "BPSK", "BPSK PMT-A3",
-    "CERTO", "CW", "DQPSK", "DSTAR", "DUV", "FFSK", "FM", "FMN", "FSK", "FSK AX.100 Mode 5",
-    "FSK AX.100 Mode 6", "FSK AX.25 G3RUH", "GFSK", "GFSK Rktr", "GMSK", "HRPT", "LoRa",
-    "LRPT", "LSB", "MFSK", "MSK", "MSK AX.100 Mode 5", "MSK AX.100 Mode 6", "OFDM", "OQPSK",
-    "PSK", "PSK31", "PSK63", "QPSK", "QPSK31", "QPSK63", "SSTV", "USB", "WSJT"
-)
 
 private val hourSteps = listOf(1, 2, 4, 8, 12, 24, 48, 72, 96, 120, 144, 168, 192, 216, 240)
 private const val dayMinutes = 24 * 60
@@ -147,7 +140,7 @@ internal fun PassesFilterDialog(
         )
         cancel()
     }
-    SharedDialog(title = stringResource(R.string.pass_filter_title), onCancel = cancel, onAccept = onAccept) {
+    ConfirmDialog(title = stringResource(R.string.pass_filter_title), onCancel = cancel, onAccept = onAccept) {
         SliderRow(
             title = stringResource(R.string.pass_filter_elev),
             value = elevationValueNew.doubleValue,
@@ -372,7 +365,7 @@ internal fun RadiosDialog(modes: List<String>, cancel: () -> Unit, accept: (List
         selected.value = if (mode in selected.value) selected.value - mode else selected.value + mode
     }
     val onAccept = { accept(selected.value.toList()).also { cancel() } }
-    SharedDialog(title = stringResource(R.string.pass_modes_title), onCancel = cancel, onAccept = onAccept) {
+    ConfirmDialog(title = stringResource(R.string.pass_modes_title), onCancel = cancel, onAccept = onAccept) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(240.dp),
             modifier = Modifier
@@ -381,7 +374,7 @@ internal fun RadiosDialog(modes: List<String>, cancel: () -> Unit, accept: (List
             horizontalArrangement = Arrangement.spacedBy(1.dp),
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
-            itemsIndexed(allModes) { index, item ->
+            itemsIndexed(Sources.satelliteModes) { index, item ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier

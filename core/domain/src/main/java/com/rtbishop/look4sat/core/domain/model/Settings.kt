@@ -29,8 +29,7 @@ data class PassesSettings(
     val minElevation: Double,
     val aosStartMinute: Int = 0,
     val aosEndMinute: Int = 23 * 60 + 59,
-    val invertAosTimeWindow: Boolean = false,
-    val selectedModes: List<String>
+    val invertAosTimeWindow: Boolean = false
 )
 
 data class RCSettings(
@@ -42,6 +41,7 @@ data class RCSettings(
     val frequencyAddress: String,
     val frequencyPort: String,
     val frequencyFormat: String,
+    val frequencyOffsetHz: Long = 0L,
     val bluetoothRotatorState: Boolean,
     val bluetoothRotatorFormat: String,
     val bluetoothRotatorName: String,
@@ -73,7 +73,10 @@ data class OtherSettings(
     val wavelogUrl: String = "",
     val wavelogApiKey: String = "",
     val wavelogStationId: String = "",
-    val wavelogAutoUpload: Boolean = false
+    val wavelogAutoUpload: Boolean = false,
+    // Upstream radar compass offset (merged from rt-bishop)
+    val radarCompassOffset: Float = 0f,
+    val radarCompassOffsetElev: Float = 0f
 )
 
 data class DataSourcesSettings(

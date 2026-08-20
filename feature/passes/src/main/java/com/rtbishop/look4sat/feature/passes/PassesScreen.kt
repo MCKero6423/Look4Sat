@@ -71,10 +71,10 @@ import com.rtbishop.look4sat.core.presentation.MainTheme
 import com.rtbishop.look4sat.core.presentation.NextPassRow
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
-import com.rtbishop.look4sat.core.presentation.SharedDialog
 import com.rtbishop.look4sat.core.presentation.SwipeableItem
 import com.rtbishop.look4sat.core.presentation.TimerRow
 import com.rtbishop.look4sat.core.presentation.TopBar
+import com.rtbishop.look4sat.core.presentation.WhatsNewDialog
 import com.rtbishop.look4sat.core.presentation.elevationColor
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
@@ -135,26 +135,14 @@ private fun PassesScreen(
     }
     if (uiState.shouldSeeWhatsNew) {
         val dismiss = { onAction(PassesAction.DismissWhatsNew) }
-        SharedDialog(
-            title = stringResource(R.string.pass_whatsnew_title),
-            onDismissRequest = dismiss,
-            onAccept = dismiss,
-            titleFontSize = 18
-        ) { padding ->
-            Text(
-                text = stringResource(R.string.pass_whatsnew_message),
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = padding)
-            )
-        }
+        WhatsNewDialog(onDismiss = dismiss)
     }
     ScreenColumn(
         topBar = { isVerticalLayout ->
             TopBar(
                 isVerticalLayout = isVerticalLayout,
                 startAction = {
-                    IconCard(action = { onAction(PassesAction.TogglePassesDialog) }, resId = R.drawable.ic_filter)
+                    IconCard(action = { onAction(PassesAction.ToggleRadiosDialog) }, resId = R.drawable.ic_radios)
                 },
                 topInfo = {
                     TimerRow(timeString = uiState.nextTime, isTimeAos = uiState.isNextTimeAos)
@@ -163,7 +151,7 @@ private fun PassesScreen(
                     NextPassRow(pass = uiState.nextPass, isUtc = uiState.isUtc)
                 },
                 endAction = {
-                    IconCard(action = { onAction(PassesAction.ToggleRadiosDialog) }, resId = R.drawable.ic_radios)
+                    IconCard(action = { onAction(PassesAction.TogglePassesDialog) }, resId = R.drawable.ic_filter)
                 }
             )
         }
@@ -290,6 +278,11 @@ private fun StickyDateHeader(label: String, sunriseTime: String, sunsetTime: Str
     }
 }
 
+private fun displayLocale(): Locale {
+    val locale = Locale.getDefault()
+    return if (locale.language == Locale.CHINESE.language) locale else Locale.ENGLISH
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun DeepSpacePassPreview() {
@@ -316,12 +309,13 @@ private fun PassItem(
     isVerticalLayout: Boolean = true,
     isUtc: Boolean = false
 ) {
+    val passSatId = stringResource(id = R.string.pass_satId, pass.catNum)
     val horizontalPadding = if (isVerticalLayout) 6.dp else 10.dp
     val timeZone = remember(isUtc) {
         if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
     }
     val sdfTime = remember(isUtc) {
-        SimpleDateFormat("HH:mm:ss", Locale.getDefault()).also { it.timeZone = timeZone }
+        SimpleDateFormat("HH:mm:ss", displayLocale()).also { it.timeZone = timeZone }
     }
     val aosTimeStr = remember(pass.aosTime, isUtc) { sdfTime.format(Date(pass.aosTime)) }
     val losTimeStr = remember(pass.losTime, isUtc) { sdfTime.format(Date(pass.losTime)) }
@@ -342,6 +336,10 @@ private fun PassItem(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
+                    text = "$passSatId - ",
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
                     text = pass.name,
                     modifier = Modifier
                         .weight(1f)
@@ -350,7 +348,7 @@ private fun PassItem(
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 val elevColor = elevationColor(pass.maxElevation)
                 Icon(

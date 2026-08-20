@@ -35,6 +35,7 @@ interface IMainContainer {
     val mutualPassData: StateFlow<MutualPassData>
     fun setMutualPassData(data: MutualPassData)
     fun provideAddToCalendar(): IAddToCalendar
+    fun providePairedBluetoothDevices(): List<Pair<String, String>>
     fun provideShowToast(): IShowToast
     fun provideBluetoothReporter(): IReporter
     fun provideNetworkReporter(): IReporter

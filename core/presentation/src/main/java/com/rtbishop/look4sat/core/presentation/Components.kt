@@ -27,13 +27,18 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,6 +76,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -143,7 +150,7 @@ fun RowScope.NextPassRow(pass: OrbitalPass, modifier: Modifier = Modifier, isUtc
         if (isUtc) TimeZone.getTimeZone("UTC") else TimeZone.getDefault()
     }
     val sdfTime = remember(isUtc) {
-        SimpleDateFormat("HH:mm:ss", Locale.ENGLISH).also { it.timeZone = timeZone }
+        SimpleDateFormat("HH:mm:ss", displayLocale()).also { it.timeZone = timeZone }
     }
     ElevatedCard(
         modifier = modifier
@@ -209,6 +216,11 @@ fun RowScope.NextPassRow(pass: OrbitalPass, modifier: Modifier = Modifier, isUtc
     }
 }
 
+private fun displayLocale(): Locale {
+    val locale = Locale.getDefault()
+    return if (locale.language == Locale.CHINESE.language) locale else Locale.ENGLISH
+}
+
 @Composable
 fun CardButton(onClick: () -> Unit, text: String, modifier: Modifier = Modifier) {
     ElevatedButton(
@@ -224,8 +236,13 @@ fun CardButton(onClick: () -> Unit, text: String, modifier: Modifier = Modifier)
 }
 
 @Composable
-fun IconCard(action: () -> Unit, resId: Int, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    ElevatedCard(modifier = Modifier.size(48.dp), enabled = enabled, onClick = action) {
+fun IconCard(
+    action: () -> Unit, resId: Int, modifier: Modifier = Modifier,
+    enabled: Boolean = true, containerColor: Color = Color.Unspecified
+) {
+    val colors = if (containerColor == Color.Unspecified) CardDefaults.elevatedCardColors()
+    else CardDefaults.elevatedCardColors(containerColor = containerColor)
+    ElevatedCard(modifier = Modifier.size(48.dp), enabled = enabled, onClick = action, colors = colors) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Icon(painter = painterResource(resId), contentDescription = null, modifier = modifier)
         }
@@ -281,6 +298,35 @@ fun getDefaultPass(): OrbitalPass = OrbitalPass(
 )
 
 @Composable
+fun InfoDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onAccept: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    DialogShell(onDismissRequest = onDismiss) { padding ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = padding, top = padding, end = padding)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            CardButton(onClick = onAccept, text = stringResource(R.string.btn_accept))
+        }
+        content()
+    }
+}
+
+@Composable
 fun SharedDialog(
     title: String, onCancel: () -> Unit, onAccept: () -> Unit, content: @Composable () -> Unit
 ) {
@@ -329,6 +375,56 @@ fun SharedDialog(
     }
 }
 
+@Composable
+fun ConfirmDialog(
+    title: String,
+    onCancel: () -> Unit,
+    onAccept: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    DialogShell(onDismissRequest = onCancel) { padding ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = padding, top = padding, end = padding)
+        ) {
+            CardButton(onClick = onCancel, text = stringResource(R.string.btn_cancel))
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = padding)
+            )
+            CardButton(onClick = onAccept, text = stringResource(R.string.btn_accept))
+        }
+        content()
+    }
+}
+
+@Composable
+fun WhatsNewDialog(onDismiss: () -> Unit) {
+    InfoDialog(
+        title = stringResource(R.string.pass_whatsnew_title),
+        onDismiss = onDismiss,
+        onAccept = onDismiss
+    ) {
+        Text(
+            text = stringResource(R.string.pass_whatsnew_message),
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = LocalSpacing.current.large)
+        )
+        Spacer(modifier = Modifier.height(0.dp))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogShell(
@@ -337,6 +433,9 @@ private fun DialogShell(
 ) {
     val padding = LocalSpacing.current.large
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val containerHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val maxSheetHeight = containerHeight - statusBarHeight
     val stopSheetFling = remember {
         object : NestedScrollConnection {
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
@@ -354,7 +453,7 @@ private fun DialogShell(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         dragHandle = null,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
         scrimColor = Color.Black.copy(alpha = 0.64f)
     ) {
         Column(
@@ -362,6 +461,7 @@ private fun DialogShell(
             verticalArrangement = Arrangement.spacedBy(padding),
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = maxSheetHeight)
                 .nestedScroll(stopSheetFling)
         ) {
             content(padding)

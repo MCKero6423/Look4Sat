@@ -41,7 +41,8 @@ data class SettingsState(
     val otherSettings: OtherSettings,
     val rcSettings: RCSettings,
     val radioControlSettings: RadioControlSettings,
-    val dataSourcesSettings: DataSourcesSettings
+    val dataSourcesSettings: DataSourcesSettings,
+    val pairedBluetoothDevices: List<Pair<String, String>> = emptyList()
 )
 
 sealed interface SettingsAction {
@@ -80,6 +81,9 @@ sealed interface SettingsAction {
     data object UploadWavelogQueue : SettingsAction
     // WaveLog: update LoTW satellite list
     data object UpdateLotwSatellites : SettingsAction
+    data class SetRadarCompassOffset(val value: Float) : SettingsAction
+    data class SetRadarCompassOffsetElev(val value: Float) : SettingsAction
+
 
     // Remote control
     data class UpdateRC(val settings: RCSettings) : SettingsAction

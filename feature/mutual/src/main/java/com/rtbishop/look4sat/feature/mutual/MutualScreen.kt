@@ -608,7 +608,7 @@ private fun MutualPassCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_radar),
+                            painter = painterResource(id = R.drawable.ic_satellite),
                             contentDescription = null,
                             modifier = Modifier.height(16.dp).width(16.dp)
                         )

@@ -29,15 +29,18 @@ import com.rtbishop.look4sat.core.domain.model.OtherSettings
 import com.rtbishop.look4sat.core.domain.model.PassesSettings
 import com.rtbishop.look4sat.core.domain.model.RCSettings
 import com.rtbishop.look4sat.core.domain.model.RadioControlSettings
-import com.rtbishop.look4sat.core.domain.source.Sources
+import com.rtbishop.look4sat.core.domain.model.Constants
+
 import com.rtbishop.look4sat.core.domain.predict.GeoPos
 import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
+import com.rtbishop.look4sat.core.domain.source.Sources
 import com.rtbishop.look4sat.core.domain.utility.positionToQth
 import com.rtbishop.look4sat.core.domain.utility.qthToPosition
 import com.rtbishop.look4sat.core.domain.utility.round
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import org.json.JSONObject
 
 class SettingsRepo(
     private val context: android.content.Context,
@@ -69,9 +72,9 @@ class SettingsRepo(
     private val keyFrequencyAddress = "frequencyAddress"
     private val keyFrequencyPort = "frequencyPort"
     private val keyFrequencyFormat = "frequencyFormat"
+    private val keyFrequencyOffsetHz = "frequencyOffsetHz"
     private val keySelectedIds = "selectedIds"
-    private val keySelectedTypes = "selectedTypes"
-    private val keySelectedModes = "selectedModes"
+    private val keySelectedSatModes = "selectedSatModes"
     private val keyStateOfAutoUpdate = "stateOfAutoUpdate"
     private val keyStateOfSensors = "stateOfSensors"
     private val keyStateOfSweep = "stateOfSweep"
@@ -100,13 +103,19 @@ class SettingsRepo(
     private val keyWavelogApiKey = "wavelogApiKey"
     private val keyWavelogStationId = "wavelogStationId"
     private val keyWavelogAutoUpload = "wavelogAutoUpload"
+    private val keyRadarCompassOffset = "radarCompassOffset"
+    private val keyRadarCompassOffsetElev = "radarCompassOffsetElev"
+    private val keySatelliteUrls = "satelliteUrls"
+    private val keyTransceiversUrls = "transceiversUrls"
+
     private val separatorComma = ","
+    private val separatorUrl = "\n"
 
     //region # Satellites selection settings
     private val _satelliteSelection = MutableStateFlow(getSelectedIds())
-    private val _typesSelection = MutableStateFlow(getSelectedTypes())
+    private val _satelliteModeSelection = MutableStateFlow(getSelectedSatModes())
     override val selectedIds: StateFlow<List<Int>> = _satelliteSelection
-    override val selectedTypes: StateFlow<List<String>> = _typesSelection
+    override val selectedSatModes: StateFlow<List<String>> = _satelliteModeSelection
 
     override fun setSelectedIds(ids: List<Int>) {
         val selectionString = ids.joinToString(separatorComma)
@@ -114,10 +123,10 @@ class SettingsRepo(
         _satelliteSelection.value = ids
     }
 
-    override fun setSelectedTypes(types: List<String>) {
-        val typesString = types.joinToString(separatorComma)
-        preferences.edit { putString(keySelectedTypes, typesString) }
-        _typesSelection.value = types
+    override fun setSelectedSatModes(modes: List<String>) {
+        val modesString = modes.joinToString(separatorComma)
+        preferences.edit { putString(keySelectedSatModes, modesString) }
+        _satelliteModeSelection.value = modes
     }
 
     private fun getSelectedIds(): List<Int> {
@@ -126,10 +135,10 @@ class SettingsRepo(
         return selectionString.split(separatorComma).map { it.toInt() }
     }
 
-    private fun getSelectedTypes(): List<String> {
-        val typesString = preferences.getString(keySelectedTypes, "Amateur")
-        if (typesString.isNullOrEmpty()) return emptyList()
-        return typesString.split(separatorComma)
+    private fun getSelectedSatModes(): List<String> {
+        val modesString = preferences.getString(keySelectedSatModes, null)
+        if (modesString.isNullOrEmpty()) return emptyList()
+        return modesString.split(separatorComma).sorted()
     }
     //endregion
 
@@ -144,7 +153,6 @@ class SettingsRepo(
         putInt(keyFilterAosStartMinute, settings.aosStartMinute)
         putInt(keyFilterAosEndMinute, settings.aosEndMinute)
         putBoolean(keyFilterAosInvert, settings.invertAosTimeWindow)
-        putString(keySelectedModes, settings.selectedModes.joinToString(separatorComma))
         _passesSettings.value = settings
     }
 
@@ -155,16 +163,13 @@ class SettingsRepo(
         val aosStartMinute = preferences.getInt(keyFilterAosStartMinute, 0).coerceIn(0, 23 * 60 + 59)
         val aosEndMinute = preferences.getInt(keyFilterAosEndMinute, 23 * 60 + 59).coerceIn(0, 23 * 60 + 59)
         val invertAosTimeWindow = preferences.getBoolean(keyFilterAosInvert, false)
-        val selectedModesString = preferences.getString(keySelectedModes, null)
-        val selectedModes = selectedModesString?.split(separatorComma)?.sorted() ?: emptyList()
         return PassesSettings(
             showDeepSpace,
             hoursAhead,
             minElevation,
             aosStartMinute,
             aosEndMinute,
-            invertAosTimeWindow,
-            selectedModes
+            invertAosTimeWindow
         )
     }
     //endregion
@@ -265,6 +270,7 @@ class SettingsRepo(
     private val _databaseState = MutableStateFlow(getDatabaseState())
     override val databaseState: StateFlow<DatabaseState> = _databaseState
 
+
     override fun getSatelliteTypesIds(types: List<String>): List<Int> {
         val idsSet = mutableSetOf<Int>()
         types.forEach { type ->
@@ -328,6 +334,10 @@ class SettingsRepo(
     override val rcSettings: StateFlow<RCSettings> = _rcSettings
 
     override fun updateRCSettings(settings: RCSettings) {
+        val clampedFreqOffsetHz = settings.frequencyOffsetHz.coerceIn(
+            Constants.FREQ_OFFSET_MIN_HZ,
+            Constants.FREQ_OFFSET_MAX_HZ
+        )
         preferences.edit {
             putBoolean(keyRotatorState, settings.rotatorState)
             putString(keyRotatorAddress, settings.rotatorAddress)
@@ -337,6 +347,7 @@ class SettingsRepo(
             putString(keyFrequencyAddress, settings.frequencyAddress)
             putString(keyFrequencyPort, settings.frequencyPort)
             putString(keyFrequencyFormat, settings.frequencyFormat)
+            putLong(keyFrequencyOffsetHz, clampedFreqOffsetHz)
             putBoolean(keyBluetoothRotatorState, settings.bluetoothRotatorState)
             putString(keyBluetoothRotatorFormat, settings.bluetoothRotatorFormat)
             putString(keyBluetoothRotatorName, settings.bluetoothRotatorName)
@@ -345,7 +356,7 @@ class SettingsRepo(
             putString(keyBluetoothFrequencyFormat, settings.bluetoothFrequencyFormat)
             putString(keyBluetoothFrequencyAddress, settings.bluetoothFrequencyAddress)
         }
-        _rcSettings.value = settings
+        _rcSettings.value = settings.copy(frequencyOffsetHz = clampedFreqOffsetHz)
     }
 
     private fun getRCSettings(): RCSettings = RCSettings(
@@ -357,6 +368,8 @@ class SettingsRepo(
         frequencyAddress = preferences.getString(keyFrequencyAddress, null) ?: "127.0.0.1",
         frequencyPort = preferences.getString(keyFrequencyPort, null) ?: "4532",
         frequencyFormat = preferences.getString(keyFrequencyFormat, null) ?: $$"F $FREQ",
+        frequencyOffsetHz = preferences.getLong(keyFrequencyOffsetHz, 0L)
+            .coerceIn(Constants.FREQ_OFFSET_MIN_HZ, Constants.FREQ_OFFSET_MAX_HZ),
         bluetoothRotatorState = preferences.getBoolean(keyBluetoothRotatorState, false),
         bluetoothRotatorFormat = preferences.getString(keyBluetoothRotatorFormat, null) ?: $$"P $AZ $EL",
         bluetoothRotatorName = preferences.getString(keyBluetoothRotatorName, null) ?: "Default",
@@ -393,6 +406,9 @@ class SettingsRepo(
                 putString(keyWavelogApiKey, new.wavelogApiKey)
                 putString(keyWavelogStationId, new.wavelogStationId)
                 putBoolean(keyWavelogAutoUpload, new.wavelogAutoUpload)
+                putFloat(keyRadarCompassOffset, new.radarCompassOffset)
+                putFloat(keyRadarCompassOffsetElev, new.radarCompassOffsetElev)
+
             }
             new
         }
@@ -416,7 +432,9 @@ class SettingsRepo(
         wavelogUrl = preferences.getString(keyWavelogUrl, null) ?: "",
         wavelogApiKey = preferences.getString(keyWavelogApiKey, null) ?: "",
         wavelogStationId = preferences.getString(keyWavelogStationId, null) ?: "",
-        wavelogAutoUpload = preferences.getBoolean(keyWavelogAutoUpload, false)
+        wavelogAutoUpload = preferences.getBoolean(keyWavelogAutoUpload, false),
+        radarCompassOffset = preferences.getFloat(keyRadarCompassOffset, 0f),
+        radarCompassOffsetElev = preferences.getFloat(keyRadarCompassOffsetElev, 0f)
     )
     //endregion
 
@@ -448,6 +466,7 @@ class SettingsRepo(
             transceiversUrl = txUrl
         )
     }
+
     //endregion
 
     //region # Radio control settings
@@ -487,5 +506,27 @@ class SettingsRepo(
         baudRate = preferences.getInt(keyRadioBaudRate, 4800),
         splitMode = preferences.getBoolean(keyRadioSplitMode, false)
     )
-    //endregion
+
+    private val keySatelliteOffsets = "satelliteOffsets"
+
+    override fun getSatelliteOffset(catnum: Int): String {
+        val json = preferences.getString(keySatelliteOffsets, "{}") ?: "{}"
+        return try {
+            JSONObject(json).optString(catnum.toString(), "")
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    override fun setSatelliteOffset(catnum: Int, offset: String) {
+        val json = preferences.getString(keySatelliteOffsets, "{}") ?: "{}"
+        val updated = try {
+            val obj = JSONObject(json)
+            if (offset.isEmpty()) obj.remove(catnum.toString()) else obj.put(catnum.toString(), offset)
+            obj.toString()
+        } catch (_: Exception) {
+            """{"$catnum": "$offset"}"""
+        }
+        preferences.edit { putString(keySatelliteOffsets, updated) }
+    }
 }

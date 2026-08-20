@@ -172,10 +172,10 @@ private class FakeSettingsRepo(dataSources: DataSourcesSettings = defaultDataSou
 
     override val selectedIds: StateFlow<List<Int>> = MutableStateFlow(emptyList())
 
-    override val selectedTypes: StateFlow<List<String>> = MutableStateFlow(emptyList())
+    override val selectedSatModes: StateFlow<List<String>> = MutableStateFlow(emptyList())
 
     override val passesSettings: StateFlow<PassesSettings> = MutableStateFlow(
-        PassesSettings(hoursAhead = 24, minElevation = 0.0, selectedModes = emptyList())
+        PassesSettings(hoursAhead = 24, minElevation = 0.0)
     )
 
     override val stationPosition: StateFlow<GeoPos> = MutableStateFlow(GeoPos(0.0, 0.0))
@@ -183,7 +183,7 @@ private class FakeSettingsRepo(dataSources: DataSourcesSettings = defaultDataSou
     override val databaseState: MutableStateFlow<DatabaseState> = MutableStateFlow(DatabaseState(0, 0, 0L))
 
     override val rcSettings: StateFlow<RCSettings> = MutableStateFlow(
-        RCSettings(false, "", "", "", false, "", "", "", false, "", "", "", false, "", "")
+        RCSettings(false, "", "", "", false, "", "", "", 0L, false, "", "", "", false, "", "")
     )
 
     override val otherSettings: StateFlow<OtherSettings> = MutableStateFlow(
@@ -200,7 +200,7 @@ private class FakeSettingsRepo(dataSources: DataSourcesSettings = defaultDataSou
 
     override fun setSelectedIds(ids: List<Int>) = Unit
 
-    override fun setSelectedTypes(types: List<String>) = Unit
+    override fun setSelectedSatModes(modes: List<String>) = Unit
 
     override fun setPassesSettings(settings: PassesSettings) = Unit
 
@@ -229,6 +229,10 @@ private class FakeSettingsRepo(dataSources: DataSourcesSettings = defaultDataSou
     }
 
     override fun updateRadioControlSettings(settings: RadioControlSettings) = Unit
+
+    override fun getSatelliteOffset(catnum: Int): String = ""
+
+    override fun setSatelliteOffset(catnum: Int, offset: String) = Unit
 }
 
 private fun defaultDataSourcesSettings(): DataSourcesSettings {

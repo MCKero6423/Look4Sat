@@ -58,6 +58,7 @@ data class RadarState(
     val satTrack: List<OrbitalPos> = emptyList(),
     val shouldShowSweep: Boolean = false,
     val shouldUseCompass: Boolean = false,
+    val shouldFlipRadar: Boolean = false,
     val sunPosition: CelestialComputer.SunPosition? = null,
     val moonPosition: CelestialComputer.MoonPosition? = null,
     val transceivers: TransceiverSubState = TransceiverSubState(),
@@ -69,7 +70,9 @@ data class RadarState(
     val mutualEndTime: Long = 0L,
     val mutualMaxElev: Double = 10.0,
     val mutualLabelA: String = "你",
-    val mutualLabelB: String = "友台"
+    val mutualLabelB: String = "友台",
+    // Upstream Doppler calculator offset (merged from rt-bishop)
+    val calculatorOffsetKHz: String = ""
 )
 
 enum class SstvStatus { Idle, Recording }
@@ -124,4 +127,6 @@ sealed interface RadarAction {
     data object CwReset : RadarAction
     data class CwToggleExpanded(val expanded: Boolean) : RadarAction
     data class CwPermissionResult(val granted: Boolean) : RadarAction
+    // Calculator actions
+    data class ChangeCalculatorOffset(val offsetKHz: String) : RadarAction
 }

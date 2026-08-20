@@ -97,6 +97,13 @@ class MainContainer(private val context: Context) : IMainContainer {
 
     override fun provideAddToCalendar(): IAddToCalendar = AddToCalendar(context)
 
+    override fun providePairedBluetoothDevices(): List<Pair<String, String>> = buildList {
+        try {
+            val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            manager.adapter?.bondedDevices?.forEach { add(Pair(it.name ?: "Unknown", it.address ?: "")) }
+        } catch (_: SecurityException) {}
+    }
+
     override fun provideShowToast(): IShowToast = ShowToast(context)
 
     override fun provideAudioCapture(): IAudioCapture = AudioCapture()

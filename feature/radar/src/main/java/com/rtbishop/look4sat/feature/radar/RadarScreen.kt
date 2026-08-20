@@ -284,7 +284,8 @@ private fun PagerCard(
                         orbitalPos = uiState.orbitalPos,
                         cw = uiState.cw,
                         onAction = onAction,
-                        requestMicPermission = requestMicPermission
+                        requestMicPermission = requestMicPermission,
+                        calculatorOffsetKHz = uiState.calculatorOffsetKHz
                     )
                     RadarPage.Sstv -> SstvPage(
                         sstv = uiState.sstv,
@@ -352,6 +353,7 @@ private fun RadarCard(
                     azimElev = uiState.orientationValues,
                     shouldShowSweep = uiState.shouldShowSweep,
                     shouldUseCompass = uiState.shouldUseCompass,
+                    shouldFlipRadar = uiState.shouldFlipRadar,
                     modifier = Modifier.align(Alignment.Center),
                     sunPosition = uiState.sunPosition,
                     moonPosition = uiState.moonPosition,

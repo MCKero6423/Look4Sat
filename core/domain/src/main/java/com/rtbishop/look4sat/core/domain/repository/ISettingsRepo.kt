@@ -32,9 +32,9 @@ interface ISettingsRepo {
 
     //region # Satellites selection settings
     val selectedIds: StateFlow<List<Int>>
-    val selectedTypes: StateFlow<List<String>>
+    val selectedSatModes: StateFlow<List<String>>
     fun setSelectedIds(ids: List<Int>)
-    fun setSelectedTypes(types: List<String>)
+    fun setSelectedSatModes(modes: List<String>)
     //endregion
 
     //region # Passes filter settings
@@ -77,5 +77,10 @@ interface ISettingsRepo {
     //region # Radio control settings
     val radioControlSettings: StateFlow<RadioControlSettings>
     fun updateRadioControlSettings(settings: RadioControlSettings)
+    //endregion
+
+    //region # Per-satellite calculator offset settings
+    fun getSatelliteOffset(catnum: Int): String
+    fun setSatelliteOffset(catnum: Int, offset: String)
     //endregion
 }

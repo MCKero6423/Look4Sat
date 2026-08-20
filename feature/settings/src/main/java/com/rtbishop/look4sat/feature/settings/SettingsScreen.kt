@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
@@ -54,6 +56,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
@@ -94,6 +97,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rtbishop.look4sat.core.domain.model.DataSourcesSettings
 import com.rtbishop.look4sat.core.domain.model.OtherSettings
 import com.rtbishop.look4sat.core.domain.predict.GeoPos
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
@@ -104,6 +108,7 @@ import com.rtbishop.look4sat.core.presentation.PrimaryIconCard
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.presentation.ScreenColumn
 import com.rtbishop.look4sat.core.presentation.TopBar
+import com.rtbishop.look4sat.core.presentation.WhatsNewDialog
 import com.rtbishop.look4sat.core.presentation.infiniteMarquee
 import com.rtbishop.look4sat.core.domain.navigation.MenuLayout
 import com.rtbishop.look4sat.core.presentation.isVerticalLayout
@@ -233,18 +238,15 @@ private fun SettingsScreen(
             onImportTle = { permissions.launchTleImport(); dialogs.dataSources = false },
             onImportTransceivers = { permissions.launchTransceiverImport(); dialogs.dataSources = false },
             onDismiss = { dialogs.dataSources = false },
-            onSave = { useCustomTle, useCustomTransceivers, tleUrl, transceiversUrl ->
-                val current = uiState.dataSourcesSettings
-                val newSettings = current.copy(
-                    useCustomTLE = if (!useCustomTle || tleUrl.isNotBlank()) useCustomTle else current.useCustomTLE,
-                    tleUrl = if (!useCustomTle || tleUrl.isNotBlank()) tleUrl else current.tleUrl,
-                    useCustomTransceivers = if (!useCustomTransceivers || transceiversUrl.isNotBlank()) useCustomTransceivers else current.useCustomTransceivers,
-                    transceiversUrl = if (!useCustomTransceivers || transceiversUrl.isNotBlank()) transceiversUrl else current.transceiversUrl
+            onSave = { useTle, useTx, tleUrl, txUrl ->
+                val newSettings = DataSourcesSettings(
+                    useCustomTLE = useTle,
+                    useCustomTransceivers = useTx,
+                    tleUrl = tleUrl,
+                    transceiversUrl = txUrl
                 )
-                if (newSettings != current) onAction(SettingsAction.UpdateDataSources(newSettings))
-                if (newSettings.useCustomTLE || newSettings.useCustomTransceivers) {
-                    onAction(SettingsAction.UpdateFromWeb)
-                }
+                if (newSettings != uiState.dataSourcesSettings) onAction(SettingsAction.UpdateDataSources(newSettings))
+                onAction(SettingsAction.UpdateFromWeb)
             }
         )
     }
@@ -252,14 +254,15 @@ private fun SettingsScreen(
         NetworkOutputDialog(
             initialSettings = uiState.rcSettings,
             onDismiss = { dialogs.network = false },
-            onSave = { rotState, rotAddr, rotPort, rotFmt, freqState, freqAddr, freqPort, freqFmt ->
+            onSave = { rotState, rotAddr, rotPort, rotFmt, freqState, freqAddr, freqPort, freqFmt, freqOffsetHz ->
                 onAction(
                     SettingsAction.UpdateRC(
                         uiState.rcSettings.copy(
                             rotatorState = rotState, rotatorAddress = rotAddr,
                             rotatorPort = rotPort, rotatorFormat = rotFmt,
                             frequencyState = freqState, frequencyAddress = freqAddr,
-                            frequencyPort = freqPort, frequencyFormat = freqFmt
+                            frequencyPort = freqPort, frequencyFormat = freqFmt,
+                            frequencyOffsetHz = freqOffsetHz
                         )
                     )
                 )
@@ -286,9 +289,13 @@ private fun SettingsScreen(
     if (dialogs.radioControl) {
         RadioControlDialog(
             initialSettings = uiState.radioControlSettings,
+            pairedBluetoothDevices = uiState.pairedBluetoothDevices,
             onDismiss = { dialogs.radioControl = false },
             onSave = { onAction(SettingsAction.UpdateRadioControl(it)) }
         )
+    }
+    if (dialogs.whatsNew) {
+        WhatsNewDialog(onDismiss = { dialogs.whatsNew = false })
     }
 
     // URLs for top bar
@@ -310,11 +317,11 @@ private fun SettingsScreen(
             if (isVerticalLayout) {
                 TopBar {
                     TopCard(
-                        onClick = { safeOpenUri(appUrl) },
+                        onClick = { dialogs.whatsNew = true },
                         version = uiState.appVersionName,
                         modifier = Modifier.weight(1f)
                     )
-                    PrimaryIconCard(onClick = { safeOpenUri(donateUrl) }, resId = R.drawable.ic_pound)
+                    PrimaryIconCard(onClick = { safeOpenUri(donateUrl) }, resId = R.drawable.ic_like)
                 }
                 TopBar {
                     Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -336,9 +343,9 @@ private fun SettingsScreen(
                 }
             } else {
                 TopBar {
-                    PrimaryIconCard(onClick = { safeOpenUri(donateUrl) }, resId = R.drawable.ic_pound)
+                    PrimaryIconCard(onClick = { safeOpenUri(donateUrl) }, resId = R.drawable.ic_like)
                     TopCard(
-                        onClick = { safeOpenUri(appUrl) },
+                        onClick = { dialogs.whatsNew = true },
                         version = uiState.appVersionName,
                         modifier = Modifier.weight(1f)
                     )
@@ -410,6 +417,7 @@ private fun SettingsScreen(
                 )
             }
             item { CardCredits() }
+
         }
     }
 }
@@ -590,37 +598,57 @@ private fun OtherCardPreview() = MainTheme {
         shouldSeeWarning = false,
         shouldSeeWhatsNew = false
     )
-    OtherCard(settings = values) {}
+    OtherCard(settings = values, onAction = {})
 }
 
 @Composable
-private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Unit) {
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
+private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Unit, modifier: Modifier = Modifier) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+
             Text(
                 text = stringResource(id = R.string.prefs_other_title),
                 color = MaterialTheme.colorScheme.primary
             )
-            SwitchRow(R.string.prefs_other_switch_utc, settings.stateOfUtc) {
-                onAction(SettingsAction.ToggleUtc(it))
+            Spacer(modifier = Modifier.height(4.dp))
+            // Display preferences: UTC clock + night filter
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SwitchTile(R.string.prefs_other_switch_utc, settings.stateOfUtc) {
+                    onAction(SettingsAction.ToggleUtc(it))
+                }
+                SwitchTile(R.string.prefs_other_switch_night_mode, settings.stateOfNightMode) {
+                    onAction(SettingsAction.ToggleNightMode(it))
+                }
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            // Radar behavior: sweep animation + sensor control
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SwitchTile(R.string.prefs_other_switch_sweep, settings.stateOfSweep) {
+                    onAction(SettingsAction.ToggleSweep(it))
+                }
+                SwitchTile(R.string.prefs_other_switch_sensors, settings.stateOfSensors) {
+                    onAction(SettingsAction.ToggleSensor(it))
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            // Data management (full width)
             SwitchRow(R.string.prefs_other_switch_update, settings.stateOfAutoUpdate) {
                 onAction(SettingsAction.ToggleUpdate(it))
             }
-            SwitchRow(R.string.prefs_other_switch_sweep, settings.stateOfSweep) {
-                onAction(SettingsAction.ToggleSweep(it))
-            }
-            SwitchRow(R.string.prefs_other_switch_sensors, settings.stateOfSensors) {
-                onAction(SettingsAction.ToggleSensor(it))
-            }
-            SwitchRow(R.string.prefs_other_switch_night_mode, settings.stateOfNightMode) {
-                onAction(SettingsAction.ToggleNightMode(it))
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            // Compass calibration sliders at the bottom
+            CompassOffsetRow(
+                labelResId = R.string.prefs_other_compass_offset,
+                value = settings.radarCompassOffset,
+                range = -180f..180f
+            ) { onAction(SettingsAction.SetRadarCompassOffset(it)) }
+            Spacer(modifier = Modifier.height(4.dp))
+            CompassOffsetRow(
+                labelResId = R.string.prefs_other_compass_offset_elev,
+                value = settings.radarCompassOffsetElev,
+                range = -90f..90f
+            ) { onAction(SettingsAction.SetRadarCompassOffsetElev(it)) }
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -996,13 +1024,52 @@ private fun DragOrderList(
 }
 
 @Composable
-private fun SwitchRow(labelResId: Int, checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?) {
+private fun CompassOffsetRow(
+    labelResId: Int,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit
+) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(text = stringResource(id = labelResId))
+        Text(text = "${value.toInt()}°")
+    }
+    Spacer(modifier = Modifier.height(4.dp))
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        valueRange = range
+    )
+}
+
+@Composable
+private fun SwitchRow(labelResId: Int, checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?) {
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = stringResource(id = labelResId))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun RowScope.SwitchTile(labelResId: Int, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.weight(1f)
+    ) {
+        Text(
+            text = stringResource(id = labelResId),
+            modifier = Modifier.weight(1f)
+        )
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
@@ -1040,6 +1107,7 @@ private fun CardCreditsPreview() = MainTheme { CardCredits() }
 private fun CardCredits(modifier: Modifier = Modifier) {
     ElevatedCard(
         modifier = modifier.fillMaxWidth()
+
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1080,7 +1148,7 @@ private fun TopCard(onClick: () -> Unit, modifier: Modifier = Modifier, version:
                 .clickable { onClick() }) {
             Spacer(Modifier)
             Icon(
-                painter = painterResource(id = R.drawable.ic_satellites),
+                painter = painterResource(id = R.drawable.ic_sputnik),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -1130,6 +1198,7 @@ private class DialogVisibility {
     var network by mutableStateOf(false)
     var bluetooth by mutableStateOf(false)
     var radioControl by mutableStateOf(false)
+    var whatsNew by mutableStateOf(false)
 }
 
 @Composable
@@ -1137,12 +1206,12 @@ private fun rememberDialogVisibility(): DialogVisibility {
     return rememberSaveable(saver = run {
         androidx.compose.runtime.saveable.Saver(
             save = {
-                listOf(it.position, it.locator, it.dataSources, it.network, it.bluetooth, it.radioControl)
+                listOf(it.position, it.locator, it.dataSources, it.network, it.bluetooth, it.radioControl, it.whatsNew)
             },
             restore = {
                 DialogVisibility().apply {
                     position = it[0]; locator = it[1]; dataSources = it[2]
-                    network = it[3]; bluetooth = it[4]; radioControl = it[5]
+                    network = it[3]; bluetooth = it[4]; radioControl = it[5]; whatsNew = it[6]
                 }
             }
         )
@@ -1211,7 +1280,7 @@ private fun rememberSettingsPermissions(
             onCustomSourcesPermissionGranted()
         } else {
             onCustomSourcesPermissionDenied()
-            sendAction(SettingsAction.ShowToast(networkError))
+            sendAction(SettingsAction.ShowToast(satellitesImportError))
         }
     }
 
@@ -1233,11 +1302,9 @@ private fun rememberSettingsPermissions(
                 }
             },
             launchCustomSourcesPermission = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
-                    customSourcesRequest.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
-                } else {
-                    onCustomSourcesPermissionGranted()
-                }
+                val storagePerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                    Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+                customSourcesRequest.launch(storagePerm)
             }
         )
     }
