@@ -105,11 +105,8 @@ class SettingsRepo(
     private val keyWavelogAutoUpload = "wavelogAutoUpload"
     private val keyRadarCompassOffset = "radarCompassOffset"
     private val keyRadarCompassOffsetElev = "radarCompassOffsetElev"
-    private val keySatelliteUrls = "satelliteUrls"
-    private val keyTransceiversUrls = "transceiversUrls"
 
     private val separatorComma = ","
-    private val separatorUrl = "\n"
 
     //region # Satellites selection settings
     private val _satelliteSelection = MutableStateFlow(getSelectedIds())
