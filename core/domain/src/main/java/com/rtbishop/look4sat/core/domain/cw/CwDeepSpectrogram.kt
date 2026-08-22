@@ -49,8 +49,15 @@ object CwDeepSpectrogram {
     /** Hop between consecutive frames; 48/3200 = 15.0 ms per frame. */
     const val HOP_LENGTH = 48
 
-    private const val MIN_FREQ_HZ = 400.0
-    private const val MAX_FREQ_HZ = 1200.0
+    /**
+     * Lower edge of the model's analysis window. Public so [CwToneShifter] can
+     * decide whether a detected tone falls outside it; the value is fixed by the
+     * trained model and must not be changed without retraining.
+     */
+    const val MIN_FREQ_HZ = 400.0
+
+    /** Upper edge of the model's analysis window; see [MIN_FREQ_HZ]. */
+    const val MAX_FREQ_HZ = 1200.0
 
     /** Number of frequency bins the model expects. */
     const val FREQUENCY_BINS = 65

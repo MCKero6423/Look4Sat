@@ -636,6 +636,16 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
                 onAction(SettingsAction.ToggleUpdate(it))
             }
             Spacer(modifier = Modifier.height(4.dp))
+            // CW decoding: shift out-of-window tones into the model's 400-1200 Hz window
+            SwitchRow(R.string.prefs_other_switch_cw_tone_shift, settings.cwToneShiftEnabled) {
+                onAction(SettingsAction.ToggleCwToneShift(it))
+            }
+            Text(
+                text = stringResource(id = R.string.prefs_other_cw_tone_shift_help),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             // Compass calibration sliders at the bottom
             CompassOffsetRow(
                 labelResId = R.string.prefs_other_compass_offset,

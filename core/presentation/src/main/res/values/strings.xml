@@ -333,4 +333,6 @@
     <string name="prefs_net_frequency_offset_help" translatable="false">Range: -50000 to 50000 Hz. Positive values increase reported frequency; negative values decrease it.</string>
     <string name="prefs_other_compass_offset">Radar compass offset</string>
     <string name="prefs_other_compass_offset_elev">Radar compass offset (elev)</string>
+    <string name="prefs_other_switch_cw_tone_shift">Shift out-of-range CW tones</string>
+    <string name="prefs_other_cw_tone_shift_help">DeepCW only analyses 400-1200 Hz. When on, a tone outside that range is moved into it before decoding; a tone already inside is untouched.</string>
 </resources>

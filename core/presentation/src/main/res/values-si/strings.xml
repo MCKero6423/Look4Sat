@@ -169,4 +169,6 @@
     <string name="prefs_outro_title">මම ස්තුති කිරීමට කැමති:</string>
     <string name="prefs_outro_license">මෘදුකාංගය වගකීමක් සමග නොලැබේ</string>
 
+    <string name="prefs_other_switch_cw_tone_shift">පරාසයෙන් පිටත CW ස්වර මාරු කරන්න</string>
+    <string name="prefs_other_cw_tone_shift_help">DeepCW විශ්ලේෂණය කරන්නේ 400-1200 Hz පමණි. සක්‍රීය විට, එම පරාසයෙන් පිටත ස්වරයක් විකේතනයට පෙර පරාසය තුළට ගෙන එයි; දැනටමත් පරාසය තුළ ඇති ස්වරයක් වෙනස් නොකරයි.</string>
 </resources>

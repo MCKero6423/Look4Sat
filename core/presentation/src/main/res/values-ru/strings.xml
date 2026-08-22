@@ -169,4 +169,6 @@
     <string name="prefs_outro_title">Я хотел бы сказать спасибо:</string>
     <string name="prefs_outro_license">Это ПО поставляется без гарантий.</string>
 
+    <string name="prefs_other_switch_cw_tone_shift">Сдвигать CW-тоны вне диапазона</string>
+    <string name="prefs_other_cw_tone_shift_help">DeepCW анализирует только 400-1200 Гц. Если включено, тон вне этого диапазона переносится внутрь перед декодированием; тон внутри диапазона не изменяется.</string>
 </resources>

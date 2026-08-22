@@ -298,4 +298,6 @@
         \n* BA7OPF (fitur pencocokan lintasan)
         \n* BG7NTA</string>
     <string name="prefs_outro_license">Aplikasi ini hadir tanpa jaminan</string>
+    <string name="prefs_other_switch_cw_tone_shift">Geser nada CW di luar rentang</string>
+    <string name="prefs_other_cw_tone_shift_help">DeepCW hanya menganalisis 400-1200 Hz. Saat aktif, nada di luar rentang itu dipindahkan ke dalamnya sebelum decoding; nada yang sudah di dalam tidak diubah.</string>
 </resources>

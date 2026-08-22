@@ -111,7 +111,10 @@ class MainContainer(private val context: Context) : IMainContainer {
     // 每次调用返回新实例: 调用方负责 close() 释放 OrtSession, 且 Radar 内嵌
     // 面板与独立 CW 页各自持有自己的解码器
     override fun provideCwDecoder(): com.rtbishop.look4sat.core.domain.cw.ICwDecoder =
-        com.rtbishop.look4sat.core.data.cw.CwDeepDecoder(context)
+        com.rtbishop.look4sat.core.data.cw.CwDeepDecoder(context) {
+            // Read per chunk so toggling the setting applies without restarting capture.
+            settingsRepo.otherSettings.value.cwToneShiftEnabled
+        }
 
     override fun provideSaveImage(): ISaveImage = SaveImage(context)
 

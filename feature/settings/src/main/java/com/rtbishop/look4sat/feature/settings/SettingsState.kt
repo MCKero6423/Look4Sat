@@ -61,6 +61,9 @@ sealed interface SettingsAction {
     // Toggles
     data class ToggleUtc(val value: Boolean) : SettingsAction
     data class ToggleUpdate(val value: Boolean) : SettingsAction
+
+    /** Shift CW tones outside the model's 400-1200 Hz window into it before decoding. */
+    data class ToggleCwToneShift(val value: Boolean) : SettingsAction
     data class ToggleSweep(val value: Boolean) : SettingsAction
     data class ToggleSensor(val value: Boolean) : SettingsAction
     data class ToggleLightTheme(val value: Boolean) : SettingsAction

@@ -105,6 +105,7 @@ class SettingsRepo(
     private val keyWavelogAutoUpload = "wavelogAutoUpload"
     private val keyRadarCompassOffset = "radarCompassOffset"
     private val keyRadarCompassOffsetElev = "radarCompassOffsetElev"
+    private val keyCwToneShiftEnabled = "cwToneShiftEnabled"
 
     private val separatorComma = ","
 
@@ -405,6 +406,7 @@ class SettingsRepo(
                 putBoolean(keyWavelogAutoUpload, new.wavelogAutoUpload)
                 putFloat(keyRadarCompassOffset, new.radarCompassOffset)
                 putFloat(keyRadarCompassOffsetElev, new.radarCompassOffsetElev)
+                putBoolean(keyCwToneShiftEnabled, new.cwToneShiftEnabled)
 
             }
             new
@@ -431,7 +433,8 @@ class SettingsRepo(
         wavelogStationId = preferences.getString(keyWavelogStationId, null) ?: "",
         wavelogAutoUpload = preferences.getBoolean(keyWavelogAutoUpload, false),
         radarCompassOffset = preferences.getFloat(keyRadarCompassOffset, 0f),
-        radarCompassOffsetElev = preferences.getFloat(keyRadarCompassOffsetElev, 0f)
+        radarCompassOffsetElev = preferences.getFloat(keyRadarCompassOffsetElev, 0f),
+        cwToneShiftEnabled = preferences.getBoolean(keyCwToneShiftEnabled, false)
     )
     //endregion
 

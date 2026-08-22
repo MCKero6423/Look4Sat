@@ -76,7 +76,13 @@ data class OtherSettings(
     val wavelogAutoUpload: Boolean = false,
     // Upstream radar compass offset (merged from rt-bishop)
     val radarCompassOffset: Float = 0f,
-    val radarCompassOffsetElev: Float = 0f
+    val radarCompassOffsetElev: Float = 0f,
+    /**
+     * Shift a CW tone that sits outside the model's 400-1200 Hz analysis window into
+     * it before decoding. Off by default: when disabled the audio path is unchanged,
+     * and a tone already inside the window is never touched either way.
+     */
+    val cwToneShiftEnabled: Boolean = false
 )
 
 data class DataSourcesSettings(
