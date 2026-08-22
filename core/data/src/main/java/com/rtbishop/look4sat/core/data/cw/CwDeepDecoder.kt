@@ -36,6 +36,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.nio.FloatBuffer
+import kotlin.math.abs
 
 /**
  * CW decoder backed by the DeepCW neural network (AGPL-3.0, see
@@ -84,6 +85,15 @@ class CwDeepDecoder(
 
         /** Detection cadence; re-running it on every 100 ms chunk would be wasteful. */
         const val DETECT_INTERVAL_MS = 2000
+
+        /**
+         * Minimum change in the required shift before the window is re-shifted.
+         *
+         * Two scan bins (12.5 Hz each) plus margin. Re-shifting drops the 20 s decode
+         * window, so a tone drifting slightly - or the estimate hopping to an adjacent
+         * bin - must not keep wiping context that is still perfectly decodable.
+         */
+        const val SHIFT_HYSTERESIS_HZ = 40f
     }
 
     private val _decodedText = MutableStateFlow("")
@@ -139,8 +149,12 @@ class CwDeepDecoder(
     /** Carries Hilbert filter history and mixer phase across capture chunks. */
     private val streamingShifter = CwToneShifter.Streaming()
 
-    /** Previous value of the setting, so a toggle can invalidate buffered audio. */
-    private var toneShiftWasEnabled = false
+    /**
+     * Previous value of the setting, so a toggle can invalidate buffered audio.
+     * Null until the first chunk: a decoder created while the setting is already on
+     * must not treat that as a change and wipe an empty buffer.
+     */
+    private var toneShiftWasEnabled: Boolean? = null
 
     private var environment: OrtEnvironment? = null
     private var session: OrtSession? = null
@@ -298,18 +312,26 @@ class CwDeepDecoder(
      * @return the audio to buffer: [resampled] itself whenever no shift applies.
      */
     private fun applyToneShift(resampled: FloatArray): FloatArray {
-        if (!isToneShiftEnabled()) {
-            // Clear stale state so re-enabling starts from a fresh detection.
-            if (activeShiftHz != 0f || detectedToneHz != null || detectFill > 0) {
-                Log.i(TAG, "toneShift: disabled, clearing shift=${activeShiftHz}Hz")
-                activeShiftHz = 0f
-                detectedToneHz = null
-                lastDetectAtMs = 0L
-                detectFill = 0
-                streamingShifter.reset()
-            }
-            return resampled
+        val enabled = isToneShiftEnabled()
+
+        // A toggle invalidates whatever is already buffered: those samples were moved by
+        // the old setting and cannot be un-shifted, so the 20 s window would keep
+        // decoding them - and the pitch readout would correct them by the wrong amount -
+        // for up to 20 s after the user acted. Seeded from the current setting on the
+        // first chunk so starting up with it already on is not treated as a change.
+        val previousEnabled = toneShiftWasEnabled ?: enabled
+        toneShiftWasEnabled = enabled
+        if (enabled != previousEnabled) {
+            Log.i(TAG, "toneShift: setting changed to $enabled, dropping buffered audio")
+            dropBufferedAudio()
+            activeShiftHz = 0f
+            detectedToneHz = null
+            lastDetectAtMs = 0L
+            detectFill = 0
+            streamingShifter.reset()
         }
+
+        if (!enabled) return resampled
 
         accumulateForDetection(resampled)
 
@@ -342,12 +364,33 @@ class CwDeepDecoder(
         }
     }
 
+    /**
+     * Discard buffered audio that was shifted by a now-stale amount.
+     *
+     * The live window and the pending archive chunk both hold shifted samples that
+     * cannot be un-shifted, so they are dropped rather than decoded against the new
+     * shift. Text already committed to [historyText] stays: it was correct when decoded.
+     */
+    private fun dropBufferedAudio() {
+        buffer.reset()
+        archiveSize = 0
+    }
+
     /** Update [activeShiftHz] from a detection pass and log what was decided. */
     private fun runDetection(sample: FloatArray) {
         val analysis = CwToneShifter.analyse(sample, CwDeepSpectrogram.SAMPLE_RATE)
         val previousShift = activeShiftHz
+
+        // Ignore small changes. Dropping the window costs 20 s of context, so a tone
+        // wandering by a few Hz - or a detector estimate landing on an adjacent 12.5 Hz
+        // scan bin - must not keep wiping it. Re-shifting only pays off once the tone
+        // has moved enough to matter against the 800 Hz window centre.
+        val keepPreviousShift = previousShift != 0f &&
+            analysis.needsShift &&
+            abs(analysis.shiftHz - previousShift) < SHIFT_HYSTERESIS_HZ
+
         detectedToneHz = analysis.toneHz
-        activeShiftHz = analysis.shiftHz
+        if (!keepPreviousShift) activeShiftHz = analysis.shiftHz
 
         when {
             analysis.toneHz == null ->
@@ -375,8 +418,7 @@ class CwDeepDecoder(
                 "toneShift: shift changed ${previousShift}Hz -> ${activeShiftHz}Hz, " +
                     "dropping buffered audio"
             )
-            buffer.reset()
-            archiveSize = 0
+            dropBufferedAudio()
             streamingShifter.reset()
             CwProbe.step("tone_shift tone=${analysis.toneHz} shift=$activeShiftHz")
         }
@@ -489,6 +531,9 @@ class CwDeepDecoder(
         lastDetectAtMs = 0L
         detectFill = 0
         streamingShifter.reset()
+        // Leave toneShiftWasEnabled unset so the next chunk re-seeds it from the
+        // current setting instead of reporting a spurious change.
+        toneShiftWasEnabled = null
     }
 
     override fun close() {
