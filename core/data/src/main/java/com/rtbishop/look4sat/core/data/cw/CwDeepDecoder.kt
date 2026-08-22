@@ -25,6 +25,7 @@ import android.util.Log
 import com.rtbishop.look4sat.core.domain.cw.CwCtcDecoder
 import com.rtbishop.look4sat.core.domain.cw.CwDeepBuffer
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
+import com.rtbishop.look4sat.core.domain.cw.CwDetectionPool
 import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import com.rtbishop.look4sat.core.domain.cw.ICwDecoder
 import kotlinx.coroutines.CancellationException
@@ -79,7 +80,7 @@ class CwDeepDecoder(
          * A capture chunk is ~100 ms, which is 4410 samples at the 44.1 kHz capture
          * rate but only 320 after resampling to 3200 Hz. Gating on a single chunk
          * reaching this size would therefore never fire, so chunks are accumulated in
-         * [detectBuffer] until enough audio is available.
+         * [detectionPool] until enough audio is available.
          */
         const val DETECT_MIN_SAMPLES = 1280
 
@@ -132,20 +133,21 @@ class CwDeepDecoder(
     /** Shift currently applied to incoming audio; 0 when the tone needs no move. */
     private var activeShiftHz = 0f
 
-    /** Last detected tone, for logging and for the pitch readout while shifting. */
-    private var detectedToneHz: Float? = null
+    /**
+     * Tone that produced [activeShiftHz]. Hysteresis compares against this rather than
+     * against the previous shift, so the guard still holds where a shift flips between
+     * 0 and a large value - at the window edge, where the jump is largest.
+     */
+    private var shiftAnchorToneHz: Float? = null
 
     /** Wall clock of the last detection scan, throttling it to [DETECT_INTERVAL_MS]. */
     private var lastDetectAtMs = 0L
 
     /**
-     * Accumulates resampled chunks until [DETECT_MIN_SAMPLES] is reached. A single
-     * capture chunk is only 320 samples once resampled, so detection has to pool
-     * several of them.
+     * Pools resampled chunks until [DETECT_MIN_SAMPLES] is reached. A single capture
+     * chunk is only 320 samples once resampled, so detection has to pool several.
      */
-    private val detectBuffer = FloatArray(DETECT_MIN_SAMPLES)
-    private var detectFill = 0
-    private var detectWriteIndex = 0
+    private val detectionPool = CwDetectionPool(DETECT_MIN_SAMPLES)
 
     /** Carries Hilbert filter history and mixer phase across capture chunks. */
     private val streamingShifter = CwToneShifter.Streaming()
@@ -326,60 +328,26 @@ class CwDeepDecoder(
             Log.i(TAG, "toneShift: setting changed to $enabled, dropping buffered audio")
             dropBufferedAudio()
             activeShiftHz = 0f
-            detectedToneHz = null
+            shiftAnchorToneHz = null
             lastDetectAtMs = 0L
-            detectFill = 0
-            detectWriteIndex = 0
+            detectionPool.clear()
             streamingShifter.reset()
         }
 
         if (!enabled) return resampled
 
-        accumulateForDetection(resampled)
+        detectionPool.add(resampled)
 
         val now = System.currentTimeMillis()
         val elapsed = now - lastDetectAtMs
-        if (detectFill >= DETECT_MIN_SAMPLES && elapsed >= DETECT_INTERVAL_MS) {
+        if (detectionPool.isReady && elapsed >= DETECT_INTERVAL_MS) {
             lastDetectAtMs = now
-            runDetection(drainDetectionBuffer())
+            runDetection(detectionPool.drain())
         }
 
         // Streaming keeps the Hilbert filter history and mixer phase across chunks;
         // shifting each chunk in isolation distorted the 62 samples at its edges.
         return streamingShifter.process(resampled, activeShiftHz, CwDeepSpectrogram.SAMPLE_RATE)
-    }
-
-    /**
-     * Collect resampled chunks until [DETECT_MIN_SAMPLES] is available.
-     *
-     * A ring buffer rather than a sliding array: detection is throttled to
-     * [DETECT_INTERVAL_MS] but the buffer fills in 400 ms, so for the remaining 1.6 s
-     * every chunk arrives at a full buffer. Shifting the array down one slot per sample
-     * cost 320 copies of 1280 floats per chunk - measured at 24320 whole-array moves per
-     * 10 s of audio, on the capture thread. Overwriting the oldest slot is O(1).
-     */
-    private fun accumulateForDetection(chunk: FloatArray) {
-        if (chunk.isEmpty()) return
-        // A chunk longer than the buffer can only contribute its tail.
-        val start = maxOf(0, chunk.size - detectBuffer.size)
-        for (i in start until chunk.size) {
-            detectBuffer[detectWriteIndex] = chunk[i]
-            detectWriteIndex = (detectWriteIndex + 1) % detectBuffer.size
-            if (detectFill < detectBuffer.size) detectFill++
-        }
-    }
-
-    /** Copy the buffered audio out in chronological order, oldest sample first. */
-    private fun drainDetectionBuffer(): FloatArray {
-        val out = FloatArray(detectFill)
-        // When full, the oldest sample sits at the write cursor; otherwise at index 0.
-        val oldest = if (detectFill == detectBuffer.size) detectWriteIndex else 0
-        for (i in 0 until detectFill) {
-            out[i] = detectBuffer[(oldest + i) % detectBuffer.size]
-        }
-        detectFill = 0
-        detectWriteIndex = 0
-        return out
     }
 
     /**
@@ -399,30 +367,52 @@ class CwDeepDecoder(
         val analysis = CwToneShifter.analyse(sample, CwDeepSpectrogram.SAMPLE_RATE)
         val previousShift = activeShiftHz
 
-        // Ignore small changes. Dropping the window costs 20 s of context, so a tone
-        // wandering by a few Hz - or a detector estimate landing on an adjacent 12.5 Hz
-        // scan bin - must not keep wiping it. Re-shifting only pays off once the tone
-        // has moved enough to matter against the 800 Hz window centre.
-        val keepPreviousShift = previousShift != 0f &&
-            analysis.needsShift &&
-            abs(analysis.shiftHz - previousShift) < SHIFT_HYSTERESIS_HZ
-
-        detectedToneHz = analysis.toneHz
-        if (!keepPreviousShift) activeShiftHz = analysis.shiftHz
-
-        when {
-            analysis.toneHz == null ->
-                Log.d(TAG, "toneShift: no tone in ${sample.size} samples, shift stays 0")
-
-            !analysis.needsShift -> Log.d(
+        // Silence is absence of evidence, not evidence of a 0 Hz shift. CW keying leaves
+        // gaps, and a detection window landing in one used to collapse an established
+        // shift: measured over 180 s of keyed audio at 1400 Hz, 11 of 90 detections saw
+        // no tone, each wiping the window and leaving the next ~2 s buffered unshifted -
+        // outside the model's range, so invisible to it.
+        val toneHz = analysis.toneHz
+        if (toneHz == null) {
+            Log.d(
                 TAG,
-                "toneShift: tone=${analysis.toneHz}Hz inside " +
+                "toneShift: no tone in ${sample.size} samples, keeping shift=${previousShift}Hz"
+            )
+            return
+        }
+
+        // Hysteresis in tone space, anchored on the pitch that produced the active shift.
+        // Comparing shifts instead let the guard lapse exactly where the jump is largest:
+        // at the window edge one 12.5 Hz estimate hop flips between "inside" (shift 0) and
+        // "outside" (a large shift), and a shift of 0 is a real state rather than no state.
+        // Measured before this change: a 1205 Hz tone dropped the window 35 times in 60
+        // detections. The tone must now clear the edge by the margin before the decoder
+        // changes its mind.
+        val anchorTone = shiftAnchorToneHz
+        if (anchorTone != null && abs(toneHz - anchorTone) < SHIFT_HYSTERESIS_HZ) {
+            // Say so explicitly: a log showing a drifting tone against an unchanged shift
+            // otherwise looks like the detector is being ignored.
+            Log.d(
+                TAG,
+                "toneShift: tone=${toneHz}Hz within ${SHIFT_HYSTERESIS_HZ}Hz of " +
+                    "${anchorTone}Hz, keeping shift=${previousShift}Hz"
+            )
+            return
+        }
+
+        activeShiftHz = analysis.shiftHz
+        shiftAnchorToneHz = toneHz
+
+        if (!analysis.needsShift) {
+            Log.d(
+                TAG,
+                "toneShift: tone=${toneHz}Hz inside " +
                     "${CwDeepSpectrogram.MIN_FREQ_HZ}-${CwDeepSpectrogram.MAX_FREQ_HZ}Hz, no shift"
             )
-
-            else -> Log.i(
+        } else {
+            Log.i(
                 TAG,
-                "toneShift: tone=${analysis.toneHz}Hz outside window, " +
+                "toneShift: tone=${toneHz}Hz outside window, " +
                     "shifting ${analysis.shiftHz}Hz to ${CwToneShifter.TARGET_HZ}Hz"
             )
         }
@@ -545,10 +535,9 @@ class CwDeepDecoder(
         _lastInferenceMs.value = 0
         // Re-detect from scratch: the operator may have retuned before resetting.
         activeShiftHz = 0f
-        detectedToneHz = null
+        shiftAnchorToneHz = null
         lastDetectAtMs = 0L
-        detectFill = 0
-        detectWriteIndex = 0
+        detectionPool.clear()
         streamingShifter.reset()
         // Leave toneShiftWasEnabled unset so the next chunk re-seeds it from the
         // current setting instead of reporting a spurious change.

@@ -60,10 +60,15 @@ object CwToneShifter {
     const val MIN_DETECTABLE_HZ = 100.0
 
     /**
-     * A detected peak must exceed the spectrum mean by this factor to count as a
-     * tone. Below it the input is noise and shifting would just centre the noise.
+     * A detected peak must exceed the spectrum mean by this factor to count as a tone.
+     *
+     * Measured on 1280-sample windows: pure noise peaks at 2.0-3.3 times its own mean,
+     * while keyed CW at a usable level reaches 47-51. A threshold of 3.0 therefore let
+     * roughly one noise window in five through as a "tone", and a false tone is worse
+     * than none - it moves a perfectly good signal out of the model's range. 8.0 clears
+     * the noise ceiling with margin while staying far below any real signal.
      */
-    const val MIN_PROMINENCE = 3.0
+    const val MIN_PROMINENCE = 8.0
 
     /** Hilbert transformer length. Odd so the group delay is a whole sample. */
     private const val HILBERT_TAPS = 63
@@ -191,7 +196,7 @@ object CwToneShifter {
         val step = 2.0 * PI * shiftHz / sampleRate
         for (i in audio.indices) {
             val phase = step * i
-            out[i] = (audio[i] * cos(phase) - quadrature[i] * sin(phase)).toFloat()
+            out[i] = clampToUnit(audio[i] * cos(phase) - quadrature[i] * sin(phase))
         }
         return out
     }
@@ -249,8 +254,8 @@ object CwToneShifter {
                     if (j >= 0 && j < combined.size) quadrature += hilbertKernel[k] * combined[j]
                 }
                 val currentPhase = phase + step * i
-                out[i] = (combined[centre] * cos(currentPhase) -
-                    quadrature * sin(currentPhase)).toFloat()
+                val mixed = combined[centre] * cos(currentPhase) - quadrature * sin(currentPhase)
+                out[i] = clampToUnit(mixed)
             }
 
             // Keep the phase bounded; letting it grow loses float precision.
@@ -289,6 +294,20 @@ object CwToneShifter {
         val analysis = analyse(audio, sampleRate)
         if (!analysis.needsShift) return audio to analysis
         return shift(audio, analysis.shiftHz, sampleRate) to analysis
+    }
+
+    /**
+     * Keep a mixed sample inside the +/-1.0 range the spectrogram assumes.
+     *
+     * The Hilbert kernel has an L1 gain of 2.51, so summing the in-phase and quadrature
+     * paths can exceed unity even for a full-scale sine (measured 1.05 at 1500 Hz, 2.35
+     * for a square wave). The spectrogram takes log1p of the magnitude, so an overshoot
+     * is not fatal, but it shifts the level the model was trained on.
+     */
+    private fun clampToUnit(value: Double): Float = when {
+        value > 1.0 -> 1f
+        value < -1.0 -> -1f
+        else -> value.toFloat()
     }
 
     /** True when [toneHz] lies inside the model's analysis window. */
