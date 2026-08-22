@@ -118,6 +118,9 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
         utc.set(Calendar.MILLISECOND, 0)
         val todayMidnightSec = utc.timeInMillis / 1000
 
+        // Reuses the same Calendar, which is safe only because each pass assigns
+        // timeInMillis outright rather than adjusting fields. After this loop it points at
+        // the oldest day, so anything added below must set the time again before reading.
         val labels = (0 until 3).map { d ->
             utc.timeInMillis = (todayMidnightSec - d * 86400L) * 1000
             "${monthAbbr[utc.get(Calendar.MONTH)]} ${utc.get(Calendar.DAY_OF_MONTH)}"
