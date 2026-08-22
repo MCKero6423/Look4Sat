@@ -302,4 +302,6 @@
     <string name="prefs_other_compass_offset_elev">雷达罗盘偏移 (仰角)</string>
     <string name="prefs_other_switch_cw_tone_shift">搬移超出范围的 CW 音调</string>
     <string name="prefs_other_cw_tone_shift_help">DeepCW 仅分析 400-1200 Hz。开启后，超出该范围的音调会先搬移到范围内再解码；已在范围内的音调不作处理。</string>
+    <string name="amsat_no_report_legend">无人上报</string>
+    <string name="amsat_no_data_legend">无数据</string>
 </resources>

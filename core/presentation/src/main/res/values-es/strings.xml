@@ -171,4 +171,6 @@
 
     <string name="prefs_other_switch_cw_tone_shift">Desplazar tonos CW fuera de rango</string>
     <string name="prefs_other_cw_tone_shift_help">DeepCW solo analiza 400-1200 Hz. Si está activo, un tono fuera de ese rango se traslada al rango antes de decodificar; un tono que ya está dentro no se modifica.</string>
+    <string name="amsat_no_report_legend">Sin informes</string>
+    <string name="amsat_no_data_legend">Sin datos</string>
 </resources>

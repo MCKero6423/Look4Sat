@@ -300,4 +300,6 @@
     <string name="prefs_outro_license">Aplikasi ini hadir tanpa jaminan</string>
     <string name="prefs_other_switch_cw_tone_shift">Geser nada CW di luar rentang</string>
     <string name="prefs_other_cw_tone_shift_help">DeepCW hanya menganalisis 400-1200 Hz. Saat aktif, nada di luar rentang itu dipindahkan ke dalamnya sebelum decoding; nada yang sudah di dalam tidak diubah.</string>
+    <string name="amsat_no_report_legend">Tidak ada laporan</string>
+    <string name="amsat_no_data_legend">Tidak ada data</string>
 </resources>

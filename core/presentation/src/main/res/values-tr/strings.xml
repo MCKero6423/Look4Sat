@@ -312,4 +312,6 @@
 
     <string name="prefs_other_switch_cw_tone_shift">Aralık dışı CW tonlarını kaydır</string>
     <string name="prefs_other_cw_tone_shift_help">DeepCW yalnızca 400-1200 Hz analiz eder. Açıkken bu aralığın dışındaki bir ton çözülmeden önce aralığa taşınır; aralıkta olan ton değiştirilmez.</string>
+    <string name="amsat_no_report_legend">Rapor yok</string>
+    <string name="amsat_no_data_legend">Veri yok</string>
 </resources>

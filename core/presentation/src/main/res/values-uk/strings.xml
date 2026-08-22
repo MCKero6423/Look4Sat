@@ -171,4 +171,6 @@
 
     <string name="prefs_other_switch_cw_tone_shift">Зсувати CW-тони поза діапазоном</string>
     <string name="prefs_other_cw_tone_shift_help">DeepCW аналізує лише 400-1200 Гц. Якщо увімкнено, тон поза цим діапазоном переноситься в нього перед декодуванням; тон, що вже в діапазоні, не змінюється.</string>
+    <string name="amsat_no_report_legend">Немає звітів</string>
+    <string name="amsat_no_data_legend">Немає даних</string>
 </resources>

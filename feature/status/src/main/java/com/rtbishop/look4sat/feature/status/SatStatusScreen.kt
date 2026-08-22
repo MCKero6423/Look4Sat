@@ -167,11 +167,16 @@ private fun StatusHeader(fetchedAtUtcMs: Long, isRefreshing: Boolean, onRefresh:
 /** Legend: FlowRow of colored chips — wraps to two lines on narrow screens, stays one line when wide. */
 @Composable
 private fun LegendRow() {
+    // The two greys are listed because most of a typical grid is grey: measured live, 81%
+    // of cells were "nobody reported" and 11% were outside the data we received. Without
+    // the distinction a mostly-grey row reads as a dead satellite.
     val legend = listOf(
         stringResource(id = R.string.amsat_active) to Color(0xFF648FFF),
         stringResource(id = R.string.amsat_tlm) to Color(0xFFFFB000),
         stringResource(id = R.string.amsat_not_heard) to Color(0xFFDC267F),
-        stringResource(id = R.string.amsat_conflict) to Color(0xFFFE6100)
+        stringResource(id = R.string.amsat_conflict) to Color(0xFFFE6100),
+        stringResource(id = R.string.amsat_no_report_legend) to Color(0xFFC0C0C0),
+        stringResource(id = R.string.amsat_no_data_legend) to Color(0xFFE8E8E8)
     )
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),

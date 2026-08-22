@@ -125,6 +125,11 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
             utc.timeInMillis = (todayMidnightSec - d * 86400L) * 1000
             "${monthAbbr[utc.get(Calendar.MONTH)]} ${utc.get(Calendar.DAY_OF_MONTH)}"
         }
+        // Oldest report across the whole response, marking how far back the data reaches.
+        // Taken globally rather than per satellite: a quiet satellite has no reports of its
+        // own, but the slots it shares with the rest of the response were still covered.
+        val dataFromSec = reports.minOfOrNull { it.reportedTimeUtcSec } ?: todayMidnightSec
+
         return names.map { name ->
             val satReports = byName[name].orEmpty()
             val days = (0 until 3).map { dayIdx ->
@@ -135,7 +140,9 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
                     val slotEnd = slotStart + 7200L
                     val inSlot = satReports.filter { it.reportedTimeUtcSec in slotStart until slotEnd }
                     if (inSlot.isEmpty()) {
-                        SatSlot(statusColor = NO_REPORT_GRAY, count = 0)
+                        // A slot entirely before the data starts is unknown, not silent.
+                        val colour = if (slotEnd <= dataFromSec) NO_DATA_GRAY else NO_REPORT_GRAY
+                        SatSlot(statusColor = colour, count = 0)
                     } else {
                         val newest = inSlot.maxByOrNull { it.reportedTimeUtcSec }!!
                         SatSlot(
@@ -184,5 +191,15 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
         private const val NOT_HEARD_PINK = 0xFFDC267F
         private const val CONFLICT_DEEP_ORANGE = 0xFFFE6100
         private const val NO_REPORT_GRAY = 0xFFC0C0C0
+
+        /**
+         * Slots older than the data we actually received.
+         *
+         * The API caps at 500 records however many hours are requested. Measured live: a
+         * 72-hour request returned 500 reports spanning only 49 hours, leaving the oldest
+         * 9.5 hours of the third day with no data at all. Painting those the same grey as
+         * "nobody reported" claimed knowledge we do not have, so they get a lighter shade.
+         */
+        private const val NO_DATA_GRAY = 0xFFE8E8E8
     }
 }

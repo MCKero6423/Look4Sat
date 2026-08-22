@@ -256,4 +256,77 @@ class AmSatSlotBuildTest {
     fun `an empty catalog yields no rows rather than a malformed grid`() {
         assertTrue(build(emptyList(), emptyList()).isEmpty())
     }
+
+    /**
+     * Slots older than the data we received must not claim nobody was listening.
+     *
+     * The API caps at 500 records however many hours are asked for. Measured live, a
+     * 72-hour request returned 500 reports covering only 49 hours, so the oldest 9.5 hours
+     * of the third day had no data at all - 352 of 3168 cells were painting "nobody heard
+     * it" over "we never looked".
+     */
+    @Test
+    fun `slots before the data starts are marked no-data, not no-report`() {
+        // The only report is midday yesterday, so nothing older than that was covered.
+        val oldestReport = utc(2026, 8, 21, 12)
+        val status = build(
+            listOf("AO-91"),
+            listOf(report("AO-91", "heard", oldestReport, id = "only"))
+        ).single()
+
+        val noReport = 0xFFC0C0C0
+        val noData = 0xFFE8E8E8
+
+        // The day before yesterday is entirely before the data begins.
+        assertTrue(
+            "every slot older than the data must read as no-data",
+            status.days[2].slots.all { it.statusColor == noData }
+        )
+
+        // Yesterday straddles it: bands after midday are covered, bands before are not.
+        val yesterday = status.days[1]
+        assertEquals("the report's own band", 1, yesterday.slots[5].count)
+        assertTrue(
+            "bands after the oldest report are covered, so silence there is real",
+            yesterday.slots.take(6).all { it.statusColor != noData }
+        )
+        assertTrue(
+            "the earliest band of yesterday is before any data",
+            yesterday.slots[11].statusColor == noData
+        )
+
+        // Today is entirely after the data starts, so its silence is genuine.
+        assertTrue(
+            "today's empty slots mean nobody reported",
+            status.days[0].slots.all { it.statusColor == noReport }
+        )
+    }
+
+    @Test
+    fun `coverage is judged from all reports, not one satellite's`() {
+        // A satellite nobody reported must not show as no-data for the whole grid: the
+        // slots were covered, that satellite simply was not heard.
+        val statuses = build(
+            listOf("LOUD", "QUIET"),
+            listOf(report("LOUD", "heard", utc(2026, 8, 20, 1), id = "early"))
+        )
+        val quiet = statuses.first { it.name == "QUIET" }
+        val noData = 0xFFE8E8E8
+
+        assertTrue(
+            "coverage reaches back to the earliest report of any satellite",
+            quiet.days.all { day -> day.slots.none { it.statusColor == noData } }
+        )
+    }
+
+    @Test
+    fun `an empty response marks nothing as covered`() {
+        // With no reports at all there is no evidence about any slot.
+        val status = build(listOf("AO-91"), emptyList()).single()
+        val noData = 0xFFE8E8E8
+        assertTrue(
+            "yesterday and earlier cannot be claimed as silent",
+            status.days.drop(1).all { day -> day.slots.all { it.statusColor == noData } }
+        )
+    }
 }
