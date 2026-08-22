@@ -244,9 +244,8 @@ internal fun CwWaterfallView(
 
         // Frequency labels overlaid on the waterfall.
         if (toneShiftHz != 0f && estimatedPitch != null && estimatedPitch > 0f) {
-            val origPitch = estimatedPitch + toneShiftHz
             Text(
-                text = "${origPitch.toInt()} Hz",
+                text = "${estimatedPitch.toInt()} Hz",
                 fontSize = 9.sp,
                 color = Color(0xFFFF9500),
                 modifier = Modifier
