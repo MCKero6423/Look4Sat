@@ -26,6 +26,7 @@ import com.rtbishop.look4sat.core.domain.cw.CwCtcDecoder
 import com.rtbishop.look4sat.core.domain.cw.CwDeepBuffer
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import com.rtbishop.look4sat.core.domain.cw.CwDetectionPool
+import com.rtbishop.look4sat.core.domain.cw.CwShiftDecider
 import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import com.rtbishop.look4sat.core.domain.cw.ICwDecoder
 import kotlinx.coroutines.CancellationException
@@ -37,7 +38,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.nio.FloatBuffer
-import kotlin.math.abs
 
 /**
  * CW decoder backed by the DeepCW neural network (AGPL-3.0, see
@@ -133,12 +133,8 @@ class CwDeepDecoder(
     /** Shift currently applied to incoming audio; 0 when the tone needs no move. */
     private var activeShiftHz = 0f
 
-    /**
-     * Tone that produced [activeShiftHz]. Hysteresis compares against this rather than
-     * against the previous shift, so the guard still holds where a shift flips between
-     * 0 and a large value - at the window edge, where the jump is largest.
-     */
-    private var shiftAnchorToneHz: Float? = null
+    /** Decides what shift to apply from successive tone estimates. */
+    private val shiftDecider = CwShiftDecider(SHIFT_HYSTERESIS_HZ)
 
     /** Wall clock of the last detection scan, throttling it to [DETECT_INTERVAL_MS]. */
     private var lastDetectAtMs = 0L
@@ -328,7 +324,7 @@ class CwDeepDecoder(
             Log.i(TAG, "toneShift: setting changed to $enabled, dropping buffered audio")
             dropBufferedAudio()
             activeShiftHz = 0f
-            shiftAnchorToneHz = null
+            shiftDecider.reset()
             lastDetectAtMs = 0L
             detectionPool.clear()
             streamingShifter.reset()
@@ -362,73 +358,51 @@ class CwDeepDecoder(
         archiveSize = 0
     }
 
-    /** Update [activeShiftHz] from a detection pass and log what was decided. */
+    /**
+     * Feed one detection to [shiftDecider] and log what it decided.
+     *
+     * The rule itself lives in core:domain so it can be tested directly; keeping it here
+     * meant tests could only restate it, and a restated rule cannot fail when the real
+     * one is wrong - four injected defects once left the whole suite green.
+     */
     private fun runDetection(sample: FloatArray) {
         val analysis = CwToneShifter.analyse(sample, CwDeepSpectrogram.SAMPLE_RATE)
-        val previousShift = activeShiftHz
+        val decision = shiftDecider.accept(analysis)
+        activeShiftHz = decision.shiftHz
 
-        // Silence is absence of evidence, not evidence of a 0 Hz shift. CW keying leaves
-        // gaps, and a detection window landing in one used to collapse an established
-        // shift: measured over 180 s of keyed audio at 1400 Hz, 11 of 90 detections saw
-        // no tone, each wiping the window and leaving the next ~2 s buffered unshifted -
-        // outside the model's range, so invisible to it.
-        val toneHz = analysis.toneHz
-        if (toneHz == null) {
-            Log.d(
+        when (decision.outcome) {
+            CwShiftDecider.Outcome.NO_TONE -> Log.d(
                 TAG,
-                "toneShift: no tone in ${sample.size} samples, keeping shift=${previousShift}Hz"
+                "toneShift: no tone in ${sample.size} samples, keeping shift=${decision.shiftHz}Hz"
             )
-            return
-        }
 
-        // Hysteresis in tone space, anchored on the pitch that produced the active shift.
-        // Comparing shifts instead let the guard lapse exactly where the jump is largest:
-        // at the window edge one 12.5 Hz estimate hop flips between "inside" (shift 0) and
-        // "outside" (a large shift), and a shift of 0 is a real state rather than no state.
-        // Measured before this change: a 1205 Hz tone dropped the window 35 times in 60
-        // detections. The tone must now clear the edge by the margin before the decoder
-        // changes its mind.
-        val anchorTone = shiftAnchorToneHz
-        if (anchorTone != null && abs(toneHz - anchorTone) < SHIFT_HYSTERESIS_HZ) {
-            // Say so explicitly: a log showing a drifting tone against an unchanged shift
-            // otherwise looks like the detector is being ignored.
-            Log.d(
+            CwShiftDecider.Outcome.WITHIN_HYSTERESIS -> Log.d(
                 TAG,
-                "toneShift: tone=${toneHz}Hz within ${SHIFT_HYSTERESIS_HZ}Hz of " +
-                    "${anchorTone}Hz, keeping shift=${previousShift}Hz"
+                "toneShift: tone=${decision.toneHz}Hz within ${CwShiftDecider.DEFAULT_HYSTERESIS_HZ}Hz " +
+                    "of anchor ${shiftDecider.anchorToneHz}Hz, keeping shift=${decision.shiftHz}Hz"
             )
-            return
-        }
 
-        activeShiftHz = analysis.shiftHz
-        shiftAnchorToneHz = toneHz
-
-        if (!analysis.needsShift) {
-            Log.d(
+            CwShiftDecider.Outcome.NO_SHIFT_NEEDED -> Log.d(
                 TAG,
-                "toneShift: tone=${toneHz}Hz inside " +
+                "toneShift: tone=${decision.toneHz}Hz inside " +
                     "${CwDeepSpectrogram.MIN_FREQ_HZ}-${CwDeepSpectrogram.MAX_FREQ_HZ}Hz, no shift"
             )
-        } else {
-            Log.i(
+
+            CwShiftDecider.Outcome.SHIFTED -> Log.i(
                 TAG,
-                "toneShift: tone=${toneHz}Hz outside window, " +
-                    "shifting ${analysis.shiftHz}Hz to ${CwToneShifter.TARGET_HZ}Hz"
+                "toneShift: tone=${decision.toneHz}Hz outside window, " +
+                    "shifting ${decision.shiftHz}Hz to ${CwToneShifter.TARGET_HZ}Hz"
             )
         }
 
-        if (previousShift != activeShiftHz) {
+        if (decision.changed) {
             // The window still holds audio moved by the old amount. Mixing two shifts in
             // one spectrogram smears the tone, and the pitch readout could only be right
             // for one of them, so rebuild the window from the new shift.
-            Log.i(
-                TAG,
-                "toneShift: shift changed ${previousShift}Hz -> ${activeShiftHz}Hz, " +
-                    "dropping buffered audio"
-            )
+            Log.i(TAG, "toneShift: shift changed, dropping buffered audio")
             dropBufferedAudio()
             streamingShifter.reset()
-            CwProbe.step("tone_shift tone=${analysis.toneHz} shift=$activeShiftHz")
+            CwProbe.step("tone_shift tone=${decision.toneHz} shift=${decision.shiftHz}")
         }
     }
 
@@ -535,7 +509,7 @@ class CwDeepDecoder(
         _lastInferenceMs.value = 0
         // Re-detect from scratch: the operator may have retuned before resetting.
         activeShiftHz = 0f
-        shiftAnchorToneHz = null
+        shiftDecider.reset()
         lastDetectAtMs = 0L
         detectionPool.clear()
         streamingShifter.reset()

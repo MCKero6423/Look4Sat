@@ -127,39 +127,4 @@ class CwToneShiftGateTest {
         )
     }
 
-    /**
-     * A tone drifting slightly, or a detector estimate hopping to an adjacent 12.5 Hz
-     * scan bin, must not keep re-shifting: the decoder drops its 20 s window on every
-     * shift change, so churn would cost more context than the re-centring gains.
-     *
-     * This asserts the hysteresis threshold the decoder applies is wide enough to
-     * absorb realistic detector jitter and narrow enough to still follow a real retune.
-     */
-    @Test
-    fun `hysteresis absorbs detector jitter but follows a real retune`() {
-        val hysteresisHz = 40f // CwDeepDecoder.SHIFT_HYSTERESIS_HZ
-        val scanStepHz = 12.5f // CwToneShifter's detection resolution
-
-        assertTrue(
-            "hysteresis must cover at least two scan bins of jitter",
-            hysteresisHz >= scanStepHz * 2
-        )
-
-        // Jitter: successive estimates one or two bins apart produce shifts that differ
-        // by less than the threshold, so the decoder keeps the shift it already has.
-        val shiftAt1400 = (CwToneShifter.TARGET_HZ - 1400.0).toFloat()
-        val shiftAt1412 = (CwToneShifter.TARGET_HZ - 1412.5).toFloat()
-        assertTrue(
-            "a one-bin estimate hop must not trigger a re-shift",
-            abs(shiftAt1412 - shiftAt1400) < hysteresisHz
-        )
-
-        // A real retune moves the tone far enough that re-centring is worth the reset.
-        val shiftAt1300 = (CwToneShifter.TARGET_HZ - 1300.0).toFloat()
-        assertTrue(
-            "a 100 Hz retune must still be followed",
-            abs(shiftAt1300 - shiftAt1400) >= hysteresisHz
-        )
-    }
-
 }

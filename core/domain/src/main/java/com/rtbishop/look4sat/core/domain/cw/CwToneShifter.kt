@@ -62,13 +62,20 @@ object CwToneShifter {
     /**
      * A detected peak must exceed the spectrum mean by this factor to count as a tone.
      *
-     * Measured on 1280-sample windows: pure noise peaks at 2.0-3.3 times its own mean,
-     * while keyed CW at a usable level reaches 47-51. A threshold of 3.0 therefore let
-     * roughly one noise window in five through as a "tone", and a false tone is worse
-     * than none - it moves a perfectly good signal out of the model's range. 8.0 clears
-     * the noise ceiling with margin while staying far below any real signal.
+     * Chosen from measurements on 1280-sample (400 ms) windows of keyed CW in noise.
+     * Pure noise peaks at 2.2-3.4 times its own spectral mean, so 3.0 admitted roughly
+     * one noise window in five. Raising it as far as 8.0 then rejected comfortably
+     * copyable signals: keyed CW measures 7.6-9.0 at 0 dB SNR and only 5.2-6.7 at -3 dB.
+     *
+     * 4.5 gives zero false positives across 40 noise windows while keeping the weaker
+     * end of usable signals. The asymmetry is deliberate: a false tone is worse than a
+     * missed one, because it moves a perfectly good signal out of the model's range,
+     * whereas a miss just leaves the audio alone until a stronger window arrives.
+     *
+     * Windows dominated by keying gaps (a slow fist, under ~25% tone) sit at 2.4 and are
+     * indistinguishable from noise at any threshold; those are skipped, not guessed at.
      */
-    const val MIN_PROMINENCE = 8.0
+    const val MIN_PROMINENCE = 4.5
 
     /** Hilbert transformer length. Odd so the group delay is a whole sample. */
     private const val HILBERT_TAPS = 63
