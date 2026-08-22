@@ -68,7 +68,7 @@ class RemoteSource(
         try {
             val request = Request.Builder()
                 .url("https://www.amsat.org/status/api/v1/catalog.php")
-                .header("User-Agent", "Look4Sat/4.5.5")
+                .header("User-Agent", "Look4Sat/4.5.7")
                 .build()
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
@@ -87,7 +87,7 @@ class RemoteSource(
         try {
             val request = Request.Builder()
                 .url("https://www.amsat.org/status/api/v1/reports.php?hours=$hours&limit=$limit")
-                .header("User-Agent", "Look4Sat/4.5.5")
+                .header("User-Agent", "Look4Sat/4.5.7")
                 .build()
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
@@ -106,7 +106,7 @@ class RemoteSource(
         try {
             val request = Request.Builder()
                 .url("https://www.amsat.org/status/api/v1/summary.php?hours=$hours")
-                .header("User-Agent", "Look4Sat/4.5.5")
+                .header("User-Agent", "Look4Sat/4.5.7")
                 .build()
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
