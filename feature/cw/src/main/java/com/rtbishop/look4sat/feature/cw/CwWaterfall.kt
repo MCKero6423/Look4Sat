@@ -202,7 +202,10 @@ internal fun CwWaterfallView(
             }
 
             // Original pitch marker.
-            val origPitch = estimatedPitch + toneShiftHz  // undo the correction
+            // estimatedPitch is already corrected back to the original tone
+            // (the spectrogram sees the shifted audio, updateSignalMetrics undoes
+            // the shift), so we use it directly rather than adding toneShiftHz again.
+            val origPitch = estimatedPitch
             if (origPitch in minHz..maxHz) {
                 // Inside the visible band: orange dashed line at the original position.
                 val origX = hzToX(origPitch).coerceIn(0f, size.width)
@@ -212,6 +215,18 @@ internal fun CwWaterfallView(
                         start = Offset(origX, i * dashLen * 2),
                         end = Offset(origX, (i * dashLen * 2) + dashLen),
                         strokeWidth = 1.5f
+                    )
+                }
+            } else {
+                // Outside the visible band: draw an arrow at the nearest edge.
+                val edgeX = if (origPitch < minHz) 0f else size.width
+                val arrowDir = if (origPitch < minHz) -1f else 1f
+                for (i in 0..2) {
+                    drawLine(
+                        color = Color(0xFFFF9500).copy(alpha = 0.6f),
+                        start = Offset(edgeX + arrowDir * i * 4f, 4f + i * 4f),
+                        end = Offset(edgeX + arrowDir * (i + 1) * 4f, 4f + (i + 1) * 4f),
+                        strokeWidth = 2f
                     )
                 }
             }
