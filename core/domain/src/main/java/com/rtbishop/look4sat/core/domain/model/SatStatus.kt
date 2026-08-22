@@ -26,7 +26,8 @@ data class SatDay(
 /** One satellite, 3 days of state */
 data class SatStatus(
     val name: String,        // "AO-123_[FM]"
-    val days: List<SatDay>   // 3 天(新→旧)
+    val days: List<SatDay>,  // 3 天(新→旧)
+    val summaryCount: Int = 0 // 0 means unknown; used for data-completeness marking
 )
 
 /** Overall page parse result */

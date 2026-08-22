@@ -251,6 +251,21 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(end = 4.dp)
         )
+        // When the global report pull is incomplete, show how many we actually got
+        // versus what the summary endpoint says exists. The summary is a single extra
+        // request, so this is honest without the 88-request cost of per-satellite pulls.
+        if (status.summaryCount > 0) {
+            val actual = status.days.sumOf { day -> day.slots.sumOf { it.count } }
+            if (actual < status.summaryCount) {
+                Text(
+                    text = "$actual / ${status.summaryCount}",
+                    fontSize = 11.sp,
+                    color = Color(0xFF888888),
+                    maxLines = 1,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
+        }
         status.days.forEach { day ->
             DayCell(
                 day = day,

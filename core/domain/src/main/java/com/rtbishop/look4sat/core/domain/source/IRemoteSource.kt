@@ -28,4 +28,9 @@ interface IRemoteSource {
 
     /** Fetch AMSAT API reports for the past N hours (JSON string; null on failure) */
     suspend fun getAmSatReports(hours: Int, limit: Int): String?
+
+    /** Fetch AMSAT API summary for the past N hours (JSON string; null on failure).
+     *  Used to compare against the global reports response and flag satellites whose data
+     *  was crowded out of the 500-record cap. */
+    suspend fun getAmSatSummary(hours: Int): String?
 }

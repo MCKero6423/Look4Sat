@@ -101,4 +101,22 @@ class RemoteSource(
             null
         }
     }
+
+    override suspend fun getAmSatSummary(hours: Int): String? = withContext(dispatcher) {
+        try {
+            val request = Request.Builder()
+                .url("https://www.amsat.org/status/api/v1/summary.php?hours=$hours")
+                .header("User-Agent", "Look4Sat/4.5.5")
+                .build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                response.body?.string()
+            }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            println("RemoteSource amsat summary exception: $exception")
+            null
+        }
+    }
 }

@@ -51,7 +51,20 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
 
         val statuses = buildStatuses(names, reports, nowSec)
         val reportMap = reports.associate { it.id to toSatReport(it) }
-        SatStatusPage(System.currentTimeMillis(), statuses, reportMap)
+
+        // The summary endpoint tells us how many reports each satellite actually has,
+        // independent of the 500-record cap. Mark any satellite whose global pull is
+        // incomplete so the UI can show a data-coverage note.
+        val summaryJson = remoteSource.getAmSatSummary(hours = 72)
+        val expectedCounts = parseSummary(summaryJson)
+        val marked = statuses.map { status ->
+            val expected = expectedCounts[status.name]
+            val actual = status.days.sumOf { day -> day.slots.sumOf { it.count } }
+            if (expected != null && expected > actual) status.copy(summaryCount = expected)
+            else status
+        }
+
+        SatStatusPage(System.currentTimeMillis(), marked, reportMap)
     }
 
     /** Parse catalog JSON to list of satellite names */
@@ -82,6 +95,33 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
             }
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    /**
+     * Parse summary JSON to per-satellite report counts.
+     *
+     * The summary aggregates across all statuses, so a satellite with both "heard" and
+     * "not heard" entries appears once; we sum its report_count across all its rows.
+     * Returns an empty map (not null) on failure so the caller can just check for
+     * missing keys — a failed summary call degrades gracefully to "no coverage marker".
+     */
+    private fun parseSummary(json: String?): Map<String, Int> {
+        if (json == null) return emptyMap()
+        return try {
+            val arr = JSONObject(json).getJSONArray("data")
+            val out = mutableMapOf<String, Int>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val name = o.optString("name", "")
+                val count = o.optInt("report_count", 0)
+                if (name.isNotEmpty() && count > 0) {
+                    out[name] = (out[name] ?: 0) + count
+                }
+            }
+            out
+        } catch (_: Exception) {
+            emptyMap()
         }
     }
 
@@ -128,7 +168,15 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
         // Oldest report across the whole response, marking how far back the data reaches.
         // Taken globally rather than per satellite: a quiet satellite has no reports of its
         // own, but the slots it shares with the rest of the response were still covered.
-        val dataFromSec = reports.minOfOrNull { it.reportedTimeUtcSec } ?: todayMidnightSec
+        //
+        // Timestamps of zero are excluded: parseIsoUtcSec returns 0 when a reported_time
+        // fails to parse, and a single such record would drag this back to 1970 and mark
+        // nothing as uncovered, silently reverting the distinction.
+        val dataFromSec = reports.asSequence()
+                .map { it.reportedTimeUtcSec }
+                .filter { it > 0L }
+                .minOrNull()
+                ?: todayMidnightSec
 
         return names.map { name ->
             val satReports = byName[name].orEmpty()

@@ -22,6 +22,7 @@ class AmSatAuditTest {
         override suspend fun getNetworkStream(url: String): InputStream? = null
         override suspend fun getAmSatCatalog(): String? = null
         override suspend fun getAmSatReports(hours: Int, limit: Int): String? = null
+        override suspend fun getAmSatSummary(hours: Int): String? = null
     }
 
     private val repo = AmSatRepository(UnusedSource)

@@ -28,6 +28,7 @@ class AmSatSlotBuildTest {
         override suspend fun getNetworkStream(url: String): InputStream? = null
         override suspend fun getAmSatCatalog(): String? = null
         override suspend fun getAmSatReports(hours: Int, limit: Int): String? = null
+        override suspend fun getAmSatSummary(hours: Int): String? = null
     }
 
     private val repo = AmSatRepository(UnusedSource)
@@ -316,6 +317,39 @@ class AmSatSlotBuildTest {
         assertTrue(
             "coverage reaches back to the earliest report of any satellite",
             quiet.days.all { day -> day.slots.none { it.statusColor == noData } }
+        )
+    }
+
+    /**
+     * A report whose timestamp failed to parse must not disable the distinction.
+     *
+     * parseIsoUtcSec returns 0 for an unparseable reported_time, and coverage is the
+     * minimum timestamp in the response - so one such record would put the coverage
+     * boundary in 1970 and mark every slot as reported-on. Measured on a grid that should
+     * have had 18 no-data cells, a single zero timestamp took it to none.
+     */
+    @Test
+    fun `a report with an unparseable timestamp does not disable the no-data marking`() {
+        val noData = 0xFFE8E8E8
+        val realReport = report("AO-91", "heard", utc(2026, 8, 21, 12), id = "real")
+        val brokenTimestamp = ApiReport(
+            id = "broken",
+            name = "AO-91",
+            callsign = "TEST",
+            report = "heard",
+            gridSquare = "AA00",
+            reportedTimeUtcSec = 0L
+        )
+
+        val withoutBroken = build(listOf("AO-91"), listOf(realReport))
+            .single().days.sumOf { day -> day.slots.count { it.statusColor == noData } }
+        val withBroken = build(listOf("AO-91"), listOf(realReport, brokenTimestamp))
+            .single().days.sumOf { day -> day.slots.count { it.statusColor == noData } }
+
+        assertTrue("the baseline must have uncovered slots to compare", withoutBroken > 0)
+        assertEquals(
+            "a zero timestamp must not change what counts as covered",
+            withoutBroken, withBroken
         )
     }
 
