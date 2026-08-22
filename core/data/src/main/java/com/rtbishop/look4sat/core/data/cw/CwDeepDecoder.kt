@@ -145,6 +145,7 @@ class CwDeepDecoder(
      */
     private val detectBuffer = FloatArray(DETECT_MIN_SAMPLES)
     private var detectFill = 0
+    private var detectWriteIndex = 0
 
     /** Carries Hilbert filter history and mixer phase across capture chunks. */
     private val streamingShifter = CwToneShifter.Streaming()
@@ -328,6 +329,7 @@ class CwDeepDecoder(
             detectedToneHz = null
             lastDetectAtMs = 0L
             detectFill = 0
+            detectWriteIndex = 0
             streamingShifter.reset()
         }
 
@@ -339,9 +341,7 @@ class CwDeepDecoder(
         val elapsed = now - lastDetectAtMs
         if (detectFill >= DETECT_MIN_SAMPLES && elapsed >= DETECT_INTERVAL_MS) {
             lastDetectAtMs = now
-            val sample = detectBuffer.copyOf(detectFill)
-            detectFill = 0
-            runDetection(sample)
+            runDetection(drainDetectionBuffer())
         }
 
         // Streaming keeps the Hilbert filter history and mixer phase across chunks;
@@ -349,19 +349,37 @@ class CwDeepDecoder(
         return streamingShifter.process(resampled, activeShiftHz, CwDeepSpectrogram.SAMPLE_RATE)
     }
 
-    /** Collect resampled chunks until [DETECT_MIN_SAMPLES] is available. */
+    /**
+     * Collect resampled chunks until [DETECT_MIN_SAMPLES] is available.
+     *
+     * A ring buffer rather than a sliding array: detection is throttled to
+     * [DETECT_INTERVAL_MS] but the buffer fills in 400 ms, so for the remaining 1.6 s
+     * every chunk arrives at a full buffer. Shifting the array down one slot per sample
+     * cost 320 copies of 1280 floats per chunk - measured at 24320 whole-array moves per
+     * 10 s of audio, on the capture thread. Overwriting the oldest slot is O(1).
+     */
     private fun accumulateForDetection(chunk: FloatArray) {
         if (chunk.isEmpty()) return
-        // A chunk larger than the detection buffer only needs to contribute its tail.
+        // A chunk longer than the buffer can only contribute its tail.
         val start = maxOf(0, chunk.size - detectBuffer.size)
         for (i in start until chunk.size) {
-            if (detectFill == detectBuffer.size) {
-                // Slide the window so detection always sees the most recent audio.
-                detectBuffer.copyInto(detectBuffer, 0, 1, detectFill)
-                detectFill--
-            }
-            detectBuffer[detectFill++] = chunk[i]
+            detectBuffer[detectWriteIndex] = chunk[i]
+            detectWriteIndex = (detectWriteIndex + 1) % detectBuffer.size
+            if (detectFill < detectBuffer.size) detectFill++
         }
+    }
+
+    /** Copy the buffered audio out in chronological order, oldest sample first. */
+    private fun drainDetectionBuffer(): FloatArray {
+        val out = FloatArray(detectFill)
+        // When full, the oldest sample sits at the write cursor; otherwise at index 0.
+        val oldest = if (detectFill == detectBuffer.size) detectWriteIndex else 0
+        for (i in 0 until detectFill) {
+            out[i] = detectBuffer[(oldest + i) % detectBuffer.size]
+        }
+        detectFill = 0
+        detectWriteIndex = 0
+        return out
     }
 
     /**
@@ -530,6 +548,7 @@ class CwDeepDecoder(
         detectedToneHz = null
         lastDetectAtMs = 0L
         detectFill = 0
+        detectWriteIndex = 0
         streamingShifter.reset()
         // Leave toneShiftWasEnabled unset so the next chunk re-seeds it from the
         // current setting instead of reporting a spurious change.

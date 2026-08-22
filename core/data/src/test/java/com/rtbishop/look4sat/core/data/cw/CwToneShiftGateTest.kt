@@ -161,4 +161,69 @@ class CwToneShiftGateTest {
             abs(shiftAt1300 - shiftAt1400) >= hysteresisHz
         )
     }
+
+    /**
+     * The detection pool must hand the analyser the most recent audio in chronological
+     * order. The decoder implements this as a ring buffer because detection is throttled
+     * to 2 s while the pool fills in 400 ms, so most chunks arrive at a full buffer.
+     *
+     * This pins the contract with the same ring semantics the decoder uses: getting the
+     * order wrong would feed the detector a spliced waveform and corrupt every estimate,
+     * silently, which no other assertion here would notice.
+     */
+    @Test
+    fun `detection pool yields the most recent samples in order`() {
+        val capacity = 1280 // CwDeepDecoder.DETECT_MIN_SAMPLES
+        val pool = FloatArray(capacity)
+        var fill = 0
+        var writeIndex = 0
+
+        fun accumulate(chunk: FloatArray) {
+            val start = maxOf(0, chunk.size - pool.size)
+            for (i in start until chunk.size) {
+                pool[writeIndex] = chunk[i]
+                writeIndex = (writeIndex + 1) % pool.size
+                if (fill < pool.size) fill++
+            }
+        }
+
+        fun drain(): FloatArray {
+            val out = FloatArray(fill)
+            val oldest = if (fill == pool.size) writeIndex else 0
+            for (i in 0 until fill) out[i] = pool[(oldest + i) % pool.size]
+            fill = 0
+            writeIndex = 0
+            return out
+        }
+
+        // Feed a monotonically increasing ramp in 320-sample chunks, past capacity.
+        var next = 0f
+        repeat(10) {
+            accumulate(FloatArray(320) { next++ })
+        }
+        val drained = drain()
+
+        assertEquals("a full pool must hand over exactly its capacity", capacity, drained.size)
+        assertEquals(
+            "the pool must end on the newest sample fed",
+            next - 1f, drained.last(), 0f
+        )
+        assertEquals(
+            "the pool must start capacity-1 samples before the newest",
+            next - capacity, drained.first(), 0f
+        )
+        for (i in 1 until drained.size) {
+            assertEquals(
+                "sample $i is out of order, so the ring wrap is wrong",
+                drained[i - 1] + 1f, drained[i], 0f
+            )
+        }
+
+        // A short run must come back whole, without stale slots from the previous pass.
+        accumulate(FloatArray(320) { 9000f + it })
+        val partial = drain()
+        assertEquals("a partial pool must not report capacity", 320, partial.size)
+        assertEquals(9000f, partial.first(), 0f)
+        assertEquals(9319f, partial.last(), 0f)
+    }
 }
