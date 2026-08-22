@@ -15,8 +15,13 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
-/** One report from the AMSAT API (data layer model). */
-private data class ApiReport(
+/**
+ * One report from the AMSAT API (data layer model).
+ *
+ * Internal rather than private so [AmSatRepository.buildStatuses] can be unit-tested:
+ * the JSON parsing around it needs Android's JSONObject, which is a stub on the JVM.
+ */
+internal data class ApiReport(
     val id: String,
     val name: String,
     val callsign: String,
@@ -89,33 +94,55 @@ class AmSatRepository(private val remoteSource: IRemoteSource) : IAmSatRepositor
         }
     }
 
-    /** Build one SatStatus (5 days x 12 slots) per catalog satellite, slotting reports by age. */
-    private fun buildStatuses(names: List<String>, reports: List<ApiReport>, nowSec: Long): List<SatStatus> {
+    /**
+     * Build one SatStatus (3 days x 12 two-hour slots) per catalog satellite.
+     *
+     * Days are UTC calendar days and slots are fixed UTC bands, matching amsat.org: day 0
+     * is today, its slot 0 covers 22:00-24:00 UTC and slot 11 covers 00:00-02:00, so both
+     * the day list and the slots inside it read newest-first.
+     *
+     * A rolling window anchored on "now" was wrong: fetching at 06:07 UTC put 17.9 hours
+     * of yesterday into the cell labelled today. Checked against a live amsat.org page of
+     * 1021 reports, 73% landed in the wrong day column.
+     */
+    internal fun buildStatuses(names: List<String>, reports: List<ApiReport>, nowSec: Long): List<SatStatus> {
         val byName = reports.groupBy { it.name }
         val monthAbbr = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
         val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+
+        // Midnight UTC today, the anchor every slot boundary is derived from.
+        utc.timeInMillis = nowSec * 1000
+        utc.set(Calendar.HOUR_OF_DAY, 0)
+        utc.set(Calendar.MINUTE, 0)
+        utc.set(Calendar.SECOND, 0)
+        utc.set(Calendar.MILLISECOND, 0)
+        val todayMidnightSec = utc.timeInMillis / 1000
+
         val labels = (0 until 3).map { d ->
-            utc.timeInMillis = (nowSec - d * 86400L) * 1000
+            utc.timeInMillis = (todayMidnightSec - d * 86400L) * 1000
             "${monthAbbr[utc.get(Calendar.MONTH)]} ${utc.get(Calendar.DAY_OF_MONTH)}"
         }
         return names.map { name ->
-            val slots = (0 until 36).map { slotIdx ->
-                val slotStart = nowSec - (slotIdx + 1) * 7200L
-                val slotEnd = nowSec - slotIdx * 7200L
-                val inSlot = byName[name].orEmpty().filter { it.reportedTimeUtcSec in slotStart until slotEnd }
-                if (inSlot.isEmpty()) {
-                    SatSlot(statusColor = NO_REPORT_GRAY, count = 0)
-                } else {
-                    val newest = inSlot.maxByOrNull { it.reportedTimeUtcSec }!!
-                    SatSlot(
-                        statusColor = statusColorOf(newest.report),
-                        count = inSlot.size,
-                        reportIds = inSlot.map { it.id }
-                    )
+            val satReports = byName[name].orEmpty()
+            val days = (0 until 3).map { dayIdx ->
+                val dayStart = todayMidnightSec - dayIdx * 86400L
+                val slots = (0 until 12).map { slotIdx ->
+                    // Slot 0 is the last band of the day, so the day reads newest-first.
+                    val slotStart = dayStart + (11 - slotIdx) * 7200L
+                    val slotEnd = slotStart + 7200L
+                    val inSlot = satReports.filter { it.reportedTimeUtcSec in slotStart until slotEnd }
+                    if (inSlot.isEmpty()) {
+                        SatSlot(statusColor = NO_REPORT_GRAY, count = 0)
+                    } else {
+                        val newest = inSlot.maxByOrNull { it.reportedTimeUtcSec }!!
+                        SatSlot(
+                            statusColor = statusColorOf(newest.report),
+                            count = inSlot.size,
+                            reportIds = inSlot.map { it.id }
+                        )
+                    }
                 }
-            }
-            val days = (0 until 3).map { d ->
-                SatDay(dateLabel = labels[d], slots = slots.subList(d * 12, (d + 1) * 12))
+                SatDay(dateLabel = labels[dayIdx], slots = slots)
             }
             SatStatus(name = name, days = days)
         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,7 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtbishop.look4sat.core.domain.model.SatDay
 import com.rtbishop.look4sat.core.domain.model.SatReport
-import com.rtbishop.look4sat.core.domain.model.SatSlot
 import com.rtbishop.look4sat.core.domain.model.SatStatus
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
 import com.rtbishop.look4sat.core.presentation.InfoDialog
@@ -235,7 +235,6 @@ private fun HeaderRow(statuses: List<SatStatus>) {
 /** Satellite row: name takes remaining width; day tiles are fixed-width (tablet-safe). */
 @Composable
 private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
-    val noReportGray = 0xFFC0C0C0L
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -248,9 +247,8 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
             modifier = Modifier.weight(1f).padding(end = 4.dp)
         )
         status.days.forEach { day ->
-            val slot = day.slots.firstOrNull { it.statusColor != noReportGray } ?: day.slots.first()
             DayCell(
-                slot = slot,
+                day = day,
                 modifier = Modifier.width(TILE_WIDTH).padding(horizontal = 2.dp),
                 onClick = { onClickDay(day) }
             )
@@ -258,20 +256,35 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
     }
 }
 
-/** Day block: newest reported status among the day's 12 slots; gray when none. */
+/**
+ * One day as a stripe per two-hour slot.
+ *
+ * Showing a single colour per day hid the shape of the day: a satellite that worked all
+ * morning and failed all afternoon looked identical to one that worked once. At 64 dp
+ * across, twelve stripes are about 5 dp each - roughly 15 px on a 440 dpi screen - and
+ * runs of the same status merge visually, so a typical day reads as a few blocks rather
+ * than twelve thin lines.
+ *
+ * Stripes run newest-first, left to right, matching both the slot order the repository
+ * produces and the day columns in the header. Time therefore flows right to left within
+ * a cell, which is the opposite of the usual convention but consistent with the rest of
+ * the grid.
+ */
 @Composable
-private fun DayCell(slot: SatSlot, modifier: Modifier, onClick: () -> Unit) {
-    val color = Color(slot.statusColor)
-    Box(
+private fun DayCell(day: SatDay, modifier: Modifier, onClick: () -> Unit) {
+    Row(
         modifier = modifier
             .height(28.dp)
             .clip(RoundedCornerShape(4.dp))
-            .background(color)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+            .clickable(onClick = onClick)
     ) {
-        if (slot.count > 0) {
-            Text(text = slot.count.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        day.slots.forEach { slot ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color(slot.statusColor))
+            )
         }
     }
 }

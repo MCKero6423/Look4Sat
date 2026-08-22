@@ -110,6 +110,10 @@ Look4Sat supports both TLE and OMM (Orbit Mean-Elements Message) CSV formats:
 - Orbital math lives in `core:domain/predict/` — dense vector math (SGP4/SDP4). Tread carefully.
 - SSTV decoding in `feature:radar` is experimental; image quality depends on signal strength during satellite pass.
 - `build-logic/convention/` contains shared Gradle configuration — edit there, not in individual modules.
+- AMSAT status colours are ARGB literals in `core:data` (`AmSatRepository.statusColorOf`) and duplicated in
+  `core:presentation/MainTheme.kt`, so the data layer currently decides how the UI looks. Known debt, left as
+  upstream shipped it: the fix is a status enum in `core:domain` with the colour mapping in `core:presentation`.
+  Anything needing themeable, dark-mode-aware or colour-blind-safe status colours has to do that first.
 
 ## Copilot Working Mode: Code-Only
 
