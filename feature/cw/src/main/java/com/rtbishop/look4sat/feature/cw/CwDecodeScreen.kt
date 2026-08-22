@@ -96,6 +96,8 @@ fun CwDecodeScreen() {
     val decodedText by decoder.decodedText.collectAsState()
     val historyText by decoder.historyText.collectAsState()
     val signalStrength by decoder.signalStrength.collectAsState()
+    val estimatedPitch by decoder.estimatedPitch.collectAsState()
+    val activeShiftHz by decoder.activeShiftHz.collectAsState()
     val errorMessage by decoder.errorMessage.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -169,7 +171,12 @@ fun CwDecodeScreen() {
                 .padding(horizontal = 8.dp)
                 .clip(RoundedCornerShape(8.dp))
         ) {
-            CwWaterfallView(state = waterfall, signalStrength = signalStrength)
+            CwWaterfallView(
+                state = waterfall,
+                signalStrength = signalStrength,
+                estimatedPitch = estimatedPitch,
+                toneShiftHz = activeShiftHz
+            )
         }
 
         Text(

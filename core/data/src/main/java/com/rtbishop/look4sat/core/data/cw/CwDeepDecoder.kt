@@ -106,6 +106,9 @@ class CwDeepDecoder(
     private val _estimatedPitch = MutableStateFlow<Float?>(null)
     override val estimatedPitch: StateFlow<Float?> = _estimatedPitch.asStateFlow()
 
+    private val _activeShiftHz = MutableStateFlow(0f)
+    override val activeShiftHz: StateFlow<Float> = _activeShiftHz.asStateFlow()
+
     private val _signalStrength = MutableStateFlow(0f)
     override val signalStrength: StateFlow<Float> = _signalStrength.asStateFlow()
 
@@ -129,9 +132,6 @@ class CwDeepDecoder(
 
     /** Held while inference runs so slow devices skip work instead of queuing it. */
     private val inferenceLock = Mutex()
-
-    /** Shift currently applied to incoming audio; 0 when the tone needs no move. */
-    private var activeShiftHz = 0f
 
     /** Decides what shift to apply from successive tone estimates. */
     private val shiftDecider = CwShiftDecider(SHIFT_HYSTERESIS_HZ)
@@ -304,7 +304,7 @@ class CwDeepDecoder(
      *
      * The detection scan is a bin-by-bin DFT, so it runs at most every
      * [DETECT_INTERVAL_MS] rather than on every ~100 ms capture chunk; the decision it
-     * produces is cached in [activeShiftHz] and applied to the chunks in between. A
+     * produces is cached in [_activeShiftHz] and applied to the chunks in between. A
      * tone already inside the window yields a zero shift, and then this returns the
      * caller's array untouched.
      *
@@ -323,7 +323,7 @@ class CwDeepDecoder(
         if (enabled != previousEnabled) {
             Log.i(TAG, "toneShift: setting changed to $enabled, dropping buffered audio")
             dropBufferedAudio()
-            activeShiftHz = 0f
+            _activeShiftHz.value = 0f
             shiftDecider.reset()
             lastDetectAtMs = 0L
             detectionPool.clear()
@@ -343,7 +343,7 @@ class CwDeepDecoder(
 
         // Streaming keeps the Hilbert filter history and mixer phase across chunks;
         // shifting each chunk in isolation distorted the 62 samples at its edges.
-        return streamingShifter.process(resampled, activeShiftHz, CwDeepSpectrogram.SAMPLE_RATE)
+        return streamingShifter.process(resampled, _activeShiftHz.value, CwDeepSpectrogram.SAMPLE_RATE)
     }
 
     /**
@@ -368,7 +368,7 @@ class CwDeepDecoder(
     private fun runDetection(sample: FloatArray) {
         val analysis = CwToneShifter.analyse(sample, CwDeepSpectrogram.SAMPLE_RATE)
         val decision = shiftDecider.accept(analysis)
-        activeShiftHz = decision.shiftHz
+        _activeShiftHz.value = decision.shiftHz
 
         when (decision.outcome) {
             CwShiftDecider.Outcome.NO_TONE -> Log.d(
@@ -493,7 +493,7 @@ class CwDeepDecoder(
         val absoluteBin = 32 + bestBin
         // Undo the shift before reporting: the spectrogram sees the moved tone, but
         // the readout must show the pitch the operator actually hears on the radio.
-        _estimatedPitch.value = (absoluteBin * binHz - activeShiftHz).toFloat()
+        _estimatedPitch.value = (absoluteBin * binHz - _activeShiftHz.value).toFloat()
 
         val mean = total / count
         _signalStrength.value = ((bestValue - mean) / bestValue).coerceIn(0f, 1f)
@@ -508,7 +508,7 @@ class CwDeepDecoder(
         _signalStrength.value = 0f
         _lastInferenceMs.value = 0
         // Re-detect from scratch: the operator may have retuned before resetting.
-        activeShiftHz = 0f
+        _activeShiftHz.value = 0f
         shiftDecider.reset()
         lastDetectAtMs = 0L
         detectionPool.clear()

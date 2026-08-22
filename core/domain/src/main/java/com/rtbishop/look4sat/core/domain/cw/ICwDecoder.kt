@@ -46,6 +46,9 @@ interface ICwDecoder {
     /** Detected tone frequency in Hz, or null before a tone is found. */
     val estimatedPitch: StateFlow<Float?>
 
+    /** Current shift applied to bring the tone into the model's window, 0f when idle. */
+    val activeShiftHz: StateFlow<Float>
+
     /** Relative signal strength in 0..1 for level meters. */
     val signalStrength: StateFlow<Float>
 

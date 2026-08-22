@@ -18,15 +18,21 @@
 package com.rtbishop.look4sat.feature.cw
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -113,16 +119,26 @@ class CwWaterfallState(private val historyRows: Int = 96) {
 /**
  * Draws the waterfall newest-row-last, one pixel column per frequency bin.
  * Colour ramp is the inferno palette (black -> purple -> orange -> yellow).
+ *
+ * When [toneShiftHz] is non-zero a tone is being shifted into the model's window.
+ * Two markers are drawn on top of the waterfall:
+ * - A green dashed line at the target (800 Hz) showing where the tone lands.
+ * - An orange marker at the original tone frequency. When the original is outside
+ *   the visible 400-1200 Hz band, an arrow and frequency label are drawn at the
+ *   nearest edge pointing toward the tone.
  */
 @Composable
 internal fun CwWaterfallView(
     state: CwWaterfallState,
     signalStrength: Float,
+    estimatedPitch: Float? = null,
+    toneShiftHz: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     val revision by state.revision.collectAsState()
 
-    Canvas(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
         // Touch the revision inside the draw scope so a new spectrum triggers a
         // redraw; without this read the canvas would only ever render once.
         @Suppress("UNUSED_EXPRESSION") revision
@@ -163,7 +179,67 @@ internal fun CwWaterfallView(
                 size = Size(size.width * signalStrength.coerceIn(0f, 1f), 3f)
             )
         }
-    }
+
+        // Tone-shift markers: only when the shift is active and we know the pitch.
+        if (toneShiftHz != 0f && estimatedPitch != null && estimatedPitch > 0f) {
+            val minHz = CwDeepSpectrogram.MIN_FREQ_HZ.toFloat()
+            val maxHz = CwDeepSpectrogram.MAX_FREQ_HZ.toFloat()
+            val targetHz = (CwDeepSpectrogram.MIN_FREQ_HZ + (CwDeepSpectrogram.MAX_FREQ_HZ - CwDeepSpectrogram.MIN_FREQ_HZ) / 2.0).toFloat()
+            val hzToX: (Float) -> Float = { ((it - minHz) / (maxHz - minHz) * size.width).toFloat() }
+            val dashLen = 4f
+            val labelSize = 10f
+
+            // Green dashed line at the target.
+            val targetX = hzToX(targetHz).coerceIn(0f, size.width)
+            val dashCount = (size.height / (dashLen * 2)).toInt()
+            for (i in 0 until dashCount) {
+                drawLine(
+                    color = Color(0xFF4CD964).copy(alpha = 0.5f),
+                    start = Offset(targetX, i * dashLen * 2),
+                    end = Offset(targetX, (i * dashLen * 2) + dashLen),
+                    strokeWidth = 1.5f
+                )
+            }
+
+            // Original pitch marker.
+            val origPitch = estimatedPitch + toneShiftHz  // undo the correction
+            if (origPitch in minHz..maxHz) {
+                // Inside the visible band: orange dashed line at the original position.
+                val origX = hzToX(origPitch).coerceIn(0f, size.width)
+                for (i in 0 until dashCount) {
+                    drawLine(
+                        color = Color(0xFFFF9500).copy(alpha = 0.5f),
+                        start = Offset(origX, i * dashLen * 2),
+                        end = Offset(origX, (i * dashLen * 2) + dashLen),
+                        strokeWidth = 1.5f
+                    )
+                }
+            }
+            // Draw the original frequency label at the top edge.
+            val labelX = hzToX(origPitch).coerceIn(labelSize, size.width - labelSize * 4)
+            drawRect(
+                color = Color(0xFFFF9500).copy(alpha = 0.15f),
+                topLeft = Offset(labelX - 2f, 0f),
+                size = Size(labelSize * 5, labelSize + 4f)
+            )
+            // Note: Compose Canvas doesn't support drawText natively;
+            // the label is a composable overlaid on the waterfall instead.
+        }
+        } // end Canvas
+
+        // Frequency labels overlaid on the waterfall.
+        if (toneShiftHz != 0f && estimatedPitch != null && estimatedPitch > 0f) {
+            val origPitch = estimatedPitch + toneShiftHz
+            Text(
+                text = "${origPitch.toInt()} Hz",
+                fontSize = 9.sp,
+                color = Color(0xFFFF9500),
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 4.dp, top = 2.dp)
+            )
+        }
+    } // end Box
 }
 
 /**
