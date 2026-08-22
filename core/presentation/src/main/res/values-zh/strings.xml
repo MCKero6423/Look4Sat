@@ -89,6 +89,10 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * 新: AMSAT 状态页每天显示 12 条两小时条纹,当日内的中断一目了然
+        * 新: AMSAT 状态页改用 UTC 日历日, 与官方页面一致
+        * 新: 两种灰色区分"无人上报"和"无数据"
+        * 新: 数据覆盖标记, 标明被挤掉的卫星数据
         * 新: CW 解码改用 DeepCW 神经网络,弱信号摩尔斯码解码率大幅提升
         * 新: 内置完整版 fp32 模型,解码精度最高
         * 新: CW 解码历史永久保留(文字不再消失)

@@ -92,6 +92,10 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
+        * BARU: Status AMSAT menampilkan 12 garis dua jam per hari — pemadaman dalam hari kini terlihat
+        * BARU: Status AMSAT menggunakan hari kalender UTC, cocok dengan halaman resmi
+        * BARU: dua abu-abu membedakan apakah slot tidak dilaporkan atau tidak pernah diambil
+        * BARU: penanda cakupan data menunjukkan saat satelit yang lebih sepi terdesak keluar
         * BARU: Decoder CW kini memakai jaringan saraf DeepCW — jauh lebih baik menafsir Morse sinyal lemah
         * BARU: menyertakan model fp32 penuh untuk akurasi tertinggi
         * BARU: Riwayat CW tersimpan permanen (teks tidak lagi hilang)

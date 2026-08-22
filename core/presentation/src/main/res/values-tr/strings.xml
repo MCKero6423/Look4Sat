@@ -97,6 +97,10 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * YENİ: AMSAT durumu günde 12 iki saatlik şerit gösterir — gün içi kesintiler görünür
+        * YENİ: AMSAT durumu UTC takvim günlerini kullanır, resmi sayfayla eşleşir
+        * YENİ: iki gri, bir yuvanın rapor edilmediğini mi yoksa hiç alınmadığını mı ayırt eder
+        * YENİ: veri kapsamı işareti, daha sessiz uyduların küresel çekimden dışlandığını gösterir
         * YENİ: CW çözücü artık DeepCW sinir ağını kullanıyor — zayıf sinyal Morse çözümü çok daha iyi
         * YENİ: en yüksek doğruluk için tam fp32 DeepCW modeli dahil
         * YENİ: CW çözüm geçmişi kalıcı olarak saklanır (metin artık kaybolmaz)

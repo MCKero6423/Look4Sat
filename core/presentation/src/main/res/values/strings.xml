@@ -101,6 +101,14 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * NEW: AMSAT status shows 12 two-hour stripes per day — outages inside a day are now visible
+        * NEW: AMSAT status uses UTC calendar days, matching the official page
+        * NEW: two greys tell you whether a slot had no report or was never fetched
+        * NEW: a data-coverage marker shows when quieter satellites are crowded out of the global pull
+        * NEW: AMSAT status shows 12 two-hour stripes per day — outages inside a day are now visible
+        * NEW: AMSAT status uses UTC calendar days, matching the official page
+        * NEW: two greys tell you whether a slot had no report or was never fetched
+        * NEW: a data-coverage marker shows when quieter satellites are crowded out of the global pull
         * NEW: CW decoder now uses the DeepCW neural network — far better weak-signal Morse decoding
         * NEW: ships the full fp32 DeepCW model for maximum decode accuracy
         * NEW: CW decode history is kept permanently (text no longer disappears)
