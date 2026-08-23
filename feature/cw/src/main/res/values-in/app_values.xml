@@ -8,4 +8,9 @@
     <string name="cw_open_settings">Buka pengaturan aplikasi</string>
     <string name="cw_tone_shifted_hint">Nada %1$d Hz dipindahkan ke rentang dekode 400-1200 Hz</string>
     <string name="cw_tone_outside_hint">Nada %1$d Hz di luar rentang dekode 400-1200 Hz. Aktifkan geser nada di Pengaturan.</string>
+    <string name="cw_waterfall_desc">Spektrum air terjun, %1$s</string>
+    <string name="cw_waterfall_idle">belum ada sinyal</string>
+    <string name="cw_waterfall_shifted">nada %1$d hertz, dipindahkan ke rentang dekode</string>
+    <string name="cw_waterfall_outside">nada %1$d hertz, di luar rentang dekode</string>
+    <string name="cw_waterfall_inside">nada %1$d hertz</string>
 </resources>

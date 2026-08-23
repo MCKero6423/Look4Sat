@@ -62,6 +62,20 @@ object CwDeepSpectrogram {
     /** Number of frequency bins the model expects. */
     const val FREQUENCY_BINS = 65
 
+    /**
+     * Widest span worth displaying: DC to Nyquist.
+     *
+     * The model reads [MIN_FREQ_HZ]..[MAX_FREQ_HZ], but a tone outside that range leaves
+     * no trace inside it - measured on keyed audio, the brightest column in the narrow
+     * view swings 1.01x between key-down and key-up, against 13.76x for a tone the model
+     * can see. So the narrow view cannot even show that a signal exists, and the display
+     * spans the whole band instead. Nothing above Nyquist can be shown at all: it aliases.
+     */
+    const val DISPLAY_MIN_FREQ_HZ = 0.0
+
+    /** Upper end of the display span; see [DISPLAY_MIN_FREQ_HZ]. */
+    const val DISPLAY_MAX_FREQ_HZ = SAMPLE_RATE / 2.0
+
     /** Milliseconds of audio represented by one output frame. */
     const val MS_PER_FRAME = 1000.0 * HOP_LENGTH / SAMPLE_RATE
 
@@ -111,17 +125,30 @@ object CwDeepSpectrogram {
      *
      * @return `[frames][FREQUENCY_BINS]` values, all non-negative.
      */
-    fun compute(audio: FloatArray): Array<FloatArray> {
+    fun compute(
+        audio: FloatArray,
+        minHz: Double = MIN_FREQ_HZ,
+        maxHz: Double = MAX_FREQ_HZ
+    ): Array<FloatArray> {
         require(audio.size >= FFT_LENGTH) {
             "audio is too short for fftLength=$FFT_LENGTH, got ${audio.size}"
         }
 
-        val (startBin, stopBin) = frequencyBinRange(
-            SAMPLE_RATE, FFT_LENGTH, MIN_FREQ_HZ, MAX_FREQ_HZ
-        )
+        val (startBin, stopBin) = frequencyBinRange(SAMPLE_RATE, FFT_LENGTH, minHz, maxHz)
         val bins = stopBin - startBin
-        require(bins == FREQUENCY_BINS) {
-            "expected $FREQUENCY_BINS bins, computed $bins"
+        require(bins > 0) { "empty bin range for $minHz..${maxHz}Hz" }
+        // The model's range must yield exactly the bin count it was trained on. Written as
+        // an implication rather than a disjunction of all three terms: `a != x || b != y ||
+        // bins == n` is satisfied by any custom range regardless of the bin count, which
+        // would leave the invariant unenforced for the caller most likely to break it.
+        val isModelRange = minHz == MIN_FREQ_HZ && maxHz == MAX_FREQ_HZ
+        require(!isModelRange || bins == FREQUENCY_BINS) {
+            "expected $FREQUENCY_BINS bins for the model range, computed $bins"
+        }
+        // Nothing may run off the end of the FFT output: a real signal has FFT_LENGTH / 2
+        // + 1 distinct bins, and asking beyond Nyquist would index past them.
+        require(stopBin <= FFT_LENGTH / 2 + 1) {
+            "maxHz ${maxHz}Hz is above Nyquist ${SAMPLE_RATE / 2}Hz"
         }
 
         val padded = reflectPad(audio, FFT_LENGTH / 2)

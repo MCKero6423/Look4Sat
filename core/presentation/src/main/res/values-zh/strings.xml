@@ -89,6 +89,10 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * 新: CW 瀑布图标出音调真实位置, 即使它在解码范围之外
+        * 新: 瀑布图下方一行文字说明音调频率, 以及是否已搬入解码范围
+        * 新: 解码范围外的音调不再让信号强度条显示高值
+        * 新: 设置里可选 AMSAT 日格样式 —— 12 条纹, 或单色加报告数
         * 新: AMSAT 状态页每天显示 12 条两小时条纹,当日内的中断一目了然
         * 新: AMSAT 状态页改用 UTC 日历日, 与官方页面一致
         * 新: 两种灰色区分"无人上报"和"无数据"
@@ -109,7 +113,7 @@
         * 修复: 过境进度计算防除零崩溃
         * 修复: 并发 calculatePasses 调用不再触发重复计算
         * 修复: WaveLog 重复提交 QSO 与网格更新竞态
-    </string>
+        </string>
 
     <!-- Radar screen -->
     <string name="radar_back">后退</string>
@@ -310,4 +314,5 @@
     <string name="amsat_no_data_legend">无数据</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT：每 2 小时一条纹</string>
     <string name="prefs_other_amsat_stripes_help">开启时每天画成 12 条两小时条纹，一天之内的中断也看得见。关闭时每天显示一个颜色和报告总数——颜色取当天最差状态，所以出现过一次故障也不会被藏起来。</string>
+    <string name="amsat_day_desc">%1$s，%2$s，%3$d 条报告</string>
 </resources>

@@ -34,6 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,7 +96,13 @@ class CwWaterfallState(private val historyRows: Int = 96) {
         }
 
         // FFT outside the lock; only the append below needs exclusivity.
-        val computed = CwDeepSpectrogram.compute(audio)
+        // The whole band, not just the model's window: a tone outside the window leaves no
+        // usable trace inside it, so the narrow view showed the operator nothing at all.
+        val computed = CwDeepSpectrogram.compute(
+            audio,
+            CwDeepSpectrogram.DISPLAY_MIN_FREQ_HZ,
+            CwDeepSpectrogram.DISPLAY_MAX_FREQ_HZ
+        )
         synchronized(lock) {
             // Drop the result when the user cleared the display while this FFT
             // was running: those samples belong to the discarded history.
@@ -124,23 +133,38 @@ class CwWaterfallState(private val historyRows: Int = 96) {
  * Draws the waterfall newest-row-last, one pixel column per frequency bin.
  * Colour ramp is the inferno palette (black -> purple -> orange -> yellow).
  *
- * When [toneShiftHz] is non-zero the decoder is moving a tone into the model's window,
- * and two markers say so — otherwise the operator has no way to tell, because this
- * picture is of the *raw* audio and an out-of-window tone simply is not in it.
- * Green marks where the tone is being delivered to the model; orange marks where it
- * actually is, or which edge it lies beyond when that is off-picture.
+ * Spans the whole audio band, not just the model's window, so a tone the decoder cannot
+ * read is still in the picture — inside the window such a tone leaves no usable trace at
+ * all, and the operator could not even tell a signal was present. The window itself is
+ * framed and the rest dimmed, so it stays clear which part is being decoded.
+ *
+ * When [toneShiftHz] is non-zero a tone is being moved into that window: green marks
+ * where it is being delivered, orange marks [detectedToneHz] where the tone really is.
  */
 @Composable
 internal fun CwWaterfallView(
     state: CwWaterfallState,
     signalStrength: Float,
-    estimatedPitch: Float? = null,
+    detectedToneHz: Float? = null,
     toneShiftHz: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     val revision by state.revision.collectAsState()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // A Canvas announces nothing, so the whole spectrum was silent to a screen reader.
+    // The tone and whether the decoder can reach it are the facts the picture conveys,
+    // so they are what the description says.
+    val hz = detectedToneHz?.roundToInt()
+    val toneDesc = when {
+        hz == null || hz <= 0 -> stringResource(R.string.cw_waterfall_idle)
+        toneShiftHz != 0f -> stringResource(R.string.cw_waterfall_shifted, hz)
+        CwToneShifter.isInsideWindow(hz.toFloat()) ->
+            stringResource(R.string.cw_waterfall_inside, hz)
+        else -> stringResource(R.string.cw_waterfall_outside, hz)
+    }
+    val description = stringResource(R.string.cw_waterfall_desc, toneDesc)
+
+    Box(modifier = modifier.fillMaxSize().semantics { contentDescription = description }) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             // Touch the revision inside the draw scope so a new spectrum triggers a
             // redraw; without this read the canvas would only ever render once.
@@ -155,11 +179,13 @@ internal fun CwWaterfallView(
 
             if (peak > 0f) {
                 val rowHeight = size.height / rows.size
-                val binWidth = size.width / CwDeepSpectrogram.FREQUENCY_BINS
+                // From the row itself, not the model's bin count: the display spans the
+                // whole band and so carries more bins than the model reads.
+                val binWidth = size.width / rows.first().size
                 for ((index, row) in rows.withIndex()) {
                     val y = index * rowHeight
                     // Linear interpolation between adjacent bins via a horizontal
-                    // gradient removes the blocky "pixel" look of 65 discrete columns.
+                    // gradient removes the blocky "pixel" look of discrete columns.
                     for (bin in 0 until row.size - 1) {
                         val m0 = (row[bin] / peak).coerceIn(0f, 1f)
                         val m1 = (row[bin + 1] / peak).coerceIn(0f, 1f)
@@ -177,7 +203,8 @@ internal fun CwWaterfallView(
             // branch above because a shift stays applied through key-up gaps: the
             // markers must hold still through them, not blink out whenever the
             // picture goes momentarily quiet.
-            drawToneShiftMarkers(estimatedPitch, toneShiftHz)
+            drawDecoderWindow()
+            drawToneShiftMarkers(detectedToneHz, toneShiftHz)
 
             if (signalStrength > 0f) {
                 drawRect(
@@ -193,13 +220,13 @@ internal fun CwWaterfallView(
         // Suppressed for a non-positive pitch, where the readout is an artefact of the
         // loudest bin drifting below the shift and printing it would just show nonsense —
         // the marker itself still shows the low edge.
-        if (toneShiftHz != 0f && estimatedPitch != null && estimatedPitch > 0f) {
+        if (toneShiftHz != 0f && detectedToneHz != null && detectedToneHz > 0f) {
             // Halfway is the tipping point, so the text sits nearer the marker it belongs
             // to wherever that is — including a pitch on the upper edge, whose line is
             // drawn hard against the right of the picture.
-            val onHighSide = estimatedPitch > TONE_SHIFT_TARGET_HZ
+            val onHighSide = detectedToneHz > CwDeepSpectrogram.DISPLAY_MAX_FREQ_HZ / 2
             Text(
-                text = "${estimatedPitch.roundToInt()} Hz",
+                text = "${detectedToneHz.roundToInt()} Hz",
                 fontSize = 9.sp,
                 color = TONE_ORIGIN_COLOUR,
                 modifier = Modifier
@@ -220,87 +247,94 @@ internal fun CwWaterfallView(
 private val TONE_SHIFT_TARGET_HZ = CwToneShifter.TARGET_HZ.toFloat()
 
 private val TONE_TARGET_COLOUR = Color(0xFF4CD964)
-private val TONE_ORIGIN_COLOUR = Color(0xFFFF9500)
+
+/**
+ * Marker colour for the tone's own frequency.
+ *
+ * Cyan, not the orange it used to be: the inferno ramp runs black through purple and
+ * orange to pale yellow, so an orange marker sitting on the very trace it points at was
+ * the same hue as that trace and could not be told apart from it. Cyan appears nowhere in
+ * the ramp.
+ */
+private val TONE_ORIGIN_COLOUR = Color(0xFF00E5FF)
+
+/**
+ * Shades the part of the band the model does not read, and marks the tone within it.
+ *
+ * The picture spans the whole band while the decoder reads only a window of it, so without
+ * this the operator cannot tell which half of what they are looking at is being decoded.
+ */
+private fun DrawScope.drawDecoderWindow() {
+    val loX = hzToX(CwDeepSpectrogram.MIN_FREQ_HZ.toFloat()) * size.width
+    val hiX = hzToX(CwDeepSpectrogram.MAX_FREQ_HZ.toFloat()) * size.width
+    // Lift the readable band rather than darken the rest. The background is already almost
+    // black, so a dim wash over it moves only a couple of levels and reads as nothing; a
+    // faint lift inside is visible against it while leaving the trace itself untouched.
+    drawRect(
+        color = Color(0xFF7FA8D8).copy(alpha = 0.16f),
+        topLeft = Offset(loX, 0f),
+        size = Size(hiX - loX, size.height)
+    )
+    val edge = Color(0xFF8FA6C4).copy(alpha = 0.8f)
+    drawRect(color = edge, topLeft = Offset(loX, 0f), size = Size(1.5f, size.height))
+    drawRect(color = edge, topLeft = Offset(hiX - 1.5f, 0f), size = Size(1.5f, size.height))
+}
 
 /**
  * Marks where the shifter is delivering the tone, and where the tone really is.
  *
- * Draws nothing when no shift is applied: the tone is then inside the window, visible in
- * the spectrum on its own, and a marker would only add clutter.
+ * Draws nothing when no shift is applied: the tone is then inside the window, plainly
+ * visible in the spectrum on its own, and a marker would only add clutter.
  */
-private fun DrawScope.drawToneShiftMarkers(estimatedPitch: Float?, toneShiftHz: Float) {
+private fun DrawScope.drawToneShiftMarkers(detectedToneHz: Float?, toneShiftHz: Float) {
     if (toneShiftHz == 0f) return
 
-    val minHz = CwDeepSpectrogram.MIN_FREQ_HZ.toFloat()
-    val maxHz = CwDeepSpectrogram.MAX_FREQ_HZ.toFloat()
-
     // The target line is drawn on the strength of the shift alone. A shift being applied
-    // is the fact worth showing, and it must not depend on the pitch readout: shifting a
-    // 100 Hz tone up reports a negative pitch whenever the loudest bin drifts low, and
-    // gating on pitch there put the display straight back to showing nothing at all.
-    dashedMarkerColumn(hzToX(TONE_SHIFT_TARGET_HZ, minHz, maxHz), TONE_TARGET_COLOUR)
+    // is the fact worth showing, and it must not depend on the tone readout, which can be
+    // absent for a weak or slow fist even while a shift stays latched from an earlier scan.
+    markerBracket(hzToX(TONE_SHIFT_TARGET_HZ), TONE_TARGET_COLOUR)
 
-    // A pitch we cannot place: draw only the target line rather than guess a side.
-    if (estimatedPitch == null || estimatedPitch.isNaN()) return
+    // No usable tone estimate: the target line alone, rather than a guessed position.
+    if (detectedToneHz == null || detectedToneHz.isNaN() || detectedToneHz <= 0f) return
 
-    // estimatedPitch is already the real pitch — the spectrogram measures the shifted
-    // audio and the decoder subtracts the shift back out before publishing it. Adding
-    // the shift again here would land this marker on top of the target one.
-    if (estimatedPitch in minHz..maxHz) {
-        dashedMarkerColumn(hzToX(estimatedPitch, minHz, maxHz), TONE_ORIGIN_COLOUR)
-        return
-    }
+    // The tone is genuinely in the picture now, so mark it where it is.
+    markerBracket(hzToX(detectedToneHz), TONE_ORIGIN_COLOUR)
+}
 
-    // Beyond the picture, so mark the edge it lies past. Everything is drawn INWARD:
-    // anything placed outside the canvas is clipped away, which would hide the marker in
-    // exactly the case it exists for. A non-positive pitch counts as the low side — it
-    // means the loudest bin landed below the shift, so the tone is at the bottom end.
-    val onLowSide = estimatedPitch < minHz
-    val barWidth = 3f
-    val chevron = 7f
-    val inward = if (onLowSide) 1f else -1f
-    val tipX = if (onLowSide) barWidth else size.width - barWidth
+/** Height of the strip along the top reserved for frequency markers. */
+private const val MARKER_GUTTER_PX = 7f
 
+/**
+ * A marker pip in the gutter above the spectrum, at [fraction] across.
+ *
+ * Kept out of the spectrum rather than drawn across it. A line laid over a CW trace cannot
+ * be told apart from the keying gaps in that trace, and the marker that matters most sits
+ * exactly on the tone it points at - so it was invisible in the one place it was needed.
+ * A pip in its own strip is clear of the signal and still reads against the axis.
+ */
+private fun DrawScope.markerBracket(fraction: Float, colour: Color) {
+    val x = (fraction * size.width).coerceIn(1f, size.width - 3f)
     drawRect(
-        color = TONE_ORIGIN_COLOUR.copy(alpha = 0.85f),
-        topLeft = Offset(if (onLowSide) 0f else size.width - barWidth, 0f),
-        size = Size(barWidth, size.height)
+        color = colour,
+        topLeft = Offset(x - 1f, 0f),
+        size = Size(3f, MARKER_GUTTER_PX)
     )
-    // Arms open inward from a tip on the bar, so it reads as pointing off-picture.
-    val midY = size.height / 2f
-    drawLine(
-        color = TONE_ORIGIN_COLOUR,
-        start = Offset(tipX, midY),
-        end = Offset(tipX + inward * chevron, midY - chevron),
-        strokeWidth = 2f
-    )
-    drawLine(
-        color = TONE_ORIGIN_COLOUR,
-        start = Offset(tipX, midY),
-        end = Offset(tipX + inward * chevron, midY + chevron),
-        strokeWidth = 2f
+    // A short stub reaching into the spectrum, so the pip reads as pointing at a
+    // frequency rather than floating above one, without masking the trace below.
+    drawRect(
+        color = colour.copy(alpha = 0.55f),
+        topLeft = Offset(x, MARKER_GUTTER_PX),
+        size = Size(1f, MARKER_GUTTER_PX * 0.7f)
     )
 }
 
-private fun hzToX(hz: Float, minHz: Float, maxHz: Float): Float =
-    (hz - minHz) / (maxHz - minHz)
-
-/** A dotted vertical line at [fraction] of the width, 0..1 spanning the visible band. */
-private fun DrawScope.dashedMarkerColumn(fraction: Float, colour: Color) {
-    val dashLen = 4f
-    // Ceiling, not floor: flooring leaves the bottom of the column undrawn.
-    val dashCount = ceil(size.height / (dashLen * 2)).toInt()
-    val x = (fraction * size.width).coerceIn(0f, size.width)
-    for (i in 0 until dashCount) {
-        val top = i * dashLen * 2
-        drawLine(
-            color = colour.copy(alpha = 0.55f),
-            start = Offset(x, top),
-            end = Offset(x, (top + dashLen).coerceAtMost(size.height)),
-            strokeWidth = 1.5f
-        )
-    }
+/** Fraction across the display for [hz], 0..1 spanning the visible band. */
+private fun hzToX(hz: Float): Float {
+    val lo = CwDeepSpectrogram.DISPLAY_MIN_FREQ_HZ.toFloat()
+    val hi = CwDeepSpectrogram.DISPLAY_MAX_FREQ_HZ.toFloat()
+    return (hz - lo) / (hi - lo)
 }
+
 
 /**
  * matplotlib "inferno" colour map, approximated with piecewise-linear stops

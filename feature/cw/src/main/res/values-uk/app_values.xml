@@ -2,4 +2,9 @@
 <resources>
     <string name="cw_tone_shifted_hint">Тон %1$d Гц перенесено у вікно декодування 400-1200 Гц</string>
     <string name="cw_tone_outside_hint">Тон %1$d Гц перебуває поза вікном декодування 400-1200 Гц. Увімкніть зсув тону в налаштуваннях.</string>
+    <string name="cw_waterfall_desc">Водоспадний спектр, %1$s</string>
+    <string name="cw_waterfall_idle">сигналу ще немає</string>
+    <string name="cw_waterfall_shifted">тон %1$d герц, перенесено в діапазон декодування</string>
+    <string name="cw_waterfall_outside">тон %1$d герц, поза діапазоном декодування</string>
+    <string name="cw_waterfall_inside">тон %1$d герц</string>
 </resources>

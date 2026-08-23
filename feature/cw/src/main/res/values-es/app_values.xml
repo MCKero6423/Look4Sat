@@ -2,4 +2,9 @@
 <resources>
     <string name="cw_tone_shifted_hint">Tono de %1$d Hz trasladado a la ventana de decodificación de 400-1200 Hz</string>
     <string name="cw_tone_outside_hint">El tono de %1$d Hz está fuera de la ventana de decodificación de 400-1200 Hz. Active el desplazamiento de tono en Ajustes.</string>
+    <string name="cw_waterfall_desc">Espectro de cascada, %1$s</string>
+    <string name="cw_waterfall_idle">aún sin señal</string>
+    <string name="cw_waterfall_shifted">tono de %1$d hercios, trasladado al rango de decodificación</string>
+    <string name="cw_waterfall_outside">tono de %1$d hercios, fuera del rango de decodificación</string>
+    <string name="cw_waterfall_inside">tono de %1$d hercios</string>
 </resources>

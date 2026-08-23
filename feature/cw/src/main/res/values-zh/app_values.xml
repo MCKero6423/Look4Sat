@@ -8,4 +8,9 @@
     <string name="cw_open_settings">打开应用设置</string>
     <string name="cw_tone_shifted_hint">已将 %1$d Hz 音调搬入 400-1200 Hz 解码范围</string>
     <string name="cw_tone_outside_hint">%1$d Hz 音调在 400-1200 Hz 解码范围外，请在设置中开启音调搬移。</string>
+    <string name="cw_waterfall_desc">瀑布频谱图，%1$s</string>
+    <string name="cw_waterfall_idle">暂无信号</string>
+    <string name="cw_waterfall_shifted">音调 %1$d 赫兹，已搬入解码范围</string>
+    <string name="cw_waterfall_outside">音调 %1$d 赫兹，在解码范围外</string>
+    <string name="cw_waterfall_inside">音调 %1$d 赫兹</string>
 </resources>

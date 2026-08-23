@@ -8,4 +8,9 @@
     <string name="cw_open_settings">Uygulama ayarlarını aç</string>
     <string name="cw_tone_shifted_hint">%1$d Hz tonu 400-1200 Hz kod çözme aralığına taşındı</string>
     <string name="cw_tone_outside_hint">%1$d Hz tonu 400-1200 Hz kod çözme aralığının dışında. Ayarlar\'dan ton kaydırmayı açın.</string>
+    <string name="cw_waterfall_desc">Şelale spektrumu, %1$s</string>
+    <string name="cw_waterfall_idle">henüz sinyal yok</string>
+    <string name="cw_waterfall_shifted">ton %1$d hertz, kod çözme aralığına taşındı</string>
+    <string name="cw_waterfall_outside">ton %1$d hertz, kod çözme aralığının dışında</string>
+    <string name="cw_waterfall_inside">ton %1$d hertz</string>
 </resources>

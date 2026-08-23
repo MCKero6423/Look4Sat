@@ -175,4 +175,5 @@
     <string name="amsat_no_data_legend">Sin datos</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: una franja por franja de 2 horas</string>
     <string name="prefs_other_amsat_stripes_help">Activado, cada día son doce franjas de dos horas, así se ve una interrupción dentro del día. Desactivado, cada día es un color y un recuento de informes; el color es el peor estado del día, así que un solo fallo sigue viéndose.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, %3$d informes</string>
 </resources>

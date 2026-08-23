@@ -175,4 +175,5 @@
     <string name="amsat_no_data_legend">දත්ත නැත</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: පැය 2 කට එක තීරුවක්</string>
     <string name="prefs_other_amsat_stripes_help">සක්‍රිය විට සෑම දිනයක් පැය දෙකේ තීරු දොළහකි, එබැවින් දිනක් තුළ ඇති බිඳවැටීම දැකිය හැක. අක්‍රිය විට සෑම දිනයක් එක් වර්ණයක් සහ වාර්තා ගණනකි — වර්ණය එදින නරකම තත්ත්වයයි, එබැවින් එක් අසාර්ථකත්වයක් වුවද පෙනේ.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, වාර්තා %3$d</string>
 </resources>

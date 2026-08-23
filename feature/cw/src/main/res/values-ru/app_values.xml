@@ -2,4 +2,9 @@
 <resources>
     <string name="cw_tone_shifted_hint">Тон %1$d Гц перенесён в окно декодирования 400-1200 Гц</string>
     <string name="cw_tone_outside_hint">Тон %1$d Гц находится вне окна декодирования 400-1200 Гц. Включите сдвиг тона в настройках.</string>
+    <string name="cw_waterfall_desc">Водопадный спектр, %1$s</string>
+    <string name="cw_waterfall_idle">сигнала пока нет</string>
+    <string name="cw_waterfall_shifted">тон %1$d герц, перенесён в диапазон декодирования</string>
+    <string name="cw_waterfall_outside">тон %1$d герц, вне диапазона декодирования</string>
+    <string name="cw_waterfall_inside">тон %1$d герц</string>
 </resources>

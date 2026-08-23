@@ -87,6 +87,9 @@ class CwDeepDecoder(
         /** Detection cadence; re-running it on every 100 ms chunk would be wasteful. */
         const val DETECT_INTERVAL_MS = 2000
 
+        /** Silence after which a tone reading is treated as stale. See runDetection. */
+        const val TONE_EXPIRY_MS = 10_000L
+
         /**
          * Minimum change in the required shift before the window is re-shifted.
          *
@@ -138,6 +141,9 @@ class CwDeepDecoder(
 
     /** Decides what shift to apply from successive tone estimates. */
     private val shiftDecider = CwShiftDecider(SHIFT_HYSTERESIS_HZ)
+
+    /** Wall clock of the last scan that actually found a tone, for [TONE_EXPIRY_MS]. */
+    private var lastToneAtMs = 0L
 
     /** Wall clock of the last detection scan, throttling it to [DETECT_INTERVAL_MS]. */
     private var lastDetectAtMs = 0L
@@ -328,6 +334,7 @@ class CwDeepDecoder(
             dropBufferedAudio()
             _activeShiftHz.value = 0f
             _detectedToneHz.value = null
+            lastToneAtMs = 0L
             shiftDecider.reset()
             lastDetectAtMs = 0L
             detectionPool.clear()
@@ -380,8 +387,18 @@ class CwDeepDecoder(
 
         // Published either way: the UI needs the real pitch to say why nothing decodes
         // when shifting is off and the tone is out of range. Held through silences for
-        // the same reason the shift is - CW is gaps, and a gap is not a retune.
-        analysis.toneHz?.let { _detectedToneHz.value = it.toFloat() }
+        // the same reason the shift is - CW is gaps, and a gap is not a retune - but not
+        // indefinitely: without an expiry the last out-of-band reading survived every
+        // silent scan, so after retuning into the band the hint kept naming a frequency
+        // the operator had left. Ten seconds clears comfortably any real gap, the longest
+        // being about 1.7 s at 5 WPM between words plus a few seconds of thinking.
+        val tone = analysis.toneHz
+        if (tone != null) {
+            _detectedToneHz.value = tone
+            lastToneAtMs = System.currentTimeMillis()
+        } else if (System.currentTimeMillis() - lastToneAtMs > TONE_EXPIRY_MS) {
+            _detectedToneHz.value = null
+        }
 
         if (!shiftEnabled) return
 
@@ -516,14 +533,17 @@ class CwDeepDecoder(
         val mean = total / count
         val prominence = ((bestValue - mean) / bestValue).coerceIn(0f, 1f)
 
-        // Zero when the tone is out of range and not being shifted in. The spectrogram
-        // normalises within the window, so a tone outside it still scores well on the
-        // leakage banked up against the nearest edge - measured at 0.78 for a 1500 Hz
-        // tone, a near-full meter next to an empty transcript. The meter is a claim that
-        // something decodable is present, and in that state nothing is.
-        val outOfRange = _activeShiftHz.value == 0f &&
-            _detectedToneHz.value?.let { !CwToneShifter.isInsideWindow(it) } == true
-        _signalStrength.value = if (outOfRange) 0f else prominence
+        // The meter claims something decodable is present, so it needs a tone the scan has
+        // actually confirmed inside the window - not merely the absence of a confirmed
+        // out-of-window one. Requiring the confirmation is what covers the intermittent
+        // case: a slow fist out of band at 15% duty scores 2.5 against MIN_PROMINENCE 4.5,
+        // so no tone is reported, and a condition keyed on "confirmed outside" stayed false
+        // and let the meter read half scale on window-edge leakage beside an empty
+        // transcript - the exact reading this gate exists to suppress.
+        val confirmed = _detectedToneHz.value
+        val decodable = confirmed != null &&
+            (_activeShiftHz.value != 0f || CwToneShifter.isInsideWindow(confirmed))
+        _signalStrength.value = if (decodable) prominence else 0f
     }
 
     override fun reset() {
@@ -533,6 +553,7 @@ class CwDeepDecoder(
         archiveSize = 0
         _estimatedPitch.value = null
         _detectedToneHz.value = null
+        lastToneAtMs = 0L
         _signalStrength.value = 0f
         _lastInferenceMs.value = 0
         // Re-detect from scratch: the operator may have retuned before resetting.

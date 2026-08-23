@@ -101,10 +101,10 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * NEW: AMSAT status shows 12 two-hour stripes per day — outages inside a day are now visible
-        * NEW: AMSAT status uses UTC calendar days, matching the official page
-        * NEW: two greys tell you whether a slot had no report or was never fetched
-        * NEW: a data-coverage marker shows when quieter satellites are crowded out of the global pull
+        * NEW: the CW waterfall marks where your tone really is, even when it sits outside the decoder\'s range
+        * NEW: a line under the CW waterfall names the tone and says whether it is being moved into range
+        * NEW: the CW signal meter no longer reads high for a tone the decoder cannot actually hear
+        * NEW: choose the AMSAT day style in Settings - twelve stripes, or one colour with a report count
         * NEW: AMSAT status shows 12 two-hour stripes per day — outages inside a day are now visible
         * NEW: AMSAT status uses UTC calendar days, matching the official page
         * NEW: two greys tell you whether a slot had no report or was never fetched
@@ -125,7 +125,7 @@
         * Fixed: pass progress calculation guards against division by zero
         * Fixed: concurrent calculatePasses calls no longer trigger duplicate calculations
         * Fixed: WaveLog duplicate QSO submissions and grid square update race conditions
-    </string>
+        </string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>
@@ -347,4 +347,5 @@
     <string name="amsat_no_data_legend">No data</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: stripe per 2-hour slot</string>
     <string name="prefs_other_amsat_stripes_help">On, each day is twelve two-hour stripes, so an outage inside a day is visible. Off, each day is one colour and a report count - the colour is the day\'s worst status, so a single failure still shows.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, %3$d reports</string>
 </resources>

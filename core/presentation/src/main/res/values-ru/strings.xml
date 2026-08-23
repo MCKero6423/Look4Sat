@@ -175,4 +175,5 @@
     <string name="amsat_no_data_legend">Нет данных</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: полоса на каждые 2 часа</string>
     <string name="prefs_other_amsat_stripes_help">Включено — каждый день это двенадцать двухчасовых полос, поэтому перерыв внутри дня виден. Выключено — каждый день это один цвет и число отчётов; цвет соответствует худшему состоянию за день, так что даже один сбой остаётся заметен.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, отчётов: %3$d</string>
 </resources>

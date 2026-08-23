@@ -17,6 +17,7 @@
  */
 package com.rtbishop.look4sat.core.domain.cw
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -59,6 +60,46 @@ class CwDeepSpectrogramTest {
         val middle = spec[spec.size / 2]
         val peak = middle.indices.maxByOrNull { middle[it] } ?: -1
         assertTrue("peak at index $peak, expected near 24", abs(peak - 24) <= 1)
+    }
+
+    /**
+     * The waterfall asks for the whole band so that a tone the model cannot read is still
+     * in the picture. Inside the model's window such a tone leaves nothing to see: the
+     * brightest column there is noise, and it does not even follow the keying.
+     */
+    @Test
+    fun compute_wholeBandPlacesAnOutOfWindowTone() {
+        val audio = FloatArray(3200) { (0.6 * sin(2.0 * PI * 1500.0 * it / 3200.0)).toFloat() }
+        val display = CwDeepSpectrogram.compute(
+            audio,
+            CwDeepSpectrogram.DISPLAY_MIN_FREQ_HZ,
+            CwDeepSpectrogram.DISPLAY_MAX_FREQ_HZ
+        )
+        // DC to Nyquist inclusive: 0..1600 Hz in 12.5 Hz steps.
+        assertEquals(129, display[0].size)
+
+        val middle = display[display.size / 2]
+        val peak = middle.indices.maxByOrNull { middle[it] } ?: -1
+        val binHz = CwDeepSpectrogram.SAMPLE_RATE.toDouble() / CwDeepSpectrogram.FFT_LENGTH
+        assertEquals("1500 Hz must land on its own bin", 1500.0, peak * binHz, binHz)
+    }
+
+    /** The model's own call must keep its exact shape, whatever the display asks for. */
+    @Test
+    fun compute_defaultsToTheModelWindow() {
+        val audio = FloatArray(3200) { (0.6 * sin(2.0 * PI * 700.0 * it / 3200.0)).toFloat() }
+        val model = CwDeepSpectrogram.compute(audio)
+        val explicit = CwDeepSpectrogram.compute(
+            audio, CwDeepSpectrogram.MIN_FREQ_HZ, CwDeepSpectrogram.MAX_FREQ_HZ
+        )
+        assertEquals(CwDeepSpectrogram.FREQUENCY_BINS, model[0].size)
+        assertEquals(model.size, explicit.size)
+        for (frame in model.indices) {
+            assertArrayEquals(
+                "explicit model range must equal the default",
+                model[frame], explicit[frame], 0f
+            )
+        }
     }
 
     @Test

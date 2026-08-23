@@ -8,4 +8,9 @@
     <string name="cw_open_settings">Open app settings</string>
     <string name="cw_tone_shifted_hint">Tone %1$d Hz moved into the 400-1200 Hz decoder window</string>
     <string name="cw_tone_outside_hint">Tone %1$d Hz is outside the 400-1200 Hz decoder window. Enable tone shift in Settings.</string>
+    <string name="cw_waterfall_desc">Waterfall spectrum, %1$s</string>
+    <string name="cw_waterfall_idle">no signal yet</string>
+    <string name="cw_waterfall_shifted">tone at %1$d hertz, moved into the decoder range</string>
+    <string name="cw_waterfall_outside">tone at %1$d hertz, outside the decoder range</string>
+    <string name="cw_waterfall_inside">tone at %1$d hertz</string>
 </resources>

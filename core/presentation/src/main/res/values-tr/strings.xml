@@ -97,6 +97,10 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * YENİ: CW şelalesi, tonunuz çözücü aralığının dışında olsa bile gerçek yerini işaretler
+        * YENİ: şelalenin altındaki satır tonu adlandırır ve aralığa taşınıp taşınmadığını söyler
+        * YENİ: çözücünün duyamadığı bir ton için CW sinyal göstergesi artık yüksek okumuyor
+        * YENİ: AMSAT gün stilini Ayarlar\'dan seçin - on iki şerit veya rapor sayılı tek renk
         * YENİ: AMSAT durumu günde 12 iki saatlik şerit gösterir — gün içi kesintiler görünür
         * YENİ: AMSAT durumu UTC takvim günlerini kullanır, resmi sayfayla eşleşir
         * YENİ: iki gri, bir yuvanın rapor edilmediğini mi yoksa hiç alınmadığını mı ayırt eder
@@ -117,7 +121,7 @@
         * Düzeltme: geçiş ilerleme hesaplaması sıfıra bölme durumuna karşı korumalı
         * Düzeltme: eşzamanlı calculatePasses çağrıları artık yinelenen hesaplamaları tetiklemiyor
         * Düzeltme: WaveLog yinelenen QSO gönderimleri ve ızgara kare güncellemesi yarış durumları
-    </string>
+        </string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>
@@ -320,4 +324,5 @@
     <string name="amsat_no_data_legend">Veri yok</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: 2 saatlik dilim başına şerit</string>
     <string name="prefs_other_amsat_stripes_help">Açıkken her gün on iki iki saatlik şerittir, böylece gün içindeki kesinti görünür. Kapalıyken her gün tek renk ve rapor sayısıdır; renk günün en kötü durumudur, yani tek bir arıza bile görünür kalır.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, %3$d rapor</string>
 </resources>

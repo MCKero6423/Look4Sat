@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -313,6 +315,22 @@ private fun readableOn(background: Long): Color {
     return if (colour.luminance() > 0.4f) Color(0xFF1A1A1A) else Color.White
 }
 
+/** The day's worst status colour, used for both the flat tile and the spoken summary. */
+private fun worstStatusColour(day: SatDay): Long =
+    day.slots.map { it.statusColor }
+        .minByOrNull { SEVERITY.indexOf(it).takeIf { i -> i >= 0 } ?: SEVERITY.size }
+        ?: NO_REPORT_COLOUR
+
+/** Legend string for a status colour, so the grid speaks the same words the legend shows. */
+private fun statusLabel(colour: Long): Int = when (colour) {
+    0xFF648FFF -> R.string.amsat_active
+    0xFFFFB000 -> R.string.amsat_tlm
+    0xFFDC267F -> R.string.amsat_not_heard
+    0xFFFE6100 -> R.string.amsat_conflict
+    0xFFE8E8E8 -> R.string.amsat_no_data_legend
+    else -> R.string.amsat_no_report_legend
+}
+
 /**
  * One day as a stripe per two-hour slot.
  *
@@ -329,46 +347,59 @@ private fun readableOn(background: Long): Color {
  */
 @Composable
 private fun DayCell(day: SatDay, stripes: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val cell = modifier
-        .height(28.dp)
-        .clip(RoundedCornerShape(4.dp))
-        .clickable(onClick = onClick)
-
-    if (stripes) {
-        Row(modifier = cell) {
-            day.slots.forEach { slot ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(Color(slot.statusColor))
-                )
-            }
-        }
-        return
-    }
-
-    // One colour for the whole day, for operators who preferred the original tile.
-    // The colour is the day's worst status rather than its first reported one: picking
-    // the first hid outages behind an earlier good report, which is what the stripes
-    // were introduced to expose, and a summary that hides bad news is worse than none.
-    // An unlisted colour sorts last rather than first: indexOf would return -1 and make
-    // anything unrecognised outrank a genuine failure.
-    val colour = day.slots.map { it.statusColor }
-        .minByOrNull { SEVERITY.indexOf(it).takeIf { i -> i >= 0 } ?: SEVERITY.size }
-        ?: NO_REPORT_COLOUR
-    val count = day.slots.sumOf { it.count }
+    // Coloured Boxes announce nothing, so the grid - the entire content of this page -
+    // was silent to a screen reader. The worst status and the report count are what the
+    // cell conveys either way, and they are also what the tap dialog then expands on.
+    val worst = worstStatusColour(day)
+    val total = day.slots.sumOf { it.count }
+    val description = stringResource(
+        R.string.amsat_day_desc, day.dateLabel, stringResource(statusLabel(worst)), total
+    )
+    // Two layers: the tap target is 48 dp to meet the minimum, while the coloured part
+    // stays 28 dp so the grid keeps its density. The extra height is transparent padding,
+    // which is why the row spacing does not change.
     Box(
-        modifier = cell.background(Color(colour)),
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .semantics(mergeDescendants = true) { contentDescription = description }
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (count > 0) {
-            Text(
-                text = count.toString(),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = readableOn(colour)
-            )
+        val tile = Modifier
+            .fillMaxWidth()
+            .height(28.dp)
+            .clip(RoundedCornerShape(4.dp))
+
+        if (stripes) {
+            Row(modifier = tile) {
+                day.slots.forEach { slot ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color(slot.statusColor))
+                    )
+                }
+            }
+            return@Box
+        }
+
+        // One colour for the whole day, for operators who preferred the original tile.
+        // The colour is the day's worst status rather than its first reported one: picking
+        // the first hid outages behind an earlier good report, which is what the stripes
+        // were introduced to expose, and a summary that hides bad news is worse than none.
+        Box(
+            modifier = tile.background(Color(worst)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (total > 0) {
+                Text(
+                    text = total.toString(),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = readableOn(worst)
+                )
+            }
         }
     }
 }

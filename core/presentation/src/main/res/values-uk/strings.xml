@@ -175,4 +175,5 @@
     <string name="amsat_no_data_legend">Немає даних</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: смуга на кожні 2 години</string>
     <string name="prefs_other_amsat_stripes_help">Увімкнено — кожен день це дванадцять двогодинних смуг, тож перерва всередині дня видна. Вимкнено — кожен день це один колір і кількість звітів; колір відповідає найгіршому стану за день, тож навіть один збій залишається помітним.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, звітів: %3$d</string>
 </resources>

@@ -2,4 +2,9 @@
 <resources>
     <string name="cw_tone_shifted_hint">%1$d Hz ස්වරය 400-1200 Hz විකේතන කවුළුවට ගෙන ගියා</string>
     <string name="cw_tone_outside_hint">%1$d Hz ස්වරය 400-1200 Hz විකේතන කවුළුවෙන් පිටත. සැකසුම් තුළ ස්වර මාරුව සක්‍රිය කරන්න.</string>
+    <string name="cw_waterfall_desc">දිය ඇලි වර්ණාවලිය, %1$s</string>
+    <string name="cw_waterfall_idle">තවම සංඥාවක් නැත</string>
+    <string name="cw_waterfall_shifted">ස්වරය %1$d හර්ට්ස්, විකේතන පරාසයට ගෙන ගියා</string>
+    <string name="cw_waterfall_outside">ස්වරය %1$d හර්ට්ස්, විකේතන පරාසයෙන් පිටත</string>
+    <string name="cw_waterfall_inside">ස්වරය %1$d හර්ට්ස්</string>
 </resources>

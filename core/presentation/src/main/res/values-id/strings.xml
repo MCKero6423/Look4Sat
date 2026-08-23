@@ -93,6 +93,10 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
+        * BARU: air terjun CW menandai posisi nada sebenarnya, bahkan saat di luar rentang dekoder
+        * BARU: satu baris di bawah air terjun menyebut nada dan apakah nada dipindahkan ke rentang
+        * BARU: meter sinyal CW tidak lagi tinggi untuk nada yang tak terdengar dekoder
+        * BARU: pilih gaya hari AMSAT di Pengaturan - dua belas garis, atau satu warna dengan jumlah laporan
         * BARU: Status AMSAT menampilkan 12 garis dua jam per hari — pemadaman dalam hari kini terlihat
         * BARU: Status AMSAT menggunakan hari kalender UTC, cocok dengan halaman resmi
         * BARU: dua abu-abu membedakan apakah slot tidak dilaporkan atau tidak pernah diambil
@@ -113,7 +117,7 @@
         * Perbaikan: perhitungan kemajuan pass dijaga terhadap pembagian dengan nol
         * Perbaikan: panggilan calculatePasses bersamaan tidak lagi memicu perhitungan duplikat
         * Perbaikan: pengiriman QSO duplikat WaveLog dan kondisi balapan pembaruan grid square
-    </string>
+        </string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>
@@ -308,4 +312,5 @@
     <string name="amsat_no_data_legend">Tidak ada data</string>
     <string name="prefs_other_switch_amsat_stripes">AMSAT: satu garis per slot 2 jam</string>
     <string name="prefs_other_amsat_stripes_help">Saat aktif, setiap hari adalah dua belas garis dua jam, sehingga pemadaman dalam satu hari terlihat. Saat mati, setiap hari adalah satu warna dan jumlah laporan - warnanya status terburuk hari itu, jadi satu kegagalan pun tetap terlihat.</string>
+    <string name="amsat_day_desc">%1$s, %2$s, %3$d laporan</string>
 </resources>
