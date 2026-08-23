@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
+import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -187,11 +188,16 @@ internal fun CwWaterfallView(
             }
         }
 
-        // The tone's own frequency, as text. Canvas has no drawText, so this rides on
-        // top of it. It sits on the side the tone lies beyond, matching the edge marker,
-        // and stays top-start while the tone is inside the band and has its own line.
+        // The tone's own frequency, as text: Canvas has no drawText, so this rides on top
+        // of it, on the side the tone lies beyond so it reads with the edge marker.
+        // Suppressed for a non-positive pitch, where the readout is an artefact of the
+        // loudest bin drifting below the shift and printing it would just show nonsense —
+        // the marker itself still shows the low edge.
         if (toneShiftHz != 0f && estimatedPitch != null && estimatedPitch > 0f) {
-            val onHighSide = estimatedPitch > CwDeepSpectrogram.MAX_FREQ_HZ
+            // Halfway is the tipping point, so the text sits nearer the marker it belongs
+            // to wherever that is — including a pitch on the upper edge, whose line is
+            // drawn hard against the right of the picture.
+            val onHighSide = estimatedPitch > TONE_SHIFT_TARGET_HZ
             Text(
                 text = "${estimatedPitch.roundToInt()} Hz",
                 fontSize = 9.sp,
@@ -204,68 +210,63 @@ internal fun CwWaterfallView(
     }
 }
 
-/** Where the shifter puts the tone: the centre of the model's window. */
-private val TONE_SHIFT_TARGET_HZ =
-    ((CwDeepSpectrogram.MIN_FREQ_HZ + CwDeepSpectrogram.MAX_FREQ_HZ) / 2.0).toFloat()
+/**
+ * Where the shifter actually puts the tone.
+ *
+ * Read from the shifter rather than recomputed as the window midpoint: the two agree
+ * today only by coincidence, and retuning either one would leave this line marking a
+ * frequency nothing is being delivered to — with no test or compiler error to say so.
+ */
+private val TONE_SHIFT_TARGET_HZ = CwToneShifter.TARGET_HZ.toFloat()
 
 private val TONE_TARGET_COLOUR = Color(0xFF4CD964)
 private val TONE_ORIGIN_COLOUR = Color(0xFFFF9500)
 
 /**
- * Marks the tone's real pitch and where the shifter is moving it to.
+ * Marks where the shifter is delivering the tone, and where the tone really is.
  *
- * Draws nothing when no shift is applied: with the tone already inside the window the
- * spectrum shows it directly and a marker would only add clutter.
+ * Draws nothing when no shift is applied: the tone is then inside the window, visible in
+ * the spectrum on its own, and a marker would only add clutter.
  */
 private fun DrawScope.drawToneShiftMarkers(estimatedPitch: Float?, toneShiftHz: Float) {
-    if (toneShiftHz == 0f || estimatedPitch == null || estimatedPitch <= 0f) return
+    if (toneShiftHz == 0f) return
 
     val minHz = CwDeepSpectrogram.MIN_FREQ_HZ.toFloat()
     val maxHz = CwDeepSpectrogram.MAX_FREQ_HZ.toFloat()
-    val dashLen = 4f
-    // Ceiling, not floor: flooring leaves the bottom of the column undrawn.
-    val dashCount = ceil(size.height / (dashLen * 2)).toInt()
 
-    fun dashedColumn(x: Float, colour: Color) {
-        for (i in 0 until dashCount) {
-            val top = i * dashLen * 2
-            drawLine(
-                color = colour.copy(alpha = 0.55f),
-                start = Offset(x, top),
-                end = Offset(x, (top + dashLen).coerceAtMost(size.height)),
-                strokeWidth = 1.5f
-            )
-        }
-    }
+    // The target line is drawn on the strength of the shift alone. A shift being applied
+    // is the fact worth showing, and it must not depend on the pitch readout: shifting a
+    // 100 Hz tone up reports a negative pitch whenever the loudest bin drifts low, and
+    // gating on pitch there put the display straight back to showing nothing at all.
+    dashedMarkerColumn(hzToX(TONE_SHIFT_TARGET_HZ, minHz, maxHz), TONE_TARGET_COLOUR)
 
-    fun hzToX(hz: Float) = (hz - minHz) / (maxHz - minHz) * size.width
+    // A pitch we cannot place: draw only the target line rather than guess a side.
+    if (estimatedPitch == null || estimatedPitch.isNaN()) return
 
-    dashedColumn(hzToX(TONE_SHIFT_TARGET_HZ).coerceIn(0f, size.width), TONE_TARGET_COLOUR)
-
-    // estimatedPitch is already the real pitch: the spectrogram measures the shifted
+    // estimatedPitch is already the real pitch — the spectrogram measures the shifted
     // audio and the decoder subtracts the shift back out before publishing it. Adding
     // the shift again here would land this marker on top of the target one.
     if (estimatedPitch in minHz..maxHz) {
-        dashedColumn(hzToX(estimatedPitch), TONE_ORIGIN_COLOUR)
+        dashedMarkerColumn(hzToX(estimatedPitch, minHz, maxHz), TONE_ORIGIN_COLOUR)
         return
     }
 
-    // Beyond the picture. Mark the edge it lies past instead, drawing INWARD — anything
-    // placed outside the canvas is clipped, which would hide the marker in exactly the
-    // case it exists for.
+    // Beyond the picture, so mark the edge it lies past. Everything is drawn INWARD:
+    // anything placed outside the canvas is clipped away, which would hide the marker in
+    // exactly the case it exists for. A non-positive pitch counts as the low side — it
+    // means the loudest bin landed below the shift, so the tone is at the bottom end.
     val onLowSide = estimatedPitch < minHz
     val barWidth = 3f
     val chevron = 7f
     val inward = if (onLowSide) 1f else -1f
-    val barX = if (onLowSide) 0f else size.width - barWidth
+    val tipX = if (onLowSide) barWidth else size.width - barWidth
 
     drawRect(
         color = TONE_ORIGIN_COLOUR.copy(alpha = 0.85f),
-        topLeft = Offset(barX, 0f),
+        topLeft = Offset(if (onLowSide) 0f else size.width - barWidth, 0f),
         size = Size(barWidth, size.height)
     )
     // Arms open inward from a tip on the bar, so it reads as pointing off-picture.
-    val tipX = if (onLowSide) barWidth else size.width - barWidth
     val midY = size.height / 2f
     drawLine(
         color = TONE_ORIGIN_COLOUR,
@@ -279,6 +280,26 @@ private fun DrawScope.drawToneShiftMarkers(estimatedPitch: Float?, toneShiftHz: 
         end = Offset(tipX + inward * chevron, midY + chevron),
         strokeWidth = 2f
     )
+}
+
+private fun hzToX(hz: Float, minHz: Float, maxHz: Float): Float =
+    (hz - minHz) / (maxHz - minHz)
+
+/** A dotted vertical line at [fraction] of the width, 0..1 spanning the visible band. */
+private fun DrawScope.dashedMarkerColumn(fraction: Float, colour: Color) {
+    val dashLen = 4f
+    // Ceiling, not floor: flooring leaves the bottom of the column undrawn.
+    val dashCount = ceil(size.height / (dashLen * 2)).toInt()
+    val x = (fraction * size.width).coerceIn(0f, size.width)
+    for (i in 0 until dashCount) {
+        val top = i * dashLen * 2
+        drawLine(
+            color = colour.copy(alpha = 0.55f),
+            start = Offset(x, top),
+            end = Offset(x, (top + dashLen).coerceAtMost(size.height)),
+            strokeWidth = 1.5f
+        )
+    }
 }
 
 /**

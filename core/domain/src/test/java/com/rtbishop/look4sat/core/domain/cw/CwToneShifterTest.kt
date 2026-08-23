@@ -94,6 +94,29 @@ class CwToneShifterTest {
         }
     }
 
+    /**
+     * The waterfall draws a marker at [CwToneShifter.TARGET_HZ] to show the operator where
+     * a shifted tone is being delivered. Moving the target outside the model's window, or
+     * moving the window off the target, would leave that marker pointing at a frequency
+     * nothing arrives at — and nothing else in the build would object.
+     */
+    @Test
+    fun `the shift target sits inside the model window, clear of its edges`() {
+        assertTrue(
+            "TARGET_HZ ${CwToneShifter.TARGET_HZ} is outside the model window " +
+                "${CwDeepSpectrogram.MIN_FREQ_HZ}-${CwDeepSpectrogram.MAX_FREQ_HZ} Hz",
+            CwToneShifter.isInsideWindow(CwToneShifter.TARGET_HZ.toFloat())
+        )
+        // Clear of the edges by a decent margin, so a tone landing a little off target
+        // still lands inside: a target hugging an edge would make the shift pointless.
+        val margin = (CwDeepSpectrogram.MAX_FREQ_HZ - CwDeepSpectrogram.MIN_FREQ_HZ) / 4
+        assertTrue(
+            "TARGET_HZ ${CwToneShifter.TARGET_HZ} is within $margin Hz of a window edge",
+            CwToneShifter.TARGET_HZ >= CwDeepSpectrogram.MIN_FREQ_HZ + margin &&
+                CwToneShifter.TARGET_HZ <= CwDeepSpectrogram.MAX_FREQ_HZ - margin
+        )
+    }
+
     @Test
     fun `out-of-window tones move to the target with no competing tone`() {
         for (tone in listOf(150.0, 200.0, 250.0, 300.0, 350.0, 1300.0, 1400.0, 1500.0)) {
