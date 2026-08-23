@@ -103,8 +103,23 @@ class CwDeepDecoder(
     private val _decodedText = MutableStateFlow("")
     override val decodedText: StateFlow<String> = _decodedText.asStateFlow()
 
+    /**
+     * Archived text, plus a provisional decode of audio not yet archived.
+     *
+     * Kept as one flow of the two parts concatenated. Without the provisional part the
+     * transcript visibly shrank: audio leaving the 20 s window waits for a full
+     * [ARCHIVE_SECONDS] batch before it is decoded into the archive, so for up to 15 s its
+     * characters were in neither place - measured, up to 30 characters at 20 WPM would
+     * vanish and reappear later, which reads as the box deleting text.
+     */
     private val _historyText = MutableStateFlow("")
     override val historyText: StateFlow<String> = _historyText.asStateFlow()
+
+    /** Permanently archived text; the provisional tail is appended to this for display. */
+    private var committedText = ""
+
+    /** Provisional decode of the pending archive batch, replaced when it is archived. */
+    private var pendingText = ""
 
     private val _estimatedPitch = MutableStateFlow<Float?>(null)
     override val estimatedPitch: StateFlow<Float?> = _estimatedPitch.asStateFlow()
@@ -373,6 +388,10 @@ class CwDeepDecoder(
     private fun dropBufferedAudio() {
         buffer.reset()
         archiveSize = 0
+        // The provisional text describes audio being discarded, so it goes with it.
+        // Committed text stays: it was correct for audio that really was archived.
+        pendingText = ""
+        _historyText.value = committedText
     }
 
     /**
@@ -467,9 +486,27 @@ class CwDeepDecoder(
         if (audio.size < CwDeepSpectrogram.FFT_LENGTH) return@withContext
         val spectrogram = CwDeepSpectrogram.compute(audio)
         val text = runInference(activeSession, activeEnvironment, spectrogram)
-        if (text.isNotEmpty()) {
-            _historyText.value += text
-        }
+        // This batch is final, so its provisional decode is superseded rather than kept.
+        committedText += text
+        pendingText = ""
+        _historyText.value = committedText
+    }
+
+    /**
+     * Decode the audio waiting to be archived, so it stays on screen until it is.
+     *
+     * Provisional: the batch is still growing, and the final decode sees all of it at once
+     * with more context. Runs on the redecode cycle rather than per capture chunk -
+     * decoding every 100 ms chunk separately measured 14x the inference load, over 250% of
+     * one core, and a chunk that short carries under two dot-lengths of context anyway.
+     */
+    private suspend fun decodePending(audio: FloatArray) = withContext(Dispatchers.Default) {
+        val activeSession = session ?: return@withContext
+        val activeEnvironment = environment ?: return@withContext
+        if (audio.size < CwDeepSpectrogram.FFT_LENGTH) return@withContext
+        val spectrogram = CwDeepSpectrogram.compute(audio)
+        pendingText = runInference(activeSession, activeEnvironment, spectrogram)
+        _historyText.value = committedText + pendingText
     }
 
     /** Run the ONNX model over a pre-computed spectrogram and return the decoded text. */
@@ -550,6 +587,8 @@ class CwDeepDecoder(
         buffer.reset()
         _decodedText.value = ""
         _historyText.value = ""
+        committedText = ""
+        pendingText = ""
         archiveSize = 0
         _estimatedPitch.value = null
         _detectedToneHz.value = null
