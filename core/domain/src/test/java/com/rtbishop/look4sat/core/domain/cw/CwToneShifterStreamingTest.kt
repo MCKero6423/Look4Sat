@@ -103,21 +103,12 @@ class CwToneShifterStreamingTest {
         val whole = CwToneShifter.shift(audio, shiftHz, sampleRate)
         val streamed = processInChunks(audio, shiftHz)
 
-        // Both filters in the chain need samples ahead of the output they are producing,
-        // and a stream does not have them yet: 32 for the Hilbert transform, 47 for the
-        // band-pass that now follows it. Measured, the divergence is confined to those
-        // trailing samples and clears immediately after each boundary.
-        val lookahead = 48
-        val skip = 256 // start-up transient of both filters
+        val lookahead = 32 // HILBERT_TAPS / 2, rounded up
+        val skip = 128 // filter start-up transient
         var worstInterior = 0.0
         var worstTail = 0.0
         for (i in skip until audio.size) {
-            // Distance to the nearest boundary in either direction. Measuring only forward
-            // put the first samples of a chunk 320 away from "the" boundary and so counted
-            // them as interior, when they are the other side of the same seam - the tail
-            // of the previous chunk, mislabelled.
-            val intoChunk = i % chunkSize
-            val distanceToBoundary = minOf(intoChunk + 1, chunkSize - intoChunk)
+            val distanceToBoundary = chunkSize - (i % chunkSize)
             val delta = abs(whole[i] - streamed[i]).toDouble()
             if (distanceToBoundary <= lookahead) {
                 worstTail = maxOf(worstTail, delta)

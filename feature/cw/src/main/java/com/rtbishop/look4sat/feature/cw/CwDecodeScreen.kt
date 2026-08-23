@@ -69,14 +69,6 @@ import kotlin.math.roundToInt
 import com.rtbishop.look4sat.core.presentation.R as CoreR
 
 /**
- * Scroll slack, in pixels, within which the transcript is treated as "at the bottom".
- *
- * Not zero: the scroll position lands a pixel or two short of the maximum after an
- * animated scroll, and an exact comparison would then stop following the newest text.
- */
-private const val AUTOSCROLL_SLACK_PX = 4
-
-/**
  * Full-page CW decoder backed by DeepCW.
  *
  * Layout follows the DeepCW reference app: waterfall on top, the live line
@@ -230,20 +222,11 @@ fun CwDecodeScreen() {
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
-            val transcript = (historyText + decodedText).ifEmpty { "…" }
-            val scroll = rememberScrollState()
-            // Follow the newest text, but only while the operator is already at the
-            // bottom. Scrolling up is how they read back over earlier traffic, and
-            // yanking them to the end on every decoded character would undo that.
-            val atBottom = scroll.value >= scroll.maxValue - AUTOSCROLL_SLACK_PX
-            LaunchedEffect(transcript) {
-                if (atBottom) scroll.animateScrollTo(scroll.maxValue)
-            }
             Text(
-                text = transcript,
+                text = (historyText + decodedText).ifEmpty { "…" },
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scroll)
+                    .verticalScroll(rememberScrollState())
                     .padding(8.dp),
                 fontSize = 16.sp,
                 fontFamily = FontFamily.Monospace,

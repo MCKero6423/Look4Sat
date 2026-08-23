@@ -18,7 +18,6 @@
 package com.rtbishop.look4sat.core.domain.cw
 
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -95,40 +94,6 @@ object CwToneShifter {
 
     /** Group delay of [hilbertKernel], applied to the real path to keep them aligned. */
     private const val HILBERT_DELAY = HILBERT_TAPS / 2
-
-    /** Taps in the band-pass that follows the mixer. Odd, for a symmetric linear phase. */
-    private const val BANDPASS_TAPS = 95
-
-    private const val BANDPASS_DELAY = BANDPASS_TAPS / 2
-
-    /**
-     * Windowed-sinc band-pass over the model's analysis window.
-     *
-     * Applied after the shift, and the reason a clipped sample can no longer scatter energy
-     * across the display: the mixer runs above unity for any ordinary input, and while
-     * [TARGET_HZ] happens to sit at a quarter of the sample rate today - so odd harmonics
-     * of a clipped tone fold back onto the tone itself - that is a coincidence of two
-     * constants, not a property of the design. This also removes whatever image the
-     * single-sideband mix leaves behind.
-     *
-     * Difference of two low-pass sincs, Hamming-windowed to hold the sidelobes down.
-     * Measured: 58-60 dB rejection at 300 Hz and 1500 Hz, 0.09 dB ripple over 450-1150 Hz,
-     * and a 47-sample linear-phase group delay that delays the keying without distorting it.
-     */
-    private val bandpassKernel: FloatArray = run {
-        val lo = CwDeepSpectrogram.MIN_FREQ_HZ / CwDeepSpectrogram.SAMPLE_RATE
-        val hi = CwDeepSpectrogram.MAX_FREQ_HZ / CwDeepSpectrogram.SAMPLE_RATE
-        FloatArray(BANDPASS_TAPS) { i ->
-            val n = i - BANDPASS_DELAY
-            val ideal = if (n == 0) {
-                2.0 * (hi - lo)
-            } else {
-                (sin(2.0 * PI * hi * n) - sin(2.0 * PI * lo * n)) / (PI * n)
-            }
-            val window = 0.54 - 0.46 * cos(2.0 * PI * i / (BANDPASS_TAPS - 1))
-            (ideal * window).toFloat()
-        }
-    }
 
     /** Outcome of inspecting a chunk of audio. */
     data class Analysis(
@@ -238,25 +203,7 @@ object CwToneShifter {
         val step = 2.0 * PI * shiftHz / sampleRate
         for (i in audio.indices) {
             val phase = step * i
-            out[i] = (audio[i] * cos(phase) - quadrature[i] * sin(phase)).toFloat()
-        }
-        // Same chain as Streaming, so the two paths stay comparable: scale to fit rather
-        // than clip, then filter to the window. Clipping would generate harmonics, and a
-        // third harmonic can fall inside the window where the filter cannot remove it.
-        Normaliser().applyTo(out)
-        return bandPassWhole(out)
-    }
-
-    /** Band-pass an entire buffer; the streaming path keeps tap history instead. */
-    private fun bandPassWhole(audio: FloatArray): FloatArray {
-        val out = FloatArray(audio.size)
-        for (i in audio.indices) {
-            var sum = 0f
-            for (k in bandpassKernel.indices) {
-                val j = i - k + BANDPASS_DELAY
-                if (j >= 0 && j < audio.size) sum += bandpassKernel[k] * audio[j]
-            }
-            out[i] = clampToUnit(sum.toDouble())
+            out[i] = clampToUnit(audio[i] * cos(phase) - quadrature[i] * sin(phase))
         }
         return out
     }
@@ -289,8 +236,6 @@ object CwToneShifter {
 
         private val history = FloatArray(HILBERT_TAPS - 1)
         private var phase = 0.0
-        private val bandHistory = FloatArray(BANDPASS_TAPS - 1)
-        private val normaliser = Normaliser()
 
         /** Shift one chunk, continuing the filter and oscillator state. */
         fun process(chunk: FloatArray, shiftHz: Float, sampleRate: Int): FloatArray {
@@ -317,50 +262,12 @@ object CwToneShifter {
                 }
                 val currentPhase = phase + step * i
                 val mixed = combined[centre] * cos(currentPhase) - quadrature * sin(currentPhase)
-                out[i] = mixed.toFloat()
+                out[i] = clampToUnit(mixed)
             }
-
-            // Scale to fit before filtering, rather than clipping after. Clipping generates
-            // odd harmonics and the band-pass can only remove the ones that land outside
-            // the window - a third harmonic can land inside it, where the filter has no
-            // business touching it and the model would read it as a second tone.
-            normaliser.applyTo(out)
-            val filtered = bandPass(out)
 
             // Keep the phase bounded; letting it grow loses float precision.
             phase = (phase + step * chunk.size) % (2.0 * PI)
             pushHistory(chunk)
-            return filtered
-        }
-
-        /**
-         * Band-pass [chunk] to the model's window, carrying tap history across calls.
-         *
-         * Same reason the Hilbert filter keeps history: without the previous chunk's tail
-         * the first outputs convolve against zeros and every boundary gets a transient.
-         */
-        private fun bandPass(chunk: FloatArray): FloatArray {
-            val combined = FloatArray(bandHistory.size + chunk.size)
-            bandHistory.copyInto(combined)
-            chunk.copyInto(combined, bandHistory.size)
-
-            val out = FloatArray(chunk.size)
-            for (i in chunk.indices) {
-                val centre = bandHistory.size + i
-                var sum = 0f
-                for (k in bandpassKernel.indices) {
-                    val j = centre - k + BANDPASS_DELAY
-                    if (j >= 0 && j < combined.size) sum += bandpassKernel[k] * combined[j]
-                }
-                out[i] = clampToUnit(sum.toDouble())
-            }
-
-            // Keep the newest BANDPASS_TAPS - 1 samples of the pre-filter signal.
-            val keep = minOf(bandHistory.size, chunk.size)
-            if (keep < bandHistory.size) {
-                bandHistory.copyInto(bandHistory, 0, keep, bandHistory.size)
-            }
-            chunk.copyInto(bandHistory, bandHistory.size - keep, chunk.size - keep, chunk.size)
             return out
         }
 
@@ -368,8 +275,6 @@ object CwToneShifter {
         fun reset() {
             history.fill(0f)
             phase = 0.0
-            bandHistory.fill(0f)
-            normaliser.reset()
         }
 
         /** Keep the most recent [history] samples of the stream. */
@@ -396,52 +301,6 @@ object CwToneShifter {
         val analysis = analyse(audio, sampleRate)
         if (!analysis.needsShift) return audio to analysis
         return shift(audio, analysis.shiftHz, sampleRate) to analysis
-    }
-
-    /**
-     * Peak-following gain, so a shifted tone is scaled to fit rather than clipped flat.
-     *
-     * The Hilbert kernel has an L1 gain of 2.51, so an input of normal strength leaves the
-     * mixer above unity and hard clipping squared the waveform off. That distortion is
-     * mostly hidden today by a coincidence - [TARGET_HZ] is a quarter of the sample rate,
-     * so every odd harmonic of a clipped tone folds back onto the tone itself - but the
-     * keying envelope is still flattened, and a different target would scatter harmonics
-     * across the band instead. Scaling avoids both.
-     *
-     * The gain decays slowly and recovers slowly so it does not pump within a keyed
-     * element, and it is shared across chunks because a per-chunk gain would step at
-     * every boundary.
-     */
-    internal class Normaliser {
-        private var gain = 1.0
-
-        /** Fit [samples] inside +-1 in place, adjusting the shared gain as needed. */
-        fun applyTo(samples: FloatArray) {
-            var peak = 0.0
-            for (v in samples) {
-                val a = abs(v.toDouble())
-                if (a > peak) peak = a
-            }
-            // A peak needing less gain than we have takes effect at once: overshoot is
-            // what clipping used to destroy, so it is corrected without waiting.
-            val needed = if (peak > 1e-9) 1.0 / peak else 1.0
-            gain = if (needed < gain) needed else gain + (needed - gain) * RECOVERY
-            gain = gain.coerceAtMost(1.0)
-            for (i in samples.indices) {
-                // Still bounded: the gain is derived from this chunk's peak, but the
-                // recovery ramp can leave a later sample slightly over.
-                samples[i] = clampToUnit(samples[i] * gain)
-            }
-        }
-
-        fun reset() {
-            gain = 1.0
-        }
-
-        private companion object {
-            /** Per-chunk fraction of the way back towards unity gain. */
-            const val RECOVERY = 0.05
-        }
     }
 
     /**
