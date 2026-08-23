@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,8 +66,16 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
-import kotlin.math.roundToInt
 import com.rtbishop.look4sat.core.presentation.R as CoreR
+import kotlin.math.roundToInt
+
+/**
+ * Scroll slack, in pixels, within which the transcript counts as being at the bottom.
+ *
+ * Not zero: an animated scroll settles a pixel or two short of the maximum, and an exact
+ * comparison would drop out of follow-mode the moment it did.
+ */
+private const val AUTOSCROLL_SLACK_PX = 4
 
 /**
  * Full-page CW decoder backed by DeepCW.
@@ -222,11 +231,35 @@ fun CwDecodeScreen() {
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
+            val transcript = (historyText + decodedText).ifEmpty { "…" }
+            val scroll = rememberScrollState()
+            // Follow the newest text, but stop as soon as the operator scrolls away, so
+            // reading back over earlier traffic is not undone by the next decode.
+            //
+            // A boolean rather than comparing position against maxValue: maxValue is
+            // written during layout, after the composition that would read it, so such a
+            // comparison tests the previous frame's height and drifts short of the true
+            // bottom until it latches out of follow-mode altogether.
+            var following by remember { mutableStateOf(true) }
+            LaunchedEffect(scroll) {
+                snapshotFlow { scroll.isScrollInProgress to scroll.value }
+                    .collect { (scrolling, value) ->
+                        if (scrolling) following = value >= scroll.maxValue - AUTOSCROLL_SLACK_PX
+                    }
+            }
+            LaunchedEffect(transcript, following) {
+                if (!following) return@LaunchedEffect
+                // Twice: the first pass lands at the height known when it started, the
+                // second covers growth that arrived while it was animating.
+                repeat(2) {
+                    if (scroll.value < scroll.maxValue) scroll.animateScrollTo(scroll.maxValue)
+                }
+            }
             Text(
-                text = (historyText + decodedText).ifEmpty { "…" },
+                text = transcript,
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scroll)
                     .padding(8.dp),
                 fontSize = 16.sp,
                 fontFamily = FontFamily.Monospace,
