@@ -106,6 +106,7 @@ class SettingsRepo(
     private val keyRadarCompassOffset = "radarCompassOffset"
     private val keyRadarCompassOffsetElev = "radarCompassOffsetElev"
     private val keyCwToneShiftEnabled = "cwToneShiftEnabled"
+    private val keyAmsatDayStripes = "amsatDayStripes"
 
     private val separatorComma = ","
 
@@ -407,6 +408,7 @@ class SettingsRepo(
                 putFloat(keyRadarCompassOffset, new.radarCompassOffset)
                 putFloat(keyRadarCompassOffsetElev, new.radarCompassOffsetElev)
                 putBoolean(keyCwToneShiftEnabled, new.cwToneShiftEnabled)
+                putBoolean(keyAmsatDayStripes, new.amsatDayStripes)
 
             }
             new
@@ -434,7 +436,8 @@ class SettingsRepo(
         wavelogAutoUpload = preferences.getBoolean(keyWavelogAutoUpload, false),
         radarCompassOffset = preferences.getFloat(keyRadarCompassOffset, 0f),
         radarCompassOffsetElev = preferences.getFloat(keyRadarCompassOffsetElev, 0f),
-        cwToneShiftEnabled = preferences.getBoolean(keyCwToneShiftEnabled, false)
+        cwToneShiftEnabled = preferences.getBoolean(keyCwToneShiftEnabled, false),
+        amsatDayStripes = preferences.getBoolean(keyAmsatDayStripes, true)
     )
     //endregion
 

@@ -128,6 +128,7 @@ class SettingsViewModel(
             is SettingsAction.ToggleUtc -> settingsRepo.updateOtherSettings { it.copy(stateOfUtc = action.value) }
             is SettingsAction.ToggleUpdate -> settingsRepo.updateOtherSettings { it.copy(stateOfAutoUpdate = action.value) }
             is SettingsAction.ToggleCwToneShift -> settingsRepo.updateOtherSettings { it.copy(cwToneShiftEnabled = action.value) }
+            is SettingsAction.ToggleAmsatDayStripes -> settingsRepo.updateOtherSettings { it.copy(amsatDayStripes = action.value) }
             is SettingsAction.ToggleSweep -> settingsRepo.updateOtherSettings { it.copy(stateOfSweep = action.value) }
             is SettingsAction.ToggleSensor -> settingsRepo.updateOtherSettings { it.copy(stateOfSensors = action.value) }
             is SettingsAction.ToggleLightTheme -> settingsRepo.updateOtherSettings { it.copy(stateOfLightTheme = action.value) }

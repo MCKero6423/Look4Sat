@@ -345,4 +345,6 @@
     <string name="prefs_other_cw_tone_shift_help">DeepCW only analyses 400-1200 Hz. When on, a tone outside that range is moved into it before decoding; a tone already inside is untouched.</string>
     <string name="amsat_no_report_legend">No report</string>
     <string name="amsat_no_data_legend">No data</string>
+    <string name="prefs_other_switch_amsat_stripes">AMSAT: stripe per 2-hour slot</string>
+    <string name="prefs_other_amsat_stripes_help">On, each day is twelve two-hour stripes, so an outage inside a day is visible. Off, each day is one colour and a report count - the colour is the day\'s worst status, so a single failure still shows.</string>
 </resources>

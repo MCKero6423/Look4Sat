@@ -646,6 +646,16 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
+            // AMSAT status: twelve two-hour stripes per day, or one colour for the day
+            SwitchRow(R.string.prefs_other_switch_amsat_stripes, settings.amsatDayStripes) {
+                onAction(SettingsAction.ToggleAmsatDayStripes(it))
+            }
+            Text(
+                text = stringResource(id = R.string.prefs_other_amsat_stripes_help),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             // Compass calibration sliders at the bottom
             CompassOffsetRow(
                 labelResId = R.string.prefs_other_compass_offset,

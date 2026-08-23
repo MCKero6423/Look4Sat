@@ -173,4 +173,6 @@
     <string name="prefs_other_cw_tone_shift_help">DeepCW solo analiza 400-1200 Hz. Si está activo, un tono fuera de ese rango se traslada al rango antes de decodificar; un tono que ya está dentro no se modifica.</string>
     <string name="amsat_no_report_legend">Sin informes</string>
     <string name="amsat_no_data_legend">Sin datos</string>
+    <string name="prefs_other_switch_amsat_stripes">AMSAT: una franja por franja de 2 horas</string>
+    <string name="prefs_other_amsat_stripes_help">Activado, cada día son doce franjas de dos horas, así se ve una interrupción dentro del día. Desactivado, cada día es un color y un recuento de informes; el color es el peor estado del día, así que un solo fallo sigue viéndose.</string>
 </resources>

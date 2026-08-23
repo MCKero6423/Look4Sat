@@ -82,7 +82,16 @@ data class OtherSettings(
      * it before decoding. Off by default: when disabled the audio path is unchanged,
      * and a tone already inside the window is never touched either way.
      */
-    val cwToneShiftEnabled: Boolean = false
+    val cwToneShiftEnabled: Boolean = false,
+
+    /**
+     * Draw each AMSAT day as twelve two-hour stripes rather than one colour.
+     *
+     * On by default: a single colour is taken from the first slot with a report, so a
+     * satellite that worked all morning and failed all afternoon looks identical to one
+     * that worked once. Some operators prefer the older, simpler tile, hence the switch.
+     */
+    val amsatDayStripes: Boolean = true
 )
 
 data class DataSourcesSettings(

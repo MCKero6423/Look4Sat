@@ -306,4 +306,6 @@
     <string name="prefs_other_cw_tone_shift_help">DeepCW hanya menganalisis 400-1200 Hz. Saat aktif, nada di luar rentang itu dipindahkan ke dalamnya sebelum decoding; nada yang sudah di dalam tidak diubah.</string>
     <string name="amsat_no_report_legend">Tidak ada laporan</string>
     <string name="amsat_no_data_legend">Tidak ada data</string>
+    <string name="prefs_other_switch_amsat_stripes">AMSAT: satu garis per slot 2 jam</string>
+    <string name="prefs_other_amsat_stripes_help">Saat aktif, setiap hari adalah dua belas garis dua jam, sehingga pemadaman dalam satu hari terlihat. Saat mati, setiap hari adalah satu warna dan jumlah laporan - warnanya status terburuk hari itu, jadi satu kegagalan pun tetap terlihat.</string>
 </resources>

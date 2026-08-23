@@ -8,6 +8,7 @@ import com.rtbishop.look4sat.core.domain.model.SatReport
 import com.rtbishop.look4sat.core.domain.model.SatStatus
 import com.rtbishop.look4sat.core.domain.repository.IAmSatRepository
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
+import com.rtbishop.look4sat.core.domain.repository.ISettingsRepo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -19,17 +20,33 @@ data class SatStatusUiState(
     val statuses: List<SatStatus> = emptyList(),
     val reports: Map<String, SatReport> = emptyMap(),
     val fetchedAtUtcMs: Long = 0L,
-    val error: String? = null
+    val error: String? = null,
+    /** Draw each day as twelve two-hour stripes rather than a single colour. */
+    val dayStripes: Boolean = true
 )
 
 class SatStatusViewModel(
-    private val amSatRepo: IAmSatRepository
+    private val amSatRepo: IAmSatRepository,
+    settingsRepo: ISettingsRepo
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SatStatusUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(
+        SatStatusUiState(
+            isLoading = true,
+            dayStripes = settingsRepo.otherSettings.value.amsatDayStripes
+        )
+    )
     val uiState: StateFlow<SatStatusUiState> = _uiState
 
     init {
+        // Collected rather than read once: the switch lives in Settings, so the operator
+        // is on another screen when they change it and would otherwise come back to the
+        // old style until the page was rebuilt.
+        viewModelScope.launch {
+            settingsRepo.otherSettings.collect { other ->
+                _uiState.update { it.copy(dayStripes = other.amsatDayStripes) }
+            }
+        }
         fetch()
     }
 
@@ -88,7 +105,7 @@ class SatStatusViewModel(
     companion object {
         fun factory(container: IMainContainer) = viewModelFactory {
             initializer {
-                SatStatusViewModel(container.amSatRepo)
+                SatStatusViewModel(container.amSatRepo, container.settingsRepo)
             }
         }
     }

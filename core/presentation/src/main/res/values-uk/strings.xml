@@ -173,4 +173,6 @@
     <string name="prefs_other_cw_tone_shift_help">DeepCW аналізує лише 400-1200 Гц. Якщо увімкнено, тон поза цим діапазоном переноситься в нього перед декодуванням; тон, що вже в діапазоні, не змінюється.</string>
     <string name="amsat_no_report_legend">Немає звітів</string>
     <string name="amsat_no_data_legend">Немає даних</string>
+    <string name="prefs_other_switch_amsat_stripes">AMSAT: смуга на кожні 2 години</string>
+    <string name="prefs_other_amsat_stripes_help">Увімкнено — кожен день це дванадцять двогодинних смуг, тож перерва всередині дня видна. Вимкнено — кожен день це один колір і кількість звітів; колір відповідає найгіршому стану за день, тож навіть один збій залишається помітним.</string>
 </resources>

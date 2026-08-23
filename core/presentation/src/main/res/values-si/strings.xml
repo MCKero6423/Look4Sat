@@ -173,4 +173,6 @@
     <string name="prefs_other_cw_tone_shift_help">DeepCW විශ්ලේෂණය කරන්නේ 400-1200 Hz පමණි. සක්‍රීය විට, එම පරාසයෙන් පිටත ස්වරයක් විකේතනයට පෙර පරාසය තුළට ගෙන එයි; දැනටමත් පරාසය තුළ ඇති ස්වරයක් වෙනස් නොකරයි.</string>
     <string name="amsat_no_report_legend">වාර්තා නැත</string>
     <string name="amsat_no_data_legend">දත්ත නැත</string>
+    <string name="prefs_other_switch_amsat_stripes">AMSAT: පැය 2 කට එක තීරුවක්</string>
+    <string name="prefs_other_amsat_stripes_help">සක්‍රිය විට සෑම දිනයක් පැය දෙකේ තීරු දොළහකි, එබැවින් දිනක් තුළ ඇති බිඳවැටීම දැකිය හැක. අක්‍රිය විට සෑම දිනයක් එක් වර්ණයක් සහ වාර්තා ගණනකි — වර්ණය එදින නරකම තත්ත්වයයි, එබැවින් එක් අසාර්ථකත්වයක් වුවද පෙනේ.</string>
 </resources>

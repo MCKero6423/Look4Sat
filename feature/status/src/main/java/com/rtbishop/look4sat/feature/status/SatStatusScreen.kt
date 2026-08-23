@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -114,7 +115,11 @@ private fun SatStatusScreen(uiState: SatStatusUiState, refresh: () -> Unit) {
                 HorizontalDivider(thickness = 1.dp)
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.statuses, key = { it.name }) { status ->
-                        StatusRow(status = status, onClickDay = { day -> selectedDay = status to day })
+                        StatusRow(
+                            status = status,
+                            stripes = uiState.dayStripes,
+                            onClickDay = { day -> selectedDay = status to day }
+                        )
                     }
                 }
             }
@@ -239,7 +244,7 @@ private fun HeaderRow(statuses: List<SatStatus>) {
 
 /** Satellite row: name takes remaining width; day tiles are fixed-width (tablet-safe). */
 @Composable
-private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
+private fun StatusRow(status: SatStatus, stripes: Boolean, onClickDay: (SatDay) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -269,11 +274,43 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
         status.days.forEach { day ->
             DayCell(
                 day = day,
+                stripes = stripes,
                 modifier = Modifier.width(TILE_WIDTH).padding(horizontal = 2.dp),
                 onClick = { onClickDay(day) }
             )
         }
     }
+}
+
+private const val NO_REPORT_COLOUR = 0xFFC0C0C0
+
+/**
+ * Status colours worst first, for collapsing a day to one of them.
+ *
+ * Ordered by how much the operator needs to know about it: a reported failure outranks a
+ * partial contact, which outranks a success, and both greys come last because they are
+ * absences rather than observations. Duplicated from AmSatRepository, which owns these
+ * literals — see the note in AGENTS.md.
+ */
+private val SEVERITY = listOf(
+    0xFFDC267F, // not heard
+    0xFFFE6100, // unrecognised status
+    0xFFFFB000, // telemetry only
+    0xFF648FFF, // heard
+    NO_REPORT_COLOUR,
+    0xFFE8E8E8  // no data fetched
+)
+
+/**
+ * Black or white for text on [background], whichever reads better.
+ *
+ * White is not safe on all of the status colours: on the telemetry amber it measures
+ * 1.83:1 against WCAG's 3:1 for large text, and that cell does carry a count whenever a
+ * day held nothing but telemetry reports. Relative luminance decides it instead.
+ */
+private fun readableOn(background: Long): Color {
+    val colour = Color(background)
+    return if (colour.luminance() > 0.4f) Color(0xFF1A1A1A) else Color.White
 }
 
 /**
@@ -291,19 +328,46 @@ private fun StatusRow(status: SatStatus, onClickDay: (SatDay) -> Unit) {
  * the grid.
  */
 @Composable
-private fun DayCell(day: SatDay, modifier: Modifier, onClick: () -> Unit) {
-    Row(
-        modifier = modifier
-            .height(28.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick)
+private fun DayCell(day: SatDay, stripes: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val cell = modifier
+        .height(28.dp)
+        .clip(RoundedCornerShape(4.dp))
+        .clickable(onClick = onClick)
+
+    if (stripes) {
+        Row(modifier = cell) {
+            day.slots.forEach { slot ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(Color(slot.statusColor))
+                )
+            }
+        }
+        return
+    }
+
+    // One colour for the whole day, for operators who preferred the original tile.
+    // The colour is the day's worst status rather than its first reported one: picking
+    // the first hid outages behind an earlier good report, which is what the stripes
+    // were introduced to expose, and a summary that hides bad news is worse than none.
+    // An unlisted colour sorts last rather than first: indexOf would return -1 and make
+    // anything unrecognised outrank a genuine failure.
+    val colour = day.slots.map { it.statusColor }
+        .minByOrNull { SEVERITY.indexOf(it).takeIf { i -> i >= 0 } ?: SEVERITY.size }
+        ?: NO_REPORT_COLOUR
+    val count = day.slots.sumOf { it.count }
+    Box(
+        modifier = cell.background(Color(colour)),
+        contentAlignment = Alignment.Center
     ) {
-        day.slots.forEach { slot ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(Color(slot.statusColor))
+        if (count > 0) {
+            Text(
+                text = count.toString(),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = readableOn(colour)
             )
         }
     }

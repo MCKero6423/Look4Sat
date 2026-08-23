@@ -318,4 +318,6 @@
     <string name="prefs_other_cw_tone_shift_help">DeepCW yalnızca 400-1200 Hz analiz eder. Açıkken bu aralığın dışındaki bir ton çözülmeden önce aralığa taşınır; aralıkta olan ton değiştirilmez.</string>
     <string name="amsat_no_report_legend">Rapor yok</string>
     <string name="amsat_no_data_legend">Veri yok</string>
+    <string name="prefs_other_switch_amsat_stripes">AMSAT: 2 saatlik dilim başına şerit</string>
+    <string name="prefs_other_amsat_stripes_help">Açıkken her gün on iki iki saatlik şerittir, böylece gün içindeki kesinti görünür. Kapalıyken her gün tek renk ve rapor sayısıdır; renk günün en kötü durumudur, yani tek bir arıza bile görünür kalır.</string>
 </resources>

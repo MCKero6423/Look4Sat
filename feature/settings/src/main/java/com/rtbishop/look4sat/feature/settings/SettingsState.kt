@@ -64,6 +64,7 @@ sealed interface SettingsAction {
 
     /** Shift CW tones outside the model's 400-1200 Hz window into it before decoding. */
     data class ToggleCwToneShift(val value: Boolean) : SettingsAction
+    data class ToggleAmsatDayStripes(val value: Boolean) : SettingsAction
     data class ToggleSweep(val value: Boolean) : SettingsAction
     data class ToggleSensor(val value: Boolean) : SettingsAction
     data class ToggleLightTheme(val value: Boolean) : SettingsAction
