@@ -92,6 +92,9 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
+        * BARU: air terjun CW menampilkan seluruh pita audio, nada di luar jangkauan dekoder tetap terlihat
+        * BARU: teks CW mengikuti isi baru, dan berhenti mengikuti saat Anda menggulir ke atas
+        * BARU: pembaca layar kini menjelaskan air terjun CW dan sel hari AMSAT
         * BARU: air terjun CW menandai posisi nada sebenarnya, bahkan saat di luar rentang dekoder
         * BARU: satu baris di bawah air terjun menyebut nada dan apakah nada dipindahkan ke rentang
         * BARU: meter sinyal CW tidak lagi tinggi untuk nada yang tak terdengar dekoder

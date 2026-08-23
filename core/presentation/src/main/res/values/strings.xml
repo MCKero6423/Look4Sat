@@ -101,6 +101,9 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * NEW: the CW waterfall shows the whole audio band, so a tone the decoder cannot reach is still visible
+        * NEW: the CW transcript follows new text, and stops following as soon as you scroll back
+        * NEW: screen readers now describe the CW waterfall and the AMSAT day cells
         * NEW: the CW waterfall marks where your tone really is, even when it sits outside the decoder\'s range
         * NEW: a line under the CW waterfall names the tone and says whether it is being moved into range
         * NEW: the CW signal meter no longer reads high for a tone the decoder cannot actually hear

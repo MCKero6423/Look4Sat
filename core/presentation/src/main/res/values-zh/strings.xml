@@ -89,6 +89,9 @@
     <string name="pass_welcome_message">请务必在设置中通过GPS、经纬度或QTH定位您的位置\n建议至少每周更新一次数据库，以确保预测结果的准确性</string>
     <string name="pass_whatsnew_title">Look4Sat Pro 更新内容</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * 新: CW 瀑布图显示完整音频频段, 解码范围外的音调也看得见
+        * 新: CW 文本框自动跟随新内容, 往上翻阅时自动停止跟随
+        * 新: 读屏软件现在可以播报 CW 瀑布图与 AMSAT 日格内容
         * 新: CW 瀑布图标出音调真实位置, 即使它在解码范围之外
         * 新: 瀑布图下方一行文字说明音调频率, 以及是否已搬入解码范围
         * 新: 解码范围外的音调不再让信号强度条显示高值
