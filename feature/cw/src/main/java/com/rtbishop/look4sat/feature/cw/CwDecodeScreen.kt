@@ -63,7 +63,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
+import kotlin.math.roundToInt
 import com.rtbishop.look4sat.core.presentation.R as CoreR
 
 /**
@@ -97,6 +99,7 @@ fun CwDecodeScreen() {
     val historyText by decoder.historyText.collectAsState()
     val signalStrength by decoder.signalStrength.collectAsState()
     val estimatedPitch by decoder.estimatedPitch.collectAsState()
+    val detectedToneHz by decoder.detectedToneHz.collectAsState()
     val activeShiftHz by decoder.activeShiftHz.collectAsState()
     val errorMessage by decoder.errorMessage.collectAsState()
 
@@ -176,6 +179,28 @@ fun CwDecodeScreen() {
                 signalStrength = signalStrength,
                 estimatedPitch = estimatedPitch,
                 toneShiftHz = activeShiftHz
+            )
+        }
+
+        // What the markers cannot say on their own. The waterfall covers only the model's
+        // 400-1200 Hz window, so a tone outside it is missing from the picture entirely -
+        // and with tone shift off there is nothing to mark either. One line of text is
+        // what turns "nothing is happening" into a reason and a remedy.
+        val toneHz = detectedToneHz
+        val hint = when {
+            toneHz == null -> null
+            activeShiftHz != 0f -> stringResource(R.string.cw_tone_shifted_hint, toneHz.roundToInt())
+            CwToneShifter.isInsideWindow(toneHz) -> null
+            else -> stringResource(R.string.cw_tone_outside_hint, toneHz.roundToInt())
+        }
+        if (hint != null) {
+            Text(
+                text = hint,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, top = 4.dp, end = 12.dp)
             )
         }
 

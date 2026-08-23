@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cw_tone_shifted_hint">Tono de %1$d Hz trasladado a la ventana de decodificación de 400-1200 Hz</string>
+    <string name="cw_tone_outside_hint">El tono de %1$d Hz está fuera de la ventana de decodificación de 400-1200 Hz. Active el desplazamiento de tono en Ajustes.</string>
+</resources>

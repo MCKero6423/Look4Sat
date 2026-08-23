@@ -43,8 +43,24 @@ interface ICwDecoder {
      */
     val historyText: StateFlow<String>
 
-    /** Detected tone frequency in Hz, or null before a tone is found. */
+    /**
+     * Pitch of the tone the model is decoding, in Hz, or null before one is found.
+     *
+     * Derived from the spectrogram, so it can only ever report a frequency inside the
+     * model's analysis window. For the pitch of a tone the model cannot see, use
+     * [detectedToneHz].
+     */
     val estimatedPitch: StateFlow<Float?>
+
+    /**
+     * Pitch of the loudest tone in the raw audio, in Hz, or null when none stands out.
+     *
+     * Unlike [estimatedPitch] this is measured before any shifting and over the full
+     * audio bandwidth, so it can report a tone the model's window excludes — which is
+     * the only way to tell the operator that nothing is being decoded because their tone
+     * is out of range.
+     */
+    val detectedToneHz: StateFlow<Float?>
 
     /** Current shift applied to bring the tone into the model's window, 0f when idle. */
     val activeShiftHz: StateFlow<Float>

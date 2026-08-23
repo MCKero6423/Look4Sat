@@ -6,4 +6,6 @@
     <string name="cw_mic_permission">Izin mikrofon diperlukan untuk pendekodean CW</string>
     <string name="cw_grant_permission">Berikan izin</string>
     <string name="cw_open_settings">Buka pengaturan aplikasi</string>
+    <string name="cw_tone_shifted_hint">Nada %1$d Hz dipindahkan ke rentang dekode 400-1200 Hz</string>
+    <string name="cw_tone_outside_hint">Nada %1$d Hz di luar rentang dekode 400-1200 Hz. Aktifkan geser nada di Pengaturan.</string>
 </resources>

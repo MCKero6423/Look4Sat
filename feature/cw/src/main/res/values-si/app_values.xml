@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cw_tone_shifted_hint">%1$d Hz ස්වරය 400-1200 Hz විකේතන කවුළුවට ගෙන ගියා</string>
+    <string name="cw_tone_outside_hint">%1$d Hz ස්වරය 400-1200 Hz විකේතන කවුළුවෙන් පිටත. සැකසුම් තුළ ස්වර මාරුව සක්‍රිය කරන්න.</string>
+</resources>

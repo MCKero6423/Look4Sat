@@ -106,6 +106,9 @@ class CwDeepDecoder(
     private val _estimatedPitch = MutableStateFlow<Float?>(null)
     override val estimatedPitch: StateFlow<Float?> = _estimatedPitch.asStateFlow()
 
+    private val _detectedToneHz = MutableStateFlow<Float?>(null)
+    override val detectedToneHz: StateFlow<Float?> = _detectedToneHz.asStateFlow()
+
     private val _activeShiftHz = MutableStateFlow(0f)
     override val activeShiftHz: StateFlow<Float> = _activeShiftHz.asStateFlow()
 
@@ -324,22 +327,29 @@ class CwDeepDecoder(
             Log.i(TAG, "toneShift: setting changed to $enabled, dropping buffered audio")
             dropBufferedAudio()
             _activeShiftHz.value = 0f
+            _detectedToneHz.value = null
             shiftDecider.reset()
             lastDetectAtMs = 0L
             detectionPool.clear()
             streamingShifter.reset()
         }
 
-        if (!enabled) return resampled
-
+        // Detection runs whether or not shifting is enabled. It is the only measurement
+        // that can see past the model's window, so with it skipped an out-of-window tone
+        // left the UI with nothing truthful to show: the spectrogram's own pitch readout
+        // is arithmetically confined to the window and reports the leakage piled against
+        // the nearest edge, so a 1500 Hz tone published "1200 Hz" and a healthy signal
+        // level while decoding nothing at all.
         detectionPool.add(resampled)
 
         val now = System.currentTimeMillis()
         val elapsed = now - lastDetectAtMs
         if (detectionPool.isReady && elapsed >= DETECT_INTERVAL_MS) {
             lastDetectAtMs = now
-            runDetection(detectionPool.drain())
+            runDetection(detectionPool.drain(), shiftEnabled = enabled)
         }
+
+        if (!enabled) return resampled
 
         // Streaming keeps the Hilbert filter history and mixer phase across chunks;
         // shifting each chunk in isolation distorted the 62 samples at its edges.
@@ -365,8 +375,16 @@ class CwDeepDecoder(
      * meant tests could only restate it, and a restated rule cannot fail when the real
      * one is wrong - four injected defects once left the whole suite green.
      */
-    private fun runDetection(sample: FloatArray) {
+    private fun runDetection(sample: FloatArray, shiftEnabled: Boolean) {
         val analysis = CwToneShifter.analyse(sample, CwDeepSpectrogram.SAMPLE_RATE)
+
+        // Published either way: the UI needs the real pitch to say why nothing decodes
+        // when shifting is off and the tone is out of range. Held through silences for
+        // the same reason the shift is - CW is gaps, and a gap is not a retune.
+        analysis.toneHz?.let { _detectedToneHz.value = it.toFloat() }
+
+        if (!shiftEnabled) return
+
         val decision = shiftDecider.accept(analysis)
         _activeShiftHz.value = decision.shiftHz
 
@@ -496,7 +514,16 @@ class CwDeepDecoder(
         _estimatedPitch.value = (absoluteBin * binHz - _activeShiftHz.value).toFloat()
 
         val mean = total / count
-        _signalStrength.value = ((bestValue - mean) / bestValue).coerceIn(0f, 1f)
+        val prominence = ((bestValue - mean) / bestValue).coerceIn(0f, 1f)
+
+        // Zero when the tone is out of range and not being shifted in. The spectrogram
+        // normalises within the window, so a tone outside it still scores well on the
+        // leakage banked up against the nearest edge - measured at 0.78 for a 1500 Hz
+        // tone, a near-full meter next to an empty transcript. The meter is a claim that
+        // something decodable is present, and in that state nothing is.
+        val outOfRange = _activeShiftHz.value == 0f &&
+            _detectedToneHz.value?.let { !CwToneShifter.isInsideWindow(it) } == true
+        _signalStrength.value = if (outOfRange) 0f else prominence
     }
 
     override fun reset() {
@@ -505,6 +532,7 @@ class CwDeepDecoder(
         _historyText.value = ""
         archiveSize = 0
         _estimatedPitch.value = null
+        _detectedToneHz.value = null
         _signalStrength.value = 0f
         _lastInferenceMs.value = 0
         // Re-detect from scratch: the operator may have retuned before resetting.

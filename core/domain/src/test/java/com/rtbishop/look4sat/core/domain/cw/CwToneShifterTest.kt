@@ -95,6 +95,26 @@ class CwToneShifterTest {
     }
 
     /**
+     * The decoder runs this scan even with shifting switched off, purely to tell the
+     * operator why nothing is decoding. That only works if the scan reaches past the
+     * model's window: the spectrogram's own pitch readout cannot, being confined to the
+     * window by construction, and it reports edge leakage as though it were the tone.
+     */
+    @Test
+    fun `the scan reports tones the model window excludes`() {
+        for (tone in listOf(120.0, 250.0, 1400.0, 1500.0)) {
+            val analysis = CwToneShifter.analyse(cwTone(tone), sampleRate)
+            val reported = analysis.toneHz
+            assertNotNull("$tone Hz went undetected, so the UI has nothing to report", reported)
+            assertEquals("$tone Hz was misreported", tone, reported!!.toDouble(), 30.0)
+            assertFalse(
+                "$tone Hz must read as outside the window",
+                CwToneShifter.isInsideWindow(reported)
+            )
+        }
+    }
+
+    /**
      * The waterfall draws a marker at [CwToneShifter.TARGET_HZ] to show the operator where
      * a shifted tone is being delivered. Moving the target outside the model's window, or
      * moving the window off the target, would leave that marker pointing at a frequency

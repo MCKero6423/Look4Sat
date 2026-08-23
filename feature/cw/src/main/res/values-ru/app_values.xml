@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cw_tone_shifted_hint">Тон %1$d Гц перенесён в окно декодирования 400-1200 Гц</string>
+    <string name="cw_tone_outside_hint">Тон %1$d Гц находится вне окна декодирования 400-1200 Гц. Включите сдвиг тона в настройках.</string>
+</resources>

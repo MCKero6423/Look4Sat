@@ -6,4 +6,6 @@
     <string name="cw_mic_permission">Microphone permission is required for CW decoding</string>
     <string name="cw_grant_permission">Grant permission</string>
     <string name="cw_open_settings">Open app settings</string>
+    <string name="cw_tone_shifted_hint">Tone %1$d Hz moved into the 400-1200 Hz decoder window</string>
+    <string name="cw_tone_outside_hint">Tone %1$d Hz is outside the 400-1200 Hz decoder window. Enable tone shift in Settings.</string>
 </resources>

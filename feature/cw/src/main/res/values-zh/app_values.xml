@@ -6,4 +6,6 @@
     <string name="cw_mic_permission">CW 解码需要麦克风权限</string>
     <string name="cw_grant_permission">授予权限</string>
     <string name="cw_open_settings">打开应用设置</string>
+    <string name="cw_tone_shifted_hint">已将 %1$d Hz 音调搬入 400-1200 Hz 解码范围</string>
+    <string name="cw_tone_outside_hint">%1$d Hz 音调在 400-1200 Hz 解码范围外，请在设置中开启音调搬移。</string>
 </resources>

@@ -6,4 +6,6 @@
     <string name="cw_mic_permission">CW çözümü için mikrofon izni gerekli</string>
     <string name="cw_grant_permission">İzin ver</string>
     <string name="cw_open_settings">Uygulama ayarlarını aç</string>
+    <string name="cw_tone_shifted_hint">%1$d Hz tonu 400-1200 Hz kod çözme aralığına taşındı</string>
+    <string name="cw_tone_outside_hint">%1$d Hz tonu 400-1200 Hz kod çözme aralığının dışında. Ayarlar\'dan ton kaydırmayı açın.</string>
 </resources>
