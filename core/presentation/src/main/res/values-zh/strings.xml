@@ -260,6 +260,15 @@
     <string name="wavelog_call_hint">对方呼号</string>
     <string name="wavelog_mode_hint">模式</string>
     <string name="wavelog_saved">已存入本地日志</string>
+    <string name="log_call_too_short">呼号太短</string>
+    <string name="log_call_illegal">呼号里不能有这个字符</string>
+    <string name="log_call_not_a_call">这看起来不像呼号</string>
+    <string name="log_call_too_long">呼号太长</string>
+    <string name="log_warn_grid">已保存 - 但这看起来像网格而不是呼号</string>
+    <string name="log_warn_worked">已保存 - %1$s 本圈已经通联过</string>
+    <string name="log_grid_no_cookie">查网格需要先在设置里填 QRZ Cookie</string>
+    <string name="log_grid_signed_out">QRZ Cookie 已过期 - 请在设置里重新粘贴</string>
+    <string name="log_grid_unreachable">连不上 QRZ, 没查到网格</string>
     <string name="wavelog_need_config">请先在设置中配置 WaveLog</string>
     <string name="wavelog_empty">暂无日志记录</string>
     <string name="wavelog_grid_mismatch">当前 QTH 网格(%1$s)与站点网格(%2$s)不一致,仍要上传?</string>

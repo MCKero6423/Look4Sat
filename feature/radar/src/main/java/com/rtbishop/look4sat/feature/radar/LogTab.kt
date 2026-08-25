@@ -52,6 +52,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,6 +71,7 @@ import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
+import com.rtbishop.look4sat.core.domain.wavelog.CallsignEntry
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQso
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
 import com.rtbishop.look4sat.core.presentation.R
@@ -84,7 +86,6 @@ import kotlin.math.roundToInt
 private val WaveLogYellow = Color(0xFFFFC107)
 
 /** Repeat "done" events for the same callsign inside this window are treated as one QSO. */
-private const val DUPLICATE_WINDOW_MS = 2000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -266,20 +267,38 @@ private fun ExpandedLogInput(
     val scope = rememberCoroutineScope()
     var callsign by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
-    // Last accepted callsign + timestamp, used to swallow duplicate IME "done" events.
-    // A plain in-flight flag cannot help: submit() is synchronous, so it always
-    // clears before the next key event arrives.
-    var lastSaved by remember { mutableStateOf("" to 0L) }
+    // Calls logged during this pass, so a repeat can be mentioned without being blocked: the same
+    // station on a later pass is a legitimate new contact. This replaces a 300ms window that
+    // swallowed what it guessed were accidental double submissions - a guess that could discard
+    // a real second contact instead.
+    var workedThisSession by rememberSaveable { mutableStateOf(emptySet<String>()) }
 
     val savedMsg = stringResource(id = R.string.wavelog_saved)
+    val gridWarnMsg = stringResource(id = R.string.log_warn_grid)
+    val workedWarnMsg = stringResource(id = R.string.log_warn_worked)
+    val tooShortMsg = stringResource(id = R.string.log_call_too_short)
+    val illegalMsg = stringResource(id = R.string.log_call_illegal)
+    val notACallMsg = stringResource(id = R.string.log_call_not_a_call)
+    val tooLongMsg = stringResource(id = R.string.log_call_too_long)
+
+    fun rejectionMessage(reason: CallsignEntry.Reason): String = when (reason) {
+        CallsignEntry.Reason.EMPTY, CallsignEntry.Reason.TOO_SHORT -> tooShortMsg
+        CallsignEntry.Reason.TOO_LONG -> tooLongMsg
+        CallsignEntry.Reason.ILLEGAL_CHARACTERS -> illegalMsg
+        CallsignEntry.Reason.NOT_A_CALLSIGN -> notACallMsg
+    }
 
     fun submit() {
-        val call = callsign.trim().uppercase()
-        if (call.length < 3) return
-        val now = System.currentTimeMillis()
-        val (lastCall, lastAt) = lastSaved
-        if (call == lastCall && now - lastAt < DUPLICATE_WINDOW_MS) return
-        lastSaved = call to now
+        // Every outcome says something. The previous `if (call.length < 3) return` discarded the
+        // entry in silence, so pressing done mid-pass appeared to do nothing, and none of the
+        // logging software surveyed drops a submission that way.
+        val verdict = CallsignEntry.check(callsign, workedThisSession)
+        if (verdict is CallsignEntry.Verdict.Rejected) {
+            showToast(rejectionMessage(verdict.reason))
+            return
+        }
+        val accepted = verdict as CallsignEntry.Verdict.Acceptable
+        val call = accepted.callsign
         // Freq taken directly from the transponder bar (radio Doppler-corrected each second; value at the Enter moment)
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
@@ -298,8 +317,15 @@ private fun ExpandedLogInput(
             )
         )
         callsign = ""
+        workedThisSession = workedThisSession + call
         onSaved()
-        showToast(savedMsg)
+        showToast(
+            when (accepted.warning) {
+                CallsignEntry.Warning.LOOKS_LIKE_A_GRID -> gridWarnMsg
+                CallsignEntry.Warning.ALREADY_WORKED -> workedWarnMsg.format(call)
+                null -> savedMsg
+            }
+        )
         // QRZ counterpart grid async backfill (4.5.5): only queried when Cookie is set; silent on failure
         scope.launch {
             val prefs = context.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)

@@ -291,6 +291,15 @@
     <string name="wavelog_call_hint">Callsign</string>
     <string name="wavelog_mode_hint">Mode</string>
     <string name="wavelog_saved">Saved to local log</string>
+    <string name="log_call_too_short">Callsign too short</string>
+    <string name="log_call_illegal">A callsign cannot contain that</string>
+    <string name="log_call_not_a_call">That does not look like a callsign</string>
+    <string name="log_call_too_long">Callsign too long</string>
+    <string name="log_warn_grid">Saved - that looks like a grid, not a callsign</string>
+    <string name="log_warn_worked">Saved - %1$s was already worked this pass</string>
+    <string name="log_grid_no_cookie">Grid lookup needs a QRZ cookie in Settings</string>
+    <string name="log_grid_signed_out">QRZ cookie expired - paste a fresh one in Settings</string>
+    <string name="log_grid_unreachable">Could not reach QRZ for the grid</string>
     <string name="wavelog_need_config">Configure WaveLog in Settings first</string>
     <string name="wavelog_empty">No log entries yet</string>
     <string name="wavelog_grid_mismatch">QTH grid (%1$s) does not match station grid (%2$s). Upload anyway?</string>
