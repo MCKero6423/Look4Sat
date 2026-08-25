@@ -32,7 +32,9 @@ class AprsIsClientSocketTest {
     private class FakeServer(
         private val greeting: String? = "# aprsc 2.1.19-g730c5c0",
         private val loginResponse: String? = "# logresp TEST verified, server FAKE",
-        private val chatter: List<String> = emptyList()
+        private val chatter: List<String> = emptyList(),
+        /** Sent right after the first packet arrives, to exercise the ack read. */
+        private val afterPacket: String? = null
     ) : AutoCloseable {
         private val server = ServerSocket(0)
         private val ready = CountDownLatch(1)
@@ -69,11 +71,16 @@ class AprsIsClientSocketTest {
                         loginResponse?.let { out.print(it + "\r\n"); out.flush() }
                         ready.countDown()
                         // Read lines but never acknowledge, exactly as APRS-IS treats positions.
+                        var firstPacket = true
                         while (true) {
                             val line = input.readLine() ?: break
                             synchronized(received) {
                                 received += line
                                 rawAfterLogin.append(line)
+                            }
+                            if (firstPacket) {
+                                firstPacket = false
+                                afterPacket?.let { out.print(it + "\r\n"); out.flush() }
                             }
                         }
                     }
@@ -242,6 +249,41 @@ class AprsIsClientSocketTest {
                 threw != null || sentOk != true
             )
             c.disconnect()
+        }
+    }
+
+    /**
+     * A server saying it is about to drop us must not read as a successful send.
+     *
+     * The ack read used to treat any leading `#` as harmless chatter, so `# Port full` - which
+     * means the server is closing the connection - was reported as sent. It now shares the login
+     * parser's judgement, so only a greeting or keepalive counts as harmless.
+     */
+    @Test
+    fun `a server refusal after the write is not reported as sent`() {
+        FakeServer(afterPacket = "# Port full").use { server ->
+            server.start()
+            val c = client(server.port)
+            c.connect()
+            assertTrue(server.awaitLogin())
+            val result = c.sendPacket("TEST>APRS,TCPIP*:=0000.00N/00000.00E>x")
+            c.disconnect()
+            assertEquals("a server refusal must fail the report", false, result?.first)
+        }
+    }
+
+    /** The real keepalive must still count as sent, since APRS-IS never acknowledges a position. */
+    @Test
+    fun `a keepalive after the write still counts as sent`() {
+        val keepalive = "# aprsc 2.1.21-gbfc2090 25 Aug 2026 16:41:07 GMT T2UK 1.2.3.4:14580"
+        FakeServer(afterPacket = keepalive).use { server ->
+            server.start()
+            val c = client(server.port)
+            c.connect()
+            assertTrue(server.awaitLogin())
+            val result = c.sendPacket("TEST>APRS,TCPIP*:=0000.00N/00000.00E>x")
+            c.disconnect()
+            assertEquals("a keepalive must not fail the report", true, result?.first)
         }
     }
 

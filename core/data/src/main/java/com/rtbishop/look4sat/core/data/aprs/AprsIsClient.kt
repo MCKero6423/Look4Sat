@@ -199,14 +199,24 @@ class AprsIsClient(
         }
     }
 
-    /** Interpret whatever the server sent back after a packet. */
-    private fun classifyAck(response: String?): Pair<Boolean, String> = when {
-        response == null -> Pair(false, "connection closed by server")
-        // Comments are keepalives and server chatter, not a verdict on this packet.
-        response.startsWith("#") -> Pair(true, "sent")
-        response.contains("Invalid", ignoreCase = true) ||
-            response.contains("error", ignoreCase = true) -> Pair(false, response.trim())
-        else -> Pair(true, response.trim())
+    /**
+     * Interpret whatever the server sent back after a packet.
+     *
+     * Shares AprsLogin's judgement rather than keeping its own, because the two disagreed in a way
+     * that mattered: treating any leading `#` as harmless meant `# Port full` and `# Login by user
+     * not allowed` - both of which mean the server is about to drop us - were reported as a
+     * successful send. APRS-IS does not acknowledge position reports, so a harmless comment still
+     * counts as sent; anything the server says that is not harmless does not.
+     */
+    private fun classifyAck(response: String?): Pair<Boolean, String> {
+        if (response == null) return Pair(false, "connection closed by server")
+        return when (val verdict = AprsLogin.parse(response)) {
+            // A keepalive or identification comment: no verdict, so the write stands.
+            null -> Pair(true, "sent")
+            is AprsLogin.Outcome.Rejected -> Pair(false, verdict.detail)
+            // A late login verdict is not about this packet, and loginOutcome already carries it.
+            else -> Pair(true, "sent")
+        }
     }
 
     fun disconnect() {
