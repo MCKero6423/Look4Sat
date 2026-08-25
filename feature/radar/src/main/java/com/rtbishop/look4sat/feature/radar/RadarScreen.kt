@@ -297,6 +297,7 @@ private fun PagerCard(
                         transceivers = uiState.transceivers.transmitters,
                         orbitalPos = uiState.orbitalPos,
                         satelliteName = uiState.currentPass?.name ?: "",
+                        satelliteCatnum = uiState.currentPass?.catNum ?: 0,
                         queue = wavelogQueue,
                         wavelogConfigured = wavelogConfigured,
                         showToast = showToast,

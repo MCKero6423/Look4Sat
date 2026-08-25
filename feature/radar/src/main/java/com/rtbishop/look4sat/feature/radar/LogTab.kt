@@ -92,6 +92,7 @@ fun LogTab(
     transceivers: List<SatRadio>,
     orbitalPos: OrbitalPos?,
     satelliteName: String,
+    satelliteCatnum: Int,
     queue: WavelogQueue,
     wavelogConfigured: Boolean,
     showToast: (String) -> Unit,
@@ -167,6 +168,7 @@ fun LogTab(
                 radio = radio,
                 orbitalPos = orbitalPos,
                 satelliteName = satelliteName,
+                satelliteCatnum = satelliteCatnum,
                 queue = queue,
                 showToast = showToast,
                 txBaseFrequencyHz = txBaseFrequencyHz,
@@ -253,6 +255,7 @@ private fun ExpandedLogInput(
     radio: SatRadio,
     orbitalPos: OrbitalPos?,
     satelliteName: String,
+    satelliteCatnum: Int,
     queue: WavelogQueue,
     showToast: (String) -> Unit,
     txBaseFrequencyHz: Long? = null,
@@ -290,6 +293,7 @@ private fun ExpandedLogInput(
                 freqTxHz = tx,
                 freqRxHz = rx,
                 satName = satelliteName,
+                catnum = satelliteCatnum,
                 sessionId = buildSessionId(satelliteName, aosTimeMs)
             )
         )

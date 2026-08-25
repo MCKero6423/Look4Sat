@@ -86,9 +86,30 @@ class LotwSatelliteIdsTest {
         assertEquals(catnums.size, LotwSatelliteIds.size)
     }
 
+    /**
+     * The TEVEL-2 constellation needs the table more than anything else does: every source
+     * writes these TEVEL2-N while LoTW has TEV2-N, and stripping separators does not bridge
+     * that - TEVEL21 is not TEV21 - so without these rows their QSOs upload under a name LoTW
+     * refuses. Nine satellites launched in 2025 and currently workable; they were missing from
+     * the first version of this table.
+     */
+    @Test
+    fun `the TEVEL-2 constellation maps to the LoTW spelling`() {
+        assertEquals("TEV2-1", LotwSatelliteIds.nameFor(63217))
+        assertEquals("TEV2-4", LotwSatelliteIds.nameFor(63213))
+        assertEquals("TEV2-9", LotwSatelliteIds.nameFor(63237))
+        // Nine numbers, nine distinct names. The numbering is deliberately not sequential -
+        // 63217 is TEVEL2-1 while 63213 is TEVEL2-4 - so an off-by-one logs the wrong bird.
+        val tevel = listOf(63213, 63214, 63215, 63217, 63218, 63219, 63237, 63238, 63239)
+        val names = tevel.mapNotNull { LotwSatelliteIds.nameFor(it) }
+        assertEquals(tevel.size, names.size)
+        assertEquals(tevel.size, names.toSet().size)
+    }
+
     private val catnums = listOf(
         7530, 14129, 20439, 20442, 22825, 23439, 24278, 25544, 26609, 26931,
         27607, 28650, 39444, 40025, 40074, 40908, 40931, 40967, 41847, 43017,
-        43678, 43700, 43803, 44530, 44881, 44909, 50466, 53109, 61781
+        43678, 43700, 43803, 44530, 44881, 44909, 50466, 53109, 61781,
+        63213, 63214, 63215, 63217, 63218, 63219, 63237, 63238, 63239
     )
 }

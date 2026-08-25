@@ -63,7 +63,20 @@ object LotwSatelliteIds {
         44909 to "RS-44",     // DOSAAF-85 (RS-44)
         50466 to "HO-113",    // CAMSAT XW-3 (CAS-9)
         53109 to "IO-117",    // GREENCUBE (IO-117)
-        61781 to "AO-123"     // AO-123
+        61781 to "AO-123",    // AO-123
+        // The TEVEL-2 constellation. Every source writes these TEVEL2-N while LoTW has TEV2-N,
+        // and no amount of separator-stripping bridges that - TEVEL21 is not TEV21 - so without
+        // these nine rows their QSOs upload under a name LoTW refuses. Note the numbering is not
+        // sequential: 63217 is TEVEL2-1 and 63213 is TEVEL2-4.
+        63213 to "TEV2-4",
+        63214 to "TEV2-5",
+        63215 to "TEV2-6",
+        63217 to "TEV2-1",
+        63218 to "TEV2-3",
+        63219 to "TEV2-2",
+        63237 to "TEV2-9",
+        63238 to "TEV2-7",
+        63239 to "TEV2-8"
     )
 
     /** The LoTW spelling for [catnum], or null when this satellite is not in the LoTW list. */

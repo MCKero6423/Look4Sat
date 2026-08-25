@@ -151,27 +151,62 @@ object WaveLogApi {
         return if (up == down) "" else "$up/$down"
     }
 
-    /** LoTW-recognized satellite name: main name before parentheses, uppercased (ISS special case) */
-    fun normalizeSatName(raw: String): String {
-        val main = raw.substringBefore('(').trim()
-            .ifBlank { raw.trim() }
-            .uppercase(Locale.ENGLISH)
-        // Matching logic (mirrors WaveLog satellite table name/displayname matching + LoTW list):
-        // 1. Already in LoTW list (common TLE name == common name) -> return as-is
-        // 2. Not present -> check Celestrak alias map (SAUDISAT 1C -> SO-50 etc.); mapped name must be in LoTW list
-        // 3. Still unmatched -> return as-is (uploads are not blocked; QSO is still saved)
-        val commonName = mapOf(
-            "ZARYA" to "ARISS",
-            "ARISS" to "ARISS",
-            "FUNCUBE-1" to "AO-73",
-            "DIWATA-2B" to "PO-101",
-            "SAUDISAT-1C" to "SO-50",
-            "SAUDISAT 1C" to "SO-50",
-            "DIWATA-2A" to "PO-101"
-        )
-        val candidate = commonName[main] ?: main
-        return if (candidate in LotwSatellites.names) candidate else main
+    /**
+     * The name LoTW accepts for this satellite, resolved from its catalogue number when known.
+     *
+     * LoTW rejects a QSO whose SAT_NAME is not spelled as its accepted list has it - its help
+     * page gives AO7 against AO-7 as an example - so this has to produce the exact spelling or
+     * nothing useful at all.
+     *
+     * [catnum] is preferred because the name alone cannot decide it: TLE sources disagree, and
+     * of the 49 satellites carried by both Celestrak amateur and AMSAT nasabare, 33 are named
+     * differently. NORAD 43017 is "RADFXSAT (FOX-1B)" in one and "AO-91" in the other, 43700 is
+     * "ES'HAIL 2" against "QO-100". Deriving the name from the TLE text resolved 0 of 96
+     * satellites to something LoTW accepts, because the descriptive part of a TLE name is never
+     * the OSCAR designator.
+     *
+     * The name path remains as a fallback for QSOs logged before the catalogue number was
+     * recorded. It tries the whole name, then either side of the parentheses, since which side
+     * carries the designator varies - "SAUDISAT 1C (SO-50)" has it inside, "ISS (ZARYA)" does not.
+     */
+    fun normalizeSatName(raw: String, catnum: Int? = null): String {
+        catnum?.let { LotwSatelliteIds.nameFor(it) }?.let { return it }
+        val trimmed = raw.trim()
+        for (candidate in nameCandidates(trimmed)) {
+            LotwSatellites.names.firstOrNull { it.equals(candidate, ignoreCase = true) }
+                ?.let { return it }
+        }
+        // Tolerate a missing or extra hyphen: sources write RS15 where LoTW has RS-15.
+        for (candidate in nameCandidates(trimmed)) {
+            val squashed = candidate.squashSeparators()
+            LotwSatellites.names.firstOrNull { it.squashSeparators() == squashed }
+                ?.let { return it }
+        }
+        return trimmed.uppercase(Locale.ENGLISH)
     }
+
+    /** True when [normalizeSatName] produced a name LoTW will accept rather than a guess. */
+    fun isLotwSatellite(name: String, catnum: Int? = null): Boolean {
+        val resolved = normalizeSatName(name, catnum)
+        return LotwSatellites.names.any { it.equals(resolved, ignoreCase = true) }
+    }
+
+    /** The whole name plus either side of the parentheses, longest first. */
+    private fun nameCandidates(raw: String): List<String> {
+        if (raw.isEmpty()) return emptyList()
+        val parts = mutableListOf(raw)
+        val open = raw.indexOf('(')
+        val close = raw.lastIndexOf(')')
+        if (open in 0..<close) {
+            parts += raw.substring(open + 1, close).trim()
+            parts += raw.substring(0, open).trim()
+        }
+        // Formation launches are catalogued as "RS-44 & BREEZE-KM R/B".
+        if ('&' in raw) parts += raw.substringBefore('&').trim()
+        return parts.filter { it.isNotEmpty() }.distinct()
+    }
+
+    private fun String.squashSeparators() = replace(Regex("[-\\s._/]"), "").uppercase(Locale.ENGLISH)
 
     /** Create QSO: v2 first, fall back to v1 (ADIF) on 404 */
     suspend fun postQso(
@@ -184,7 +219,7 @@ object WaveLogApi {
         val base = normalizeUrl(url)
         if (base.isBlank()) return@withContext WavelogResult.Failure("服务器地址为空")
 
-        val satName = normalizeSatName(qso.satName)
+        val satName = normalizeSatName(qso.satName, qso.catnum.takeIf { it > 0 })
 
         // v2: POST /index.php/api/v2/qso (JSON fields)
         val satMode = satModeFrom(qso.freqTxHz, qso.freqRxHz)
