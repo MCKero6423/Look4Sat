@@ -1,13 +1,11 @@
 package com.rtbishop.look4sat.core.data.aprs
 
-import com.rtbishop.look4sat.core.domain.aprs.AprsPacket
+import com.rtbishop.look4sat.core.domain.aprs.AprsBeacon
 import com.rtbishop.look4sat.core.domain.aprs.AprsPasscode
-import com.rtbishop.look4sat.core.domain.aprs.AprsPosition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -70,12 +68,11 @@ class AprsReporter(
             onState(AprsState.Error)
             return
         }
-        job = scope.launch {
-            while (isActive) {
-                reportOnce()
-                delay(cfg.intervalMin.coerceAtLeast(1) * 60_000L)
-            }
-        }
+        // One report now; the service's exact alarm drives every one after this. The loop that
+        // used to live here relied on a coroutine delay, which Doze defeats - the timer fires on
+        // schedule and then finds network access suspended, so the beacon stopped whenever the
+        // screen locked while the notification still claimed it was running.
+        job = scope.launch { reportOnce() }
     }
 
     fun stop() {
@@ -111,7 +108,25 @@ class AprsReporter(
             onState(AprsState.Connected)
 
             val pos = positionProvider()
-            val packetLine = buildPositionPacket(cfg, pos?.first, pos?.second)
+            val beacon = AprsBeacon.build(
+                callsign = cfg.callsign,
+                ssid = cfg.ssid,
+                latitude = pos?.first,
+                longitude = pos?.second,
+                symbolTable = cfg.symbolTable,
+                symbolCode = cfg.symbolCode,
+                comment = cfg.statusText
+            )
+            // Nothing goes out without a position. Substituting 0,0 put this station in the Gulf
+            // of Guinea on the global network, under the operator's own callsign.
+            if (beacon is AprsBeacon.Result.Blocked) {
+                onState(AprsState.Error)
+                onReport(
+                    AprsReport(System.currentTimeMillis(), "", false, refusalDetail(beacon.refusal))
+                )
+                return
+            }
+            val packetLine = (beacon as AprsBeacon.Result.Line).text
             val result = c.sendPacket(packetLine)
             val sent = result?.first == true
             val detail = result?.second ?: "no connection"
@@ -132,15 +147,21 @@ class AprsReporter(
         }
     }
 
-    /** Build position packet: BG7NTA-5>APRS:=DDMM.MMN/DDDMM.MME<status text */
-    private fun buildPositionPacket(cfg: AprsConfig, lat: Double? = null, lon: Double? = null): String {
-        val source = AprsPacket.formatCallSsid(cfg.callsign, cfg.ssid)
-        val pos = AprsPosition(
-            latitude = lat ?: 0.0,
-            longitude = lon ?: 0.0,
-            symbolTable = cfg.symbolTable.firstOrNull() ?: '/',
-            symbolCode = cfg.symbolCode.firstOrNull() ?: '>'
-        )
-        return "$source>APRS:=${pos.toUncompressedString()}${cfg.statusText}"
+
+    /** A short reason for a refusal, for the operator's last-report line. */
+    private fun refusalDetail(refusal: AprsBeacon.Refusal): String = when (refusal) {
+        AprsBeacon.Refusal.NoPosition -> "no position yet"
+        AprsBeacon.Refusal.NoCallsign -> "no callsign set"
+        is AprsBeacon.Refusal.ImpossiblePosition -> "position out of range"
     }
+
+
+
+
+    companion object {
+
+        /** Floor for the reporting interval, in minutes. */
+        const val MIN_INTERVAL_MIN = 5
+    }
+
 }

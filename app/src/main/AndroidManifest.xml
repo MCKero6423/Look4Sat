@@ -15,7 +15,20 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
         <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!--
+        location, not dataSync: dataSync foreground services are capped at six hours in any
+        24-hour window and then stopped by the system, which would silently end a beacon meant
+        to run all day. The service reads the station position, falling back to GPS, so location
+        describes what it actually does.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!--
+        Doze suspends network access and ignores wake locks even for a foreground service, so a
+        coroutine delay wakes up on time and then cannot reach the network. An exact alarm with
+        setExactAndAllowWhileIdle is the only scheduling that survives Doze, and at a five-minute
+        floor the system's one-alarm-per-nine-minutes throttle is not a problem.
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 <application
         android:name=".MainApplication"
@@ -51,6 +64,6 @@
             <service
             android:name="com.rtbishop.look4sat.app.AprsForegroundService"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="location" />
     </application>
 </manifest>

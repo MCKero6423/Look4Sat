@@ -1,5 +1,6 @@
 package com.rtbishop.look4sat.app
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -37,6 +38,11 @@ class AprsForegroundService : Service() {
         const val ACTION_REPORT_NOW = AprsStore.ACTION_REPORT_NOW
         const val CHANNEL_ID = "aprs_service"
         const val NOTIF_ID = 101
+
+        /** Alarm-driven tick, kept separate so a manual report stays distinguishable. */
+        const val ACTION_ALARM_TICK = "com.rtbishop.look4sat.APRS_ALARM_TICK"
+
+        private const val ALARM_REQUEST = 4101
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -63,6 +69,12 @@ class AprsForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> stopReporting()
+            ACTION_ALARM_TICK -> {
+                // Woken by the exact alarm. Reporting once and then booking the next tick, rather
+                // than using a repeating alarm, means a changed interval takes effect at once.
+                if (reporter == null) startReporting() else reporter?.reportNow()
+                scheduleNextTick()
+            }
             ACTION_REPORT_NOW -> {
                 if (reporter == null) {
                     // Service not running: start it first (Toast hint when not configured)
@@ -119,9 +131,12 @@ class AprsForegroundService : Service() {
         )
         reporter = rep
         rep.start()
+        // The reporter beacons once on start; the alarm carries every one after that.
+        scheduleNextTick()
     }
 
     private fun stopReporting() {
+        cancelTicks()
         reporter?.stop()
         reporter = null
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -212,4 +227,43 @@ class AprsForegroundService : Service() {
         reporter = null
         super.onDestroy()
     }
+
+    /**
+     * Book the next beacon with an exact alarm.
+     *
+     * A coroutine delay was used before, which Doze defeats: the timer fires but network access is
+     * suspended and wake locks are ignored, even inside a foreground service. Only
+     * setExactAndAllowWhileIdle survives that, and the five-minute floor keeps this well clear of
+     * the system's throttle on how often such an alarm may repeat.
+     */
+    private fun scheduleNextTick() {
+        val cfg = AprsStore.loadConfig(this)
+        if (!cfg.enabled) return
+        val alarms = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val minutes = cfg.intervalMin.coerceAtLeast(AprsReporter.MIN_INTERVAL_MIN)
+        val at = System.currentTimeMillis() + minutes * 60_000L
+        runCatching {
+            val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()
+            if (exact) {
+                alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, tickIntent())
+            } else {
+                // The operator revoked exact alarms. An inexact one still beacons, just whenever
+                // the system decides, which beats not beaconing at all.
+                alarms.set(AlarmManager.RTC_WAKEUP, at, tickIntent())
+            }
+        }
+    }
+
+    private fun cancelTicks() {
+        val alarms = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        runCatching { alarms.cancel(tickIntent()) }
+    }
+
+    private fun tickIntent(): PendingIntent = PendingIntent.getService(
+        this,
+        ALARM_REQUEST,
+        Intent(this, AprsForegroundService::class.java).setAction(ACTION_ALARM_TICK),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
 }
