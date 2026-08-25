@@ -1,6 +1,7 @@
 package com.rtbishop.look4sat.core.data.aprs
 
 import com.rtbishop.look4sat.core.domain.aprs.AprsPacket
+import com.rtbishop.look4sat.core.domain.aprs.AprsPasscode
 import com.rtbishop.look4sat.core.domain.aprs.AprsPosition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -101,7 +102,9 @@ class AprsReporter(
                 port = cfg.port,
                 callsign = cfg.callsign,
                 ssid = cfg.ssid,
-                passcode = cfg.passcode.toIntOrNull()?.takeIf { it >= 0 } ?: AprsPacket.passcode(cfg.callsign),
+                // Never derives one: a blank or wrong entry logs in receive-only rather than
+                // transmitting under a passcode the app invented for an unchecked licence.
+                passcode = AprsPasscode.loginValue(cfg.callsign, cfg.passcode),
                 version = "Look4Sat 4.5.4"
             ).also { client = it }
             if (!c.isConnected) c.connect()

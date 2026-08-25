@@ -11,6 +11,8 @@ import android.content.SharedPreferences
 import android.widget.Toast
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.IBinder
 import com.rtbishop.look4sat.MainApplication
 import com.rtbishop.look4sat.core.presentation.R
@@ -39,6 +41,16 @@ class AprsForegroundService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var reporter: AprsReporter? = null
+
+    /**
+     * Handler on the main looper, for anything that must not run on the reporter's IO thread.
+     *
+     * onReport is invoked from AprsReporter's Dispatchers.IO scope, and Toast construction there
+     * throws because that thread has no Looper - an exception the surrounding runCatching then
+     * swallowed, so every report notice was silently discarded. The messages existed and no
+     * operator ever saw one.
+     */
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var lastState: AprsState = AprsState.Idle
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -99,7 +111,7 @@ class AprsForegroundService : Service() {
                     !report.verified -> getString(R.string.aprs_toast_unverified)
                     else -> getString(R.string.aprs_toast_fail, report.detail)
                 }
-                runCatching {
+                mainHandler.post {
                     Toast.makeText(this, msg,
                         if (report.ok) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
                 }
