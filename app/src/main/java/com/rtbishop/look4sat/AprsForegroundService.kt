@@ -113,6 +113,11 @@ class AprsForegroundService : Service() {
             onState = { lastState = it },
             onReport = { report ->
                 AprsStore.saveLastReport(this, report.ok, report.detail)
+                // Derived from this report rather than read from lastState: onState fires AFTER
+                // onReport, so the notification was being rebuilt from the previous cycle's
+                // verdict. For an alarm-driven report at 03:00 the notification is the only
+                // surface that survives, and it was showing the wrong one.
+                lastState = if (report.ok) AprsState.Connected else AprsState.Error
                 updateNotification(cfg)
                 // Report result always surfaces: success = short Toast, failure = long Toast + reason
                 // An unverified login needs its own message: the write succeeded, so a bare
