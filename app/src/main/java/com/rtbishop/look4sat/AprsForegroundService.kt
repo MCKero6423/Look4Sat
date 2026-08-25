@@ -91,10 +91,13 @@ class AprsForegroundService : Service() {
                 AprsStore.saveLastReport(this, report.ok, report.detail)
                 updateNotification(cfg)
                 // Report result always surfaces: success = short Toast, failure = long Toast + reason
-                val msg = if (report.ok) {
-                    getString(R.string.aprs_toast_ok)
-                } else {
-                    getString(R.string.aprs_toast_fail, report.detail)
+                // An unverified login needs its own message: the write succeeded, so a bare
+                // failure notice would send the operator looking at their network when the
+                // problem is the passcode - and APRS-IS is dropping every packet meanwhile.
+                val msg = when {
+                    report.ok -> getString(R.string.aprs_toast_ok)
+                    !report.verified -> getString(R.string.aprs_toast_unverified)
+                    else -> getString(R.string.aprs_toast_fail, report.detail)
                 }
                 runCatching {
                     Toast.makeText(this, msg,

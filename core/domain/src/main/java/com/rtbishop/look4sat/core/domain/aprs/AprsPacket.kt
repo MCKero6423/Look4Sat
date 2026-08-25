@@ -22,12 +22,6 @@ object AprsPacket {
         return hash and 0x7FFF
     }
 
-    /** Login line: user CALL-SSID pass XXXX vers XXXX */
-    fun formatLogin(callsign: String, ssid: String, passcode: Int, version: String): String {
-        val callSsid = formatCallSsid(callsign, ssid)
-        return "user $callSsid pass $passcode vers $version"
-    }
-
     /** Callsign-SSID join (BG7NTA + 5 -> BG7NTA-5) */
     fun formatCallSsid(callsign: String, ssid: String): String {
         if (ssid.isNullOrEmpty()) return callsign

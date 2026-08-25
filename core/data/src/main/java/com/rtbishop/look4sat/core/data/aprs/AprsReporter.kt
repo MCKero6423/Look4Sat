@@ -34,7 +34,17 @@ data class AprsReport(
     val timestamp: Long,
     val packet: String,
     val ok: Boolean,
-    val detail: String
+    val detail: String,
+    /**
+     * False only when the server told us it did not verify the login.
+     *
+     * Carried separately from [ok] because the two are independent: a refused client's writes
+     * still succeed, so the packet leaves the phone and looks sent, while aprsc discards every
+     * one of them. Without surfacing it the operator can watch reports succeed for hours with
+     * nothing reaching the network. A login whose response we simply could not parse leaves this
+     * true, since the packets may be landing and the passcode is not at fault.
+     */
+    val verified: Boolean = true
 )
 
 /** Report scheduler (periodic + manual trigger); connection management lives in the foreground service */
@@ -100,15 +110,22 @@ class AprsReporter(
             val pos = positionProvider()
             val packetLine = buildPositionPacket(cfg, pos?.first, pos?.second)
             val result = c.sendPacket(packetLine)
-            val ok = result?.first == true
+            val sent = result?.first == true
             val detail = result?.second ?: "no connection"
-            onReport(AprsReport(System.currentTimeMillis(), packetLine, ok, detail))
+            // A write that succeeded on a login the server refused to verify is not a delivered
+            // packet: aprsc takes it and drops it, which is what let every real failure hide.
+            // Only an explicit refusal counts against us though - a login whose response we
+            // could not parse may be working fine, and blaming the passcode for that would send
+            // the operator to fix something that is not broken.
+            val refused = c.isRefusedByServer
+            val ok = sent && !refused
+            onReport(AprsReport(System.currentTimeMillis(), packetLine, ok, detail, !refused))
             if (ok) onState(AprsState.Connected) else onState(AprsState.Error)
         } catch (e: Exception) {
             runCatching { client?.disconnect() }
             client = null
             onState(AprsState.Error)
-            onReport(AprsReport(System.currentTimeMillis(), "", false, e.message ?: "error"))
+            onReport(AprsReport(System.currentTimeMillis(), "", false, e.message ?: "error", false))
         }
     }
 
