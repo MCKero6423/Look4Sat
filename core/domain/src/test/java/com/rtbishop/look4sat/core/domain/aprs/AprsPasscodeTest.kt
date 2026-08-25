@@ -64,6 +64,31 @@ class AprsPasscodeTest {
         assertEquals(AprsPasscode.RECEIVE_ONLY, AprsPasscode.loginValue(callsign, wrong))
     }
 
+    /**
+     * The three-way distinction the reporter depends on, and why it must not use canTransmit for
+     * it: that collapses a deliberate receive-only choice and a typo into one boolean. Telling an
+     * operator who mistyped their passcode that they are in receive-only mode is the same
+     * mis-diagnosis as telling a deliberate receive-only user their passcode is wrong, pointing
+     * the other way.
+     */
+    @Test
+    fun `a deliberate receive-only entry is distinguishable from a typo`() {
+        val deliberate = AprsPasscode.classify(callsign, "-1")
+        val blank = AprsPasscode.classify(callsign, "")
+        val typo = AprsPasscode.classify(callsign, (correct + 1).toString())
+        val garbage = AprsPasscode.classify(callsign, "abcde")
+
+        assertTrue(deliberate is AprsPasscode.Entry.ReceiveOnly)
+        assertTrue(blank is AprsPasscode.Entry.ReceiveOnly)
+        assertFalse("a typo must not read as receive-only", typo is AprsPasscode.Entry.ReceiveOnly)
+        assertFalse("garbage must not read as receive-only", garbage is AprsPasscode.Entry.ReceiveOnly)
+
+        // All four are equally unable to transmit, which is why the boolean is not enough.
+        for (entry in listOf("-1", "", (correct + 1).toString(), "abcde")) {
+            assertFalse(AprsPasscode.canTransmit(callsign, entry))
+        }
+    }
+
     @Test
     fun `something that is not a number is its own case`() {
         assertEquals(AprsPasscode.Entry.NotANumber, AprsPasscode.classify(callsign, "abcde"))

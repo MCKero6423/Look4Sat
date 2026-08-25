@@ -127,10 +127,13 @@ class AprsReporter(
             }
             val packetLine = (beacon as AprsBeacon.Result.Line).text
 
-            // Receive-only is a deliberate choice, not a mistake, and has to be carried through:
-            // it logs in with -1 exactly as a wrong passcode does, and the server answers
-            // "unverified" to both.
-            val wantsReceiveOnly = !AprsPasscode.canTransmit(cfg.callsign, cfg.passcode)
+            // Receive-only is a deliberate choice and has to be told apart from a typo, because
+            // both log in with -1 and the server answers "unverified" to each. Classifying rather
+            // than asking canTransmit: that collapses ReceiveOnly and Mismatch into one boolean,
+            // so a mistyped passcode would be told it is in receive-only mode - the same
+            // mis-diagnosis as before, pointing the other way.
+            val wantsReceiveOnly =
+                AprsPasscode.classify(cfg.callsign, cfg.passcode) is AprsPasscode.Entry.ReceiveOnly
             val c = client ?: AprsIsClient(
                 host = cfg.server,
                 port = cfg.port,
