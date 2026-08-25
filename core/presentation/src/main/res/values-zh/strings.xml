@@ -270,6 +270,11 @@
     <string name="log_grid_no_cookie">查网格需要先在设置里填 QRZ Cookie</string>
     <string name="log_grid_signed_out">QRZ Cookie 已过期 - 请在设置里重新粘贴</string>
     <string name="log_grid_unreachable">连不上 QRZ, 没查到网格</string>
+    <string name="qrz_test_empty">请先粘贴 Cookie</string>
+    <string name="qrz_test_signed_out">Cookie 无效或已过期</string>
+    <string name="qrz_test_ok">登录呼号 %1$s, 网格 %2$s</string>
+    <string name="qrz_test_no_grid">登录呼号 %1$s, 未填写网格</string>
+    <string name="qrz_test_unreachable">连不上 QRZ</string>
     <string name="wavelog_need_config">请先在设置中配置 WaveLog</string>
     <string name="wavelog_empty">暂无日志记录</string>
     <string name="wavelog_grid_mismatch">当前 QTH 网格(%1$s)与站点网格(%2$s)不一致,仍要上传?</string>

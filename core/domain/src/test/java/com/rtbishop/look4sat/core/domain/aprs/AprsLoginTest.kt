@@ -101,6 +101,42 @@ class AprsLoginTest {
     }
 
     /**
+     * Every refusal, not only the anticipated ones. A first attempt listed the wordings it knew and
+     * skipped everything else as chatter, which missed three - including `# Login by user not
+     * allowed`, observed live on rotate.aprs2.net, the most commonly used rotating hostname.
+     */
+    @Test
+    fun `refusals nobody anticipated are still refusals`() {
+        val refusals = listOf(
+            "# Login by user not allowed",
+            "# Port full",
+            "# Server full",
+            "# Invalid login: software name and version are not separated by a space",
+            "# Some wording nobody has seen yet"
+        )
+        for (line in refusals) {
+            assertTrue(
+                "must be a refusal: $line",
+                AprsLogin.parse(line) is AprsLogin.Outcome.Rejected
+            )
+        }
+    }
+
+    /** The greetings and keepalives that must NOT read as refusals under that rule. */
+    @Test
+    fun `greetings and keepalives are still skipped`() {
+        val harmless = listOf(
+            "# aprsc 2.1.21-gbfc2090",
+            "# aprsc 2.1.19-g730c5c0",
+            "# javAPRSSrvr 4.4.3b19",
+            "# filter myfilter active"
+        )
+        for (line in harmless) {
+            assertNull("must be skipped so the caller keeps reading: $line", AprsLogin.parse(line))
+        }
+    }
+
+    /**
      * "unverified" contains "verified", so the negative has to be tested first. A naive
      * contains("verified") reports every rejected login as accepted.
      */
@@ -123,7 +159,11 @@ class AprsLoginTest {
     @Test
     fun `comments without a verdict are skipped`() {
         assertNull(AprsLogin.parse("# aprsc 2.1.21-gbfc2090"))
-        assertNull(AprsLogin.parse("# Tue Aug 25 08:00:00 UTC 2026"))
+        // The real keepalive, captured from euro.aprs2.net: it repeats the server identification
+        // with a timestamp rather than sending a bare date, so it carries the same prefix.
+        assertNull(
+            AprsLogin.parse("# aprsc 2.1.21-gbfc2090 25 Aug 2026 16:41:07 GMT T2UK 1.2.3.4:14580")
+        )
         assertNull(AprsLogin.parse(""))
         assertNull(AprsLogin.parse("   "))
     }

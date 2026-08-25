@@ -47,6 +47,12 @@ class QrzGridLookup(
         return source.lookupGrid(callsign, cookie)
     }
 
+    override suspend fun signedInAs(): String? {
+        val cookie = preferences.getString(COOKIE_KEY, "").orEmpty()
+        if (cookie.isBlank()) return null
+        return source.lookupOwnCallsign(cookie)
+    }
+
     companion object {
         /** Where the settings screen stores what the operator pasted. */
         const val PREFS_NAME = "qrz_cookie"

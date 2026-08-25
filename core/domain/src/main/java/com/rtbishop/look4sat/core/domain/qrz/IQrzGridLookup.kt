@@ -34,4 +34,12 @@ interface IQrzGridLookup {
      * same either way: put a valid cookie in settings.
      */
     suspend fun lookup(callsign: String): QrzGrid
+
+    /**
+     * Check the stored cookie by asking QRZ whose account it belongs to.
+     *
+     * Returns the callsign QRZ reports, or null when the cookie is absent or no longer valid. Lets
+     * settings tell the operator which account they pasted rather than only claiming success.
+     */
+    suspend fun signedInAs(): String?
 }

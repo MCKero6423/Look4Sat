@@ -184,7 +184,10 @@ class AprsIsClientSocketTest {
      */
     @Test
     fun `keepalive chatter before the verdict does not hide it`() {
-        val chatter = List(8) { "# keepalive $it" }
+        // The real keepalive repeats the server identification with a timestamp, captured from
+        // euro.aprs2.net. A made-up "# keepalive N" would now read as a refusal, correctly - only
+        // greetings and verdicts are treated as harmless.
+        val chatter = List(8) { "# aprsc 2.1.21-gbfc2090 25 Aug 2026 16:41:0$it GMT T2UK 1.2.3.4:14580" }
         FakeServer(chatter = chatter).use { server ->
             server.start()
             val c = client(server.port)

@@ -301,6 +301,11 @@
     <string name="log_grid_no_cookie">Grid lookup needs a QRZ cookie in Settings</string>
     <string name="log_grid_signed_out">QRZ cookie expired - paste a fresh one in Settings</string>
     <string name="log_grid_unreachable">Could not reach QRZ for the grid</string>
+    <string name="qrz_test_empty">Paste a cookie first</string>
+    <string name="qrz_test_signed_out">Cookie is not valid or has expired</string>
+    <string name="qrz_test_ok">Signed in as %1$s, grid %2$s</string>
+    <string name="qrz_test_no_grid">Signed in as %1$s, no grid on file</string>
+    <string name="qrz_test_unreachable">Could not reach QRZ</string>
     <string name="wavelog_need_config">Configure WaveLog in Settings first</string>
     <string name="wavelog_empty">No log entries yet</string>
     <string name="wavelog_grid_mismatch">QTH grid (%1$s) does not match station grid (%2$s). Upload anyway?</string>

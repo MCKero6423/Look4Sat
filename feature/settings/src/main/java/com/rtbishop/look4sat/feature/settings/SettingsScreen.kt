@@ -100,6 +100,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtbishop.look4sat.core.domain.model.DataSourcesSettings
 import com.rtbishop.look4sat.core.domain.model.OtherSettings
 import com.rtbishop.look4sat.core.domain.predict.GeoPos
+import com.rtbishop.look4sat.core.domain.qrz.IQrzGridLookup
+import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
 import com.rtbishop.look4sat.core.presentation.CardButton
 import com.rtbishop.look4sat.core.presentation.IconCard
@@ -123,7 +125,12 @@ fun SettingsDestination() {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(container))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreen(uiState, viewModel::onAction, container.provideLotwSatellitesRepo())
+    SettingsScreen(
+        uiState,
+        viewModel::onAction,
+        container.provideLotwSatellitesRepo(),
+        container.provideQrzGridLookup()
+    )
 
     // WaveLog grid mismatch confirmation dialog (4.5.2)
     val gridConfirm = viewModel.gridConfirm
@@ -187,7 +194,8 @@ fun SettingsDestination() {
 private fun SettingsScreen(
     uiState: SettingsState,
     onAction: (SettingsAction) -> Unit,
-    lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
+    lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo,
+    qrzLookup: IQrzGridLookup
 ) {
     val dialogs = rememberDialogVisibility()
     val pendingCustomSourcesGrant = remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -405,7 +413,7 @@ private fun SettingsScreen(
                 )
             }
             item { OtherCard(uiState.otherSettings, onAction) }
-            item { WavelogCard(uiState.otherSettings, onAction, lotwRepo) }
+            item { WavelogCard(uiState.otherSettings, onAction, lotwRepo, qrzLookup) }
             item {
                 UiSettingsCard(
                     hiddenScreens = uiState.otherSettings.hiddenScreens,
@@ -683,7 +691,8 @@ private fun OtherCard(settings: OtherSettings, onAction: (SettingsAction) -> Uni
 private fun WavelogCard(
     settings: OtherSettings,
     onAction: (SettingsAction) -> Unit,
-    lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
+    lotwRepo: com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo,
+    qrzLookup: IQrzGridLookup
 ) {
     val qrzContext = LocalContext.current
     var showQrzDialog by remember { mutableStateOf(false) }
@@ -694,6 +703,11 @@ private fun WavelogCard(
         )
     }
     var qrzTestResult by remember { mutableStateOf<String?>(null) }
+    val qrzEmptyMsg = stringResource(id = R.string.qrz_test_empty)
+    val qrzSignedOutMsg = stringResource(id = R.string.qrz_test_signed_out)
+    val qrzOkMsg = stringResource(id = R.string.qrz_test_ok)
+    val qrzNoGridMsg = stringResource(id = R.string.qrz_test_no_grid)
+    val qrzUnreachableMsg = stringResource(id = R.string.qrz_test_unreachable)
     var qrzTesting by remember { mutableStateOf(false) }
     val qrzScope = rememberCoroutineScope()
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
@@ -795,21 +809,22 @@ private fun WavelogCard(
                             qrzTesting = true
                             qrzTestResult = null
                             qrzScope.launch {
-                                val header = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.parseCookies(qrzCookie)
-                                if (header.isBlank()) {
-                                    qrzTestResult = "Cookie 为空, 请先粘贴"
-                                    qrzTesting = false
-                                    return@launch
-                                }
-                                val own = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.fetchOwnCallsign(header)
-                                if (own == null) {
-                                    qrzTestResult = "Cookie 无效或已过期(无法识别登录呼号)"
+                                // Goes through the repository rather than scraping from the UI, and
+                                // reports each outcome distinctly - the old version could not tell
+                                // an expired cookie from a station with no grid on file.
+                                qrzTestResult = if (qrzCookie.isBlank()) {
+                                    qrzEmptyMsg
                                 } else {
-                                    val grid = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.lookupGrid(own, header)
-                                    qrzTestResult = if (grid != null) {
-                                        "登录呼号: $own  网格: $grid ✅"
+                                    val own = qrzLookup.signedInAs()
+                                    if (own == null) {
+                                        qrzSignedOutMsg
                                     } else {
-                                        "登录呼号: $own  网格: 未填写"
+                                        when (val grid = qrzLookup.lookup(own)) {
+                                            is QrzGrid.Found -> qrzOkMsg.format(own, grid.locator)
+                                            QrzGrid.NotOnFile -> qrzNoGridMsg.format(own)
+                                            QrzGrid.SignedOut -> qrzSignedOutMsg
+                                            is QrzGrid.Unreachable -> qrzUnreachableMsg
+                                        }
                                     }
                                 }
                                 qrzTesting = false

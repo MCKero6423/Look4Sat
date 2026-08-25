@@ -88,12 +88,18 @@ object AprsLogin {
     /**
      * Interpret one line of server output, or null when it carries no verdict.
      *
-     * Returning null for keepalives and identification comments lets the caller keep reading
-     * rather than treating the first comment it sees as an answer.
+     * Classified by what is KNOWN HARMLESS rather than by a list of known refusals, because that
+     * list was incomplete and the failure is silent. aprsc refuses with `# Invalid login: ...` but
+     * also `# Login by user not allowed` - observed live on rotate.aprs2.net - and `# Port full`
+     * and `# Server full`. Each was skipped as chatter, the login timed out into Unknown, Unknown
+     * is deliberately read as "may be working", and every send afterwards reported success to an
+     * operator the server had refused.
      *
-     * aprsc answers `# logresp CALL verified, server X` or `# logresp CALL unverified, server X`.
-     * Note that "unverified" contains "verified", so the negative has to be tested first - a
-     * naive contains("verified") reports every rejected login as accepted.
+     * So identification and keepalive comments return null, a logresp is parsed, and anything else
+     * the server bothers to say during login counts as it objecting.
+     *
+     * Note that "unverified" contains "verified", so the negative is tested first - a naive
+     * contains("verified") reports every refusal as acceptance.
      */
     fun parse(line: String): Outcome? {
         val trimmed = line.trim()
@@ -103,26 +109,26 @@ object AprsLogin {
             return Outcome.Rejected(trimmed)
         }
         val lower = trimmed.lowercase()
-        // A refusal arrives as a comment and is NOT a logresp: aprsc answers `# Invalid login: ...`
-        // and then closes. Treating that as chatter let the login time out into Unknown, which is
-        // deliberately optimistic - so every send afterwards reported success to an operator the
-        // server had refused. That was the defect this whole rebuild set out to remove, still live
-        // on the path every operator takes.
-        if (lower.contains("invalid login") || lower.contains("login denied")) {
-            return Outcome.Rejected(trimmed.removePrefix("#").trim())
+        if (lower.contains("logresp")) {
+            val callsign = callsignFrom(trimmed)
+            return when {
+                lower.contains("unverified") -> Outcome.Unverified(callsign)
+                lower.contains("verified") -> Outcome.Verified(callsign)
+                else -> Outcome.Unknown(trimmed)
+            }
         }
-        if (!lower.contains("logresp")) {
-            // Server identification and keepalive comments carry no verdict.
-            return null
-        }
-        val callsign = callsignFrom(trimmed)
-        return when {
-            lower.contains("unverified") -> Outcome.Unverified(callsign)
-            lower.contains("verified") -> Outcome.Verified(callsign)
-            lower.contains("invalid") || lower.contains("error") -> Outcome.Rejected(trimmed)
-            else -> Outcome.Unknown(trimmed)
-        }
+        // Identification and keepalives are the only comments that mean "keep reading".
+        if (HARMLESS.any { lower.startsWith(it) }) return null
+        return Outcome.Rejected(trimmed.removePrefix("#").trim())
     }
+
+    /**
+     * Comment prefixes that carry no verdict.
+     *
+     * Matching a prefix rather than searching for refusal words means a refusal nobody anticipated
+     * is treated as a refusal instead of being ignored.
+     */
+    private val HARMLESS = listOf("# aprsc", "# javaprssrvr", "# aprsis", "# filter")
 
     /** The callsign token in `# logresp CALL verified, ...`, or empty when absent. */
     private fun callsignFrom(response: String): String {
