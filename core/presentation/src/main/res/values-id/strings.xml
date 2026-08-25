@@ -22,7 +22,7 @@
     <string name="prefs_aprs_callsign">Tanda panggilan</string>
     <string name="prefs_aprs_ssid">SSID</string>
     <string name="prefs_aprs_passcode">Kode sandi</string>
-    <string name="prefs_aprs_passcode_hint">Kosong = otomatis dari panggilan</string>
+    <string name="prefs_aprs_passcode_hint">Passcode kosong = mode terima-saja, laporan tidak diteruskan</string>
     <string name="prefs_aprs_interval">Interval (menit)</string>
     <string name="prefs_aprs_status">Teks status</string>
     <string name="prefs_aprs_symbol_table">Tabel simbol</string>

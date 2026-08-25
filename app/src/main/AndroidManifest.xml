@@ -16,12 +16,14 @@
 
         <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!--
-        location, not dataSync: dataSync foreground services are capped at six hours in any
-        24-hour window and then stopped by the system, which would silently end a beacon meant
-        to run all day. The service reads the station position, falling back to GPS, so location
-        describes what it actually does.
+        dataSync rather than location. The location type is refused outright unless a location
+        runtime permission has already been granted - startForeground throws SecurityException -
+        and this service reads the station position the operator typed into settings, so demanding
+        location access to beacon a fixed QTH is both wrong and a way to fail silently for anyone
+        who declined it. The dataSync six-hour cap that prompted the earlier switch applies only
+        when targetSdk is 35 or higher, which this project does not declare.
     -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!--
         Doze suspends network access and ignores wake locks even for a foreground service, so a
         coroutine delay wakes up on time and then cannot reach the network. An exact alarm with
@@ -64,6 +66,6 @@
             <service
             android:name="com.rtbishop.look4sat.app.AprsForegroundService"
             android:exported="false"
-            android:foregroundServiceType="location" />
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

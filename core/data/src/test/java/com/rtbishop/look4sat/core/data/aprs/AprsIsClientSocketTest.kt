@@ -102,7 +102,8 @@ class AprsIsClientSocketTest {
         callsign = "TEST",
         ssid = "",
         passcode = passcode,
-        version = "Look4Sat-test"
+        softwareName = "Look4Sat",
+        version = "test"
     )
 
     /**
@@ -140,7 +141,7 @@ class AprsIsClientSocketTest {
             c.connect()
             assertTrue(server.awaitLogin())
             c.disconnect()
-            assertEquals("user TEST pass 12345 vers Look4Sat-test", server.loginLine)
+            assertEquals("user TEST pass 12345 vers Look4Sat test", server.loginLine)
         }
     }
 
@@ -210,6 +211,34 @@ class AprsIsClientSocketTest {
             c.disconnect()
             assertTrue("connect took ${elapsed}ms, expected well under the login window",
                 elapsed < 6_000)
+        }
+    }
+
+    /**
+     * The failure a live server actually produced, and the one that mattered most.
+     *
+     * aprsc answers `# Invalid login: ...` and closes. That is a comment but not a logresp, so it
+     * was skipped as chatter, the login timed out into Unknown - treated as "may be working" - and
+     * every send afterwards reported success. Measured against euro.aprs2.net before the fix:
+     * loginOutcome=Unknown, isRefusedByServer=false, sendPacket=(true, "sent").
+     */
+    @Test
+    fun `a refused login is not reported as a successful send`() {
+        FakeServer(loginResponse = "# Invalid login: bad software version").use { server ->
+            server.start()
+            val c = client(server.port)
+            // An outright refusal throws from connect(), which is the correct outcome.
+            val threw = runCatching { c.connect() }.exceptionOrNull()
+            assertTrue(server.awaitLogin())
+            assertFalse("a refused login must not read as verified", c.isVerified)
+            val sentOk = runCatching {
+                c.sendPacket("TEST>APRS,TCPIP*:=0000.00N/00000.00E>x")?.first
+            }.getOrNull()
+            assertTrue(
+                "the refusal must surface: threw=$threw sentOk=$sentOk",
+                threw != null || sentOk != true
+            )
+            c.disconnect()
         }
     }
 

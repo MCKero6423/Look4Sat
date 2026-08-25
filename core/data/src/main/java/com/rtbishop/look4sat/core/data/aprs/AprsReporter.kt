@@ -142,7 +142,12 @@ class AprsReporter(
                 // Never derives one: a blank or wrong entry logs in receive-only rather than
                 // transmitting under a passcode the app invented for an unchecked licence.
                 passcode = AprsPasscode.loginValue(cfg.callsign, cfg.passcode),
-                version = "Look4Sat 4.5.4"
+                // Two fields, because APRS-IS wants `vers <name> <version>` as separate tokens.
+                // The version is hardcoded and drifts - it read 4.5.4 while the app was 4.6.0.
+                // core:data has no BuildConfig, so fixing that properly means passing it in from
+                // the app module; noting rather than doing it here to keep this change small.
+                softwareName = "Look4Sat",
+                version = "4.6.0"
             ).also { client = it }
             if (!c.isConnected) c.connect()
             onState(AprsState.Connected)

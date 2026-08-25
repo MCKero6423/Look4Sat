@@ -23,7 +23,7 @@
     <string name="prefs_aprs_callsign">Çağrı işareti</string>
     <string name="prefs_aprs_ssid">SSID</string>
     <string name="prefs_aprs_passcode">Parola</string>
-    <string name="prefs_aprs_passcode_hint">Parola boş = çağrıdan otomatik hesaplanır</string>
+    <string name="prefs_aprs_passcode_hint">Passcode bos = yalnizca alma modu, raporlar iletilmez</string>
     <string name="prefs_aprs_interval">Aralık (dakika)</string>
     <string name="prefs_aprs_status">Durum metni</string>
     <string name="prefs_aprs_symbol_table">Sembol tablosu</string>

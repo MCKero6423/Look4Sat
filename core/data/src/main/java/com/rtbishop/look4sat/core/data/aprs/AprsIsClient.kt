@@ -25,6 +25,7 @@ class AprsIsClient(
     private val callsign: String,
     private val ssid: String,
     private val passcode: Int,
+    private val softwareName: String,
     private val version: String,
     private val filter: String = "",
     private val timeoutSec: Int = 120
@@ -90,7 +91,7 @@ class AprsIsClient(
                 loginOutcome = refusal
                 throw IllegalArgumentException(refusal.detail)
             }
-            val login = AprsLogin.line(callsign, ssid, passcode, version, filter)
+            val login = AprsLogin.line(callsign, ssid, passcode, softwareName, version, filter)
             writer?.print(login)
             writer?.print(CRLF)
             writer?.flush()

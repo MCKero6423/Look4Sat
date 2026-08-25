@@ -51,26 +51,36 @@ object AprsLogin {
         data class Unknown(val detail: String) : Outcome
     }
 
+    /** Any run of whitespace, collapsed to a hyphen inside a single token. */
+    private val WHITESPACE = Regex("""\s+""")
+
     /** Passcode value that asks for a receive-only connection. */
     const val RECEIVE_ONLY_PASSCODE = -1
 
     /**
      * Build the login line.
      *
-     * [version] must not contain a space: the server splits `vers` into a software name and a
-     * version, so an embedded space shifts every field after it. Any space becomes a hyphen
-     * rather than silently corrupting the line.
+     * `vers` takes TWO tokens - a software name and a version, separated by a space. An earlier
+     * version of this replaced that space with a hyphen, reading the rule "softwarename must not
+     * contain a space" as "the field must be a single token". Live aprsc 2.1.21 rejects the result:
+     *
+     *     sent: user N0CALL pass -1 vers Look4Sat-4.5.4
+     *     got:  # Invalid login: software name and version are not separated by a space
+     *
+     * So name and version stay apart, and whitespace is collapsed WITHIN each of them instead.
      */
     fun line(
         callsign: String,
         ssid: String,
         passcode: Int,
+        name: String,
         version: String,
         filter: String = ""
     ): String {
         val callSsid = AprsPacket.formatCallSsid(callsign, ssid)
-        val safeVersion = version.trim().replace(' ', '-').ifEmpty { "Look4Sat" }
-        val base = "user $callSsid pass $passcode vers $safeVersion"
+        val safeName = name.trim().replace(WHITESPACE, "-").ifEmpty { "Look4Sat" }
+        val safeVersion = version.trim().replace(WHITESPACE, "-").ifEmpty { "0" }
+        val base = "user $callSsid pass $passcode vers $safeName $safeVersion"
         val trimmedFilter = filter.trim()
         return if (trimmedFilter.isEmpty()) base else "$base $trimmedFilter"
     }
@@ -93,6 +103,14 @@ object AprsLogin {
             return Outcome.Rejected(trimmed)
         }
         val lower = trimmed.lowercase()
+        // A refusal arrives as a comment and is NOT a logresp: aprsc answers `# Invalid login: ...`
+        // and then closes. Treating that as chatter let the login time out into Unknown, which is
+        // deliberately optimistic - so every send afterwards reported success to an operator the
+        // server had refused. That was the defect this whole rebuild set out to remove, still live
+        // on the path every operator takes.
+        if (lower.contains("invalid login") || lower.contains("login denied")) {
+            return Outcome.Rejected(trimmed.removePrefix("#").trim())
+        }
         if (!lower.contains("logresp")) {
             // Server identification and keepalive comments carry no verdict.
             return null

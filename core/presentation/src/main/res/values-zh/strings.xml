@@ -24,7 +24,7 @@
     <string name="prefs_aprs_callsign">呼号</string>
     <string name="prefs_aprs_ssid">SSID</string>
     <string name="prefs_aprs_passcode">验证码</string>
-    <string name="prefs_aprs_passcode_hint">验证码留空 = 按呼号自动计算</string>
+    <string name="prefs_aprs_passcode_hint">验证码留空 = 只收模式, 上报不会被转发</string>
     <string name="prefs_aprs_interval">周期(分钟)</string>
     <string name="prefs_aprs_status">状态文本</string>
     <string name="prefs_aprs_symbol_table">符号表</string>

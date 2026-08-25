@@ -152,13 +152,12 @@ class AprsForegroundService : Service() {
         try {
             val notif = buildNotification(cfg)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Must match the manifest attribute or the platform refuses the call: AOSP checks the
-                // passed type is a subset of the declared one, and location (0x08) does not contain
-                // dataSync (0x01). Changing the manifest without changing this line stopped the
-                // service dead on Android 10 and later - the IllegalArgumentException was caught
-                // below and turned into stopSelf(), so APRS did nothing and reported nothing while
-                // the settings switch stayed on.
-                startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+                // Must match the manifest attribute exactly: AOSP checks the passed type is a
+                // subset of the declared one and throws otherwise, which the catch below turns
+                // into a silent stopSelf(). Declaring location instead would additionally require
+                // a granted location permission before this call, and the settings card asks only
+                // for notifications - so that combination fails silently too.
+                startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
             } else {
                 startForeground(NOTIF_ID, notif)
             }
