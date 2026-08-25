@@ -69,6 +69,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.rtbishop.look4sat.core.data.qrz.QrzGridLookup
+import com.rtbishop.look4sat.core.domain.qrz.IQrzGridLookup
 import okhttp3.OkHttpClient
 import com.rtbishop.look4sat.core.data.wavelog.LotwSatellitesRepo
 
@@ -133,6 +135,22 @@ class MainContainer(private val context: Context) : IMainContainer {
     }
 
     override fun provideLotwSatellitesRepo(): com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo = lotwRepo
+
+    /**
+     * QRZ grid lookup. Holds the cookie read so no composable has to: the log screen used to pull
+     * it out of SharedPreferences through LocalContext, putting disk access inside composition.
+     */
+    private val qrzGridLookup: QrzGridLookup by lazy {
+        QrzGridLookup(
+            context.getSharedPreferences(QrzGridLookup.PREFS_NAME, Context.MODE_PRIVATE),
+            OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+        )
+    }
+
+    override fun provideQrzGridLookup(): IQrzGridLookup = qrzGridLookup
 
     override fun provideBluetoothReporter(): IReporter {
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
 import com.rtbishop.look4sat.core.domain.repository.MutualPassData
@@ -92,6 +93,9 @@ fun RadarDestination(navigateUp: () -> Unit) {
     val container = (context.applicationContext as IContainerProvider).getMainContainer()
     val viewModel: RadarViewModel = viewModel(factory = RadarViewModel.factory(container))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Captured as a value because `viewModel` also names the composable factory function, so
+    // referring to it inside a lambda resolves to that instead of this local.
+    val lookupGrid: (String, (QrzGrid) -> Unit) -> Unit = viewModel::lookupGrid
     val mutualData by container.mutualPassData.collectAsStateWithLifecycle()
     val navigateUpAndClearMutual = {
         if (container.mutualPassData.value.endTime > 0L) {
@@ -149,7 +153,8 @@ fun RadarDestination(navigateUp: () -> Unit) {
         wavelogConfigured = container.settingsRepo.otherSettings.value.let {
             it.wavelogUrl.isNotBlank() && it.wavelogApiKey.isNotBlank() && it.wavelogStationId.isNotBlank()
         },
-        showToast = { msg -> container.provideShowToast()(msg) }
+        showToast = { msg -> container.provideShowToast()(msg) },
+        onLookupGrid = lookupGrid
     )
 }
 
@@ -162,7 +167,8 @@ private fun RadarScreen(
     requestMicPermission: () -> Unit,
     wavelogQueue: WavelogQueue,
     wavelogConfigured: Boolean,
-    showToast: (String) -> Unit
+    showToast: (String) -> Unit,
+    onLookupGrid: (String, (QrzGrid) -> Unit) -> Unit
 ) {
     val upcomingPass = uiState.currentPass ?: getDefaultPass()
     val addToCalendar: () -> Unit = {
@@ -216,11 +222,11 @@ private fun RadarScreen(
         }
         if (isVertical) {
             RadarCard(uiState, trackB, trackBPosition, Modifier.weight(1f))
-            PagerCard(uiState, onAction, requestMicPermission, wavelogQueue, wavelogConfigured, showToast, Modifier.weight(1f))
+            PagerCard(uiState, onAction, requestMicPermission, wavelogQueue, wavelogConfigured, showToast, onLookupGrid, Modifier.weight(1f))
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 RadarCard(uiState, trackB, trackBPosition, Modifier.weight(1f))
-                PagerCard(uiState, onAction, requestMicPermission, wavelogQueue, wavelogConfigured, showToast, Modifier.weight(1f))
+                PagerCard(uiState, onAction, requestMicPermission, wavelogQueue, wavelogConfigured, showToast, onLookupGrid, Modifier.weight(1f))
             }
         }
     }
@@ -234,6 +240,7 @@ private fun PagerCard(
     wavelogQueue: WavelogQueue,
     wavelogConfigured: Boolean,
     showToast: (String) -> Unit,
+    onLookupGrid: (String, (QrzGrid) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val hasCalculatorPage = remember(uiState.transceivers.transmitters) {
@@ -302,7 +309,8 @@ private fun PagerCard(
                         wavelogConfigured = wavelogConfigured,
                         showToast = showToast,
                         txBaseFrequencyHz = uiState.radioControl.txBaseFrequencyHz,
-                        aosTimeMs = uiState.currentPass?.aosTime ?: 0L
+                        aosTimeMs = uiState.currentPass?.aosTime ?: 0L,
+                        onLookupGrid = onLookupGrid
                     )
                 }
             }

@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
+import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
 import com.rtbishop.look4sat.core.domain.wavelog.CallsignEntry
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQso
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
@@ -99,6 +100,7 @@ fun LogTab(
     showToast: (String) -> Unit,
     txBaseFrequencyHz: Long? = null,
     aosTimeMs: Long = 0L,
+    onLookupGrid: (String, (QrzGrid) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -174,6 +176,7 @@ fun LogTab(
                 showToast = showToast,
                 txBaseFrequencyHz = txBaseFrequencyHz,
                 aosTimeMs = aosTimeMs,
+                onLookupGrid = onLookupGrid,
                 onSaved = { refreshTick++ }
             )
         }
@@ -261,6 +264,7 @@ private fun ExpandedLogInput(
     showToast: (String) -> Unit,
     txBaseFrequencyHz: Long? = null,
     aosTimeMs: Long = 0L,
+    onLookupGrid: (String, (QrzGrid) -> Unit) -> Unit,
     onSaved: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -280,6 +284,8 @@ private fun ExpandedLogInput(
     val illegalMsg = stringResource(id = R.string.log_call_illegal)
     val notACallMsg = stringResource(id = R.string.log_call_not_a_call)
     val tooLongMsg = stringResource(id = R.string.log_call_too_long)
+    val gridSignedOutMsg = stringResource(id = R.string.log_grid_signed_out)
+    val gridUnreachableMsg = stringResource(id = R.string.log_grid_unreachable)
 
     fun rejectionMessage(reason: CallsignEntry.Reason): String = when (reason) {
         CallsignEntry.Reason.EMPTY, CallsignEntry.Reason.TOO_SHORT -> tooShortMsg
@@ -326,18 +332,19 @@ private fun ExpandedLogInput(
                 null -> savedMsg
             }
         )
-        // QRZ counterpart grid async backfill (4.5.5): only queried when Cookie is set; silent on failure
-        scope.launch {
-            val prefs = context.getSharedPreferences("qrz_cookie", android.content.Context.MODE_PRIVATE)
-            val rawCookie = prefs.getString("cookie", "") ?: ""
-            if (rawCookie.isNotBlank()) {
-                val grid = com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.lookupGrid(
-                    call, com.rtbishop.look4sat.core.domain.qrz.QrzGridClient.parseCookies(rawCookie)
-                )
-                if (grid != null) {
-                    queue.updateGridsquare(qsoId, grid)
-                    onSaved() // 触发 refreshTick++ 刷新列表
+        // Grid backfill. The view model owns the cookie and the request; this used to read
+        // SharedPreferences through LocalContext right here, inside composition. Failures now say
+        // something: an expired cookie was indistinguishable from a station with no grid filed.
+        onLookupGrid(call) { outcome ->
+            when (outcome) {
+                is QrzGrid.Found -> {
+                    queue.updateGridsquare(qsoId, outcome.locator)
+                    onSaved()
                 }
+                // Nothing to fetch and nothing wrong: the station has no locator on file.
+                QrzGrid.NotOnFile -> Unit
+                QrzGrid.SignedOut -> showToast(gridSignedOutMsg)
+                is QrzGrid.Unreachable -> showToast(gridUnreachableMsg)
             }
         }
     }

@@ -26,6 +26,8 @@ import com.rtbishop.look4sat.core.domain.predict.CelestialComputer
 import com.rtbishop.look4sat.core.domain.predict.OrbitalObject
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPass
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
+import com.rtbishop.look4sat.core.domain.qrz.IQrzGridLookup
+import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
 import com.rtbishop.look4sat.core.domain.repository.IRadioTrackingService
 import com.rtbishop.look4sat.core.domain.repository.IReporter
@@ -64,7 +66,8 @@ class RadarViewModel(
     private val audioCapture: IAudioCapture,
     private val cwDecoderFactory: () -> ICwDecoder,
     private val saveImage: ISaveImage,
-    private val showToast: IShowToast
+    private val showToast: IShowToast,
+    private val qrzGridLookup: IQrzGridLookup
 ) : ViewModel() {
 
     private var stationPos = settingsRepo.stationPosition.value
@@ -544,6 +547,22 @@ class RadarViewModel(
         _uiState.update { it.copy(cw = it.cw.copy(status = CwStatus.Idle)) }
     }
 
+    /**
+     * Look up a station's grid and hand the outcome back.
+     *
+     * Lives here rather than in the composable, which read the QRZ cookie straight out of
+     * SharedPreferences through LocalContext - disk access inside composition, around the
+     * repository layer. Every outcome is returned, because a lookup that failed used to be
+     * indistinguishable from a station that simply has no grid on file.
+     */
+    fun lookupGrid(callsign: String, onResult: (QrzGrid) -> Unit) {
+        viewModelScope.launch {
+            val outcome = runCatching { qrzGridLookup.lookup(callsign) }
+                .getOrElse { QrzGrid.Unreachable(1) }
+            onResult(outcome)
+        }
+    }
+
     companion object {
         // SSTV Decoder Tuning Parameters
         // ==============================
@@ -599,7 +618,8 @@ class RadarViewModel(
                     audioCapture = container.provideAudioCapture(),
                     cwDecoderFactory = { container.provideCwDecoder() },
                     saveImage = container.provideSaveImage(),
-                    showToast = container.provideShowToast()
+                    showToast = container.provideShowToast(),
+                    qrzGridLookup = container.provideQrzGridLookup()
                 )
             }
         }

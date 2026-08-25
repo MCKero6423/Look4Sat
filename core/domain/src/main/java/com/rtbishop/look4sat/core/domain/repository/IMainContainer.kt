@@ -50,6 +50,9 @@ interface IMainContainer {
     fun provideWavelogUploader(): com.rtbishop.look4sat.core.domain.wavelog.WavelogUploader
 
     fun provideLotwSatellitesRepo(): com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo
+
+    /** QRZ grid lookup, so the log screen never touches the stored cookie itself. */
+    fun provideQrzGridLookup(): com.rtbishop.look4sat.core.domain.qrz.IQrzGridLookup
 }
 
 data class MutualPassData(
