@@ -70,4 +70,6 @@ fastlane/readme.md
 /app/release/output-metadata.json
 /app/release/
 /.kotlin/sessions/
+# Kotlin build caches in any module, not only the root - build-logic produces one too.
+.kotlin/
 .hermes/
