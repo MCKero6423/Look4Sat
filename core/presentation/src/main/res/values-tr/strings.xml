@@ -97,6 +97,7 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
+        * DÜZELTME: CW metni artık kod çözme beklerken yazıyı siliyormuş gibi görünmüyor
         * YENİ: CW şelalesi tüm ses bandını gösterir, çözücünün ulaşamadığı ton da görünür
         * YENİ: CW metni yeni içeriği takip eder, geri kaydırdığınızda takibi bırakır
         * YENİ: ekran okuyucular artık CW şelalesini ve AMSAT gün hücrelerini okuyor
