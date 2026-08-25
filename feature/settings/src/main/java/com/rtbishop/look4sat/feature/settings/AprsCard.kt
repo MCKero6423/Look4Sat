@@ -2,6 +2,7 @@ package com.rtbishop.look4sat.feature.settings
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,12 +34,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rtbishop.look4sat.core.data.aprs.AprsConfig
-import com.rtbishop.look4sat.core.domain.aprs.AprsPacket
 import com.rtbishop.look4sat.core.data.aprs.AprsStore
 import com.rtbishop.look4sat.core.presentation.CardButton
 import com.rtbishop.look4sat.core.presentation.R
 
 /** APRS card: sits between the satellite-data and data-output containers; settings live in a gear dialog to save space */
+/**
+ * Where an operator obtains an APRS-IS passcode.
+ *
+ * The app links here rather than deriving one: the passcode is a licence check, and APRS-IS
+ * states that supplying it is the software author's responsibility.
+ */
+private const val PASSCODE_REQUEST_URL = "https://apps.magicbug.co.uk/passcode/"
+
 @Composable
 fun AprsCard() {
     val context = LocalContext.current
@@ -187,6 +195,7 @@ private fun AprsSettingsDialog(
     var symbolTable by remember { mutableStateOf(config.symbolTable) }
     var symbolCode by remember { mutableStateOf(config.symbolCode) }
     val textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -215,16 +224,19 @@ private fun AprsSettingsDialog(
                     singleLine = true,
                     textStyle = textStyle
                 )
-                // Passcode compute button (user request: let the user see the computed result)
+                // Links out instead of computing it. APRS-IS treats the passcode as a licence
+                // check and says supplying it to a user is the software author's job; APRSdroid
+                // carries the same algorithm and deliberately does not use it here for that
+                // reason. Filling the field in claims a check that nobody performed.
                 TextButton(
                     onClick = {
-                        val call = callsign.trim().uppercase()
-                        if (call.isNotBlank()) {
-                            passcode = AprsPacket.passcode(call).toString()
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(PASSCODE_REQUEST_URL))
+                            )
                         }
-                    },
-                    enabled = callsign.trim().isNotBlank()
-                ) { Text(stringResource(id = R.string.prefs_aprs_calc_passcode)) }
+                    }
+                ) { Text(stringResource(id = R.string.prefs_aprs_request_passcode)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = ssid,
