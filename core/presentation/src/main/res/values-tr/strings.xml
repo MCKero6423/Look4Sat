@@ -40,6 +40,7 @@
     <string name="aprs_toast_ok">APRS: rapor gönderildi</string>
     <string name="aprs_toast_fail">APRS: rapor başarısız - %1$s</string>
     <string name="aprs_toast_unverified">APRS-IS passcode bilginizi doğrulamadı. Raporlarınız iletilmiyor - Ayarlar bölümünde çağrı işareti ve passcode bilgisini kontrol edin.</string>
+    <string name="aprs_toast_receive_only">APRS-IS baglantiyi yalnizca alma modunda kabul etti, raporlariniz iletilmiyor. Gondermek icin passcode girin.</string>
     <string name="aprs_toast_not_configured">APRS yapılandırılmadı - önce çağrı girin</string>
     <string name="prefs_aprs_last_report">Son rapor: %1$s %2$s</string>
     <string name="prefs_aprs_last_ok">OK</string>

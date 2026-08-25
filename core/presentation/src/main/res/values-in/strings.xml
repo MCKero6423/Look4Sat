@@ -39,6 +39,7 @@
     <string name="aprs_toast_ok">APRS: laporan terkirim</string>
     <string name="aprs_toast_fail">APRS: laporan gagal - %1$s</string>
     <string name="aprs_toast_unverified">APRS-IS tidak memverifikasi passcode Anda. Laporan Anda tidak diteruskan - periksa tanda panggil dan passcode di Pengaturan.</string>
+    <string name="aprs_toast_receive_only">APRS-IS menerima koneksi dalam mode terima-saja, laporan Anda tidak diteruskan. Masukkan passcode untuk mengirim.</string>
     <string name="aprs_toast_not_configured">APRS belum dikonfigurasi - isi panggilan dulu</string>
     <string name="prefs_aprs_last_report">Laporan terakhir: %1$s %2$s</string>
     <string name="prefs_aprs_last_ok">OK</string>

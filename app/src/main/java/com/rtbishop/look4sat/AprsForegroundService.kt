@@ -120,6 +120,11 @@ class AprsForegroundService : Service() {
                 // problem is the passcode - and APRS-IS is dropping every packet meanwhile.
                 val msg = when {
                     report.ok -> getString(R.string.aprs_toast_ok)
+                    // Receive-only first: it logs in with -1 exactly as a wrong passcode does and
+                    // the server answers "unverified" to both, so without this branch the one safe
+                    // way to test a setup reported itself as a configuration error.
+                    !report.verified && report.receiveOnly ->
+                        getString(R.string.aprs_toast_receive_only)
                     !report.verified -> getString(R.string.aprs_toast_unverified)
                     else -> getString(R.string.aprs_toast_fail, report.detail)
                 }
@@ -147,7 +152,13 @@ class AprsForegroundService : Service() {
         try {
             val notif = buildNotification(cfg)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                // Must match the manifest attribute or the platform refuses the call: AOSP checks the
+                // passed type is a subset of the declared one, and location (0x08) does not contain
+                // dataSync (0x01). Changing the manifest without changing this line stopped the
+                // service dead on Android 10 and later - the IllegalArgumentException was caught
+                // below and turned into stopSelf(), so APRS did nothing and reported nothing while
+                // the settings switch stayed on.
+                startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
             } else {
                 startForeground(NOTIF_ID, notif)
             }

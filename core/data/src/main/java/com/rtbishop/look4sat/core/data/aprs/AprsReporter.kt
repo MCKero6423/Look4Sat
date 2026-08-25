@@ -43,7 +43,16 @@ data class AprsReport(
      * nothing reaching the network. A login whose response we simply could not parse leaves this
      * true, since the packets may be landing and the passcode is not at fault.
      */
-    val verified: Boolean = true
+    val verified: Boolean = true,
+    /**
+     * True when the operator asked for a receive-only connection.
+     *
+     * Distinguished from a refused login because both log in with -1 and the server answers
+     * "unverified" to each: without this, deliberately choosing receive-only - the one way to
+     * test a setup without putting anything on the network - was reported as a wrong passcode
+     * and sent the operator to fix something they had set on purpose.
+     */
+    val receiveOnly: Boolean = false
 )
 
 /** Report scheduler (periodic + manual trigger); connection management lives in the foreground service */
@@ -94,19 +103,9 @@ class AprsReporter(
         if (!cfg.enabled || cfg.callsign.isBlank()) return
         onState(AprsState.Connecting)
         try {
-            val c = client ?: AprsIsClient(
-                host = cfg.server,
-                port = cfg.port,
-                callsign = cfg.callsign,
-                ssid = cfg.ssid,
-                // Never derives one: a blank or wrong entry logs in receive-only rather than
-                // transmitting under a passcode the app invented for an unchecked licence.
-                passcode = AprsPasscode.loginValue(cfg.callsign, cfg.passcode),
-                version = "Look4Sat 4.5.4"
-            ).also { client = it }
-            if (!c.isConnected) c.connect()
-            onState(AprsState.Connected)
-
+            // The packet is built BEFORE connecting: there is no reason to open a session and log
+            // in only to discover there is nothing to send, which happened every five minutes for
+            // an operator whose QTH was unset.
             val pos = positionProvider()
             val beacon = AprsBeacon.build(
                 callsign = cfg.callsign,
@@ -127,6 +126,23 @@ class AprsReporter(
                 return
             }
             val packetLine = (beacon as AprsBeacon.Result.Line).text
+
+            // Receive-only is a deliberate choice, not a mistake, and has to be carried through:
+            // it logs in with -1 exactly as a wrong passcode does, and the server answers
+            // "unverified" to both.
+            val wantsReceiveOnly = !AprsPasscode.canTransmit(cfg.callsign, cfg.passcode)
+            val c = client ?: AprsIsClient(
+                host = cfg.server,
+                port = cfg.port,
+                callsign = cfg.callsign,
+                ssid = cfg.ssid,
+                // Never derives one: a blank or wrong entry logs in receive-only rather than
+                // transmitting under a passcode the app invented for an unchecked licence.
+                passcode = AprsPasscode.loginValue(cfg.callsign, cfg.passcode),
+                version = "Look4Sat 4.5.4"
+            ).also { client = it }
+            if (!c.isConnected) c.connect()
+            onState(AprsState.Connected)
             val result = c.sendPacket(packetLine)
             val sent = result?.first == true
             val detail = result?.second ?: "no connection"
@@ -137,7 +153,21 @@ class AprsReporter(
             // the operator to fix something that is not broken.
             val refused = c.isRefusedByServer
             val ok = sent && !refused
-            onReport(AprsReport(System.currentTimeMillis(), packetLine, ok, detail, !refused))
+            // "sent" is the write's own verdict and reads as nonsense next to a failure - the card
+            // showed "failed - sent" for a refused login. When the refusal is what failed the
+            // report, say that instead.
+            val reported = when {
+                ok -> detail
+                refused && wantsReceiveOnly -> "receive-only, not forwarded"
+                refused -> "login not verified"
+                else -> detail
+            }
+            onReport(
+                AprsReport(
+                    System.currentTimeMillis(), packetLine, ok, reported,
+                    verified = !refused, receiveOnly = wantsReceiveOnly
+                )
+            )
             if (ok) onState(AprsState.Connected) else onState(AprsState.Error)
         } catch (e: Exception) {
             runCatching { client?.disconnect() }
