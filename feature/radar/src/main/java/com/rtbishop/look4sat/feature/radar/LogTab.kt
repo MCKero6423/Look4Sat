@@ -81,6 +81,7 @@ import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
 import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
+import com.rtbishop.look4sat.core.domain.wavelog.GridEntry
 import com.rtbishop.look4sat.core.domain.wavelog.PassClock
 import com.rtbishop.look4sat.core.domain.wavelog.CallsignEntry
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQso
@@ -337,7 +338,9 @@ private fun ExpandedLogInput(
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
         val qsoId = UUID.randomUUID().toString()
-        val typedGrid = gridEntry.trim().uppercase()
+        // Only a usable grid is logged. A malformed one is dropped rather than stored, and the
+        // field has been saying so while it was typed.
+        val typedGrid = (GridEntry.check(gridEntry) as? GridEntry.Verdict.Acceptable)?.normalised ?: ""
         queue.add(
             WavelogQso(
                 id = qsoId,
@@ -455,16 +458,33 @@ private fun ExpandedLogInput(
         // could previously only arrive by scraping QRZ - which needs a cookie, and returns nothing
         // for a station with no locator on file. Typed here it also skips the lookup entirely,
         // because what the operator heard beats what a web page says.
+        val gridVerdict = GridEntry.check(gridEntry)
         OutlinedTextField(
             value = gridEntry,
-            onValueChange = { gridEntry = it.take(6).uppercase() },
+            // 8 characters, not 6: the extended form exists and truncating it would silently
+            // change the location. Case is normalised on commit rather than while typing, so the
+            // cursor does not jump under the operator's thumb.
+            onValueChange = { gridEntry = it.take(8) },
             label = { Text(stringResource(id = R.string.wavelog_grid_hint)) },
             supportingText = {
                 Text(
-                    text = stringResource(id = R.string.wavelog_grid_help),
+                    // Says what is wrong while there is still time to fix it. A malformed grid is
+                    // stored by Wavelog as-is and then pollutes grid statistics and VUCC tracking,
+                    // where a wrong square is worse than a missing one.
+                    text = when (gridVerdict) {
+                        is GridEntry.Verdict.Unusable -> stringResource(id = R.string.wavelog_grid_bad)
+                        is GridEntry.Verdict.Acceptable ->
+                            if (gridVerdict.warning == GridEntry.Warning.SQUARE_ONLY) {
+                                stringResource(id = R.string.wavelog_grid_square_only)
+                            } else {
+                                stringResource(id = R.string.wavelog_grid_help)
+                            }
+                        GridEntry.Verdict.Empty -> stringResource(id = R.string.wavelog_grid_help)
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
             },
+            isError = gridVerdict is GridEntry.Verdict.Unusable,
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
