@@ -159,6 +159,42 @@ class DatabaseRepoTest {
         )
     }
 
+    /**
+     * A dead custom URL must fail the update even when the transceivers source answers.
+     *
+     * The counts used to be added together, so one transceivers success covered a total orbital
+     * failure: no exception, and a fresh "updated successfully" timestamp for an update that
+     * refreshed nothing. Replacing the built-in sources shrank the denominator from 28 to 2 and
+     * made that easy to hit.
+     */
+    @Test
+    fun `a dead custom url fails the update even if transceivers succeed`() = runTest(dispatcher) {
+        val localSource = FakeLocalSource()
+        val remoteSource = FakeRemoteSource().apply {
+            Sources.transceiversDataUrls.values.filter { it.isNotBlank() }
+                .forEach { networkStreams[it] = { "[]".byteInputStream() } }
+        }
+        val settingsRepo = FakeSettingsRepo(
+            dataSources = DataSourcesSettings(
+                useCustomTLE = true,
+                useCustomTransceivers = false,
+                tleUrl = "https://example.com/dead.csv",
+                transceiversUrl = ""
+            )
+        )
+        val repository = DatabaseRepo(dispatcher, dataParser, localSource, remoteSource, settingsRepo)
+
+        var threw = false
+        try {
+            repository.updateFromRemote()
+        } catch (_: java.io.IOException) {
+            threw = true
+        }
+
+        assertTrue("a total orbital failure must raise", threw)
+        assertTrue("no entries may be inserted", localSource.insertedEntries.isEmpty())
+    }
+
     private fun validCsvStream(): InputStream = """
         OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT
         ISS (ZARYA),1998-067A,2021-11-16T12:28:09.322176,15.48582035,.0004694,51.6447,309.4881,203.6966,299.8876,0,U,25544,999,31220,.31985E-4,.1288E-4,0

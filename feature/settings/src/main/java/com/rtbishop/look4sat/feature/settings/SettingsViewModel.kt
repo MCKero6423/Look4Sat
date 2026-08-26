@@ -313,6 +313,8 @@ class SettingsViewModel(
                 showToast(R.string.wavelog_no_station)
             result.failedCount > 0 ->
                 showToast(R.string.wavelog_upload_done, result.successCount, result.failedCount)
+            // "Uploaded 0" is accurate but reads oddly when the queue was already clear.
+            result.successCount == 0 -> showToast(R.string.wavelog_nothing_to_upload)
             else -> showToast(R.string.wavelog_upload_all_ok, result.successCount)
         }
     }

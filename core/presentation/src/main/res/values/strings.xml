@@ -294,6 +294,7 @@
     <string name="wavelog_saved">Saved to local log</string>
     <string name="wavelog_upload_done">Uploaded %1$d, %2$d still queued</string>
     <string name="wavelog_upload_all_ok">Uploaded %1$d QSO</string>
+    <string name="wavelog_nothing_to_upload">Nothing waiting to upload</string>
     <string name="wavelog_not_configured">WaveLog server not configured</string>
     <string name="wavelog_no_station">Cannot read the station profile - check the station ID and key permissions</string>
     <string name="wavelog_upload_failed">Upload failed</string>

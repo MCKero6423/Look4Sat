@@ -263,6 +263,7 @@
     <string name="wavelog_saved">已存入本地日志</string>
     <string name="wavelog_upload_done">已上传 %1$d 条, %2$d 条仍在队列</string>
     <string name="wavelog_upload_all_ok">已上传 %1$d 条</string>
+    <string name="wavelog_nothing_to_upload">没有待上传的联络</string>
     <string name="wavelog_not_configured">未配置 WaveLog 服务器</string>
     <string name="wavelog_no_station">读不到站点信息 - 请检查站点 ID 与密钥权限</string>
     <string name="wavelog_upload_failed">上传失败</string>

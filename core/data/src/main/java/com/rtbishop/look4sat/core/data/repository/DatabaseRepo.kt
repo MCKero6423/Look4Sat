@@ -107,12 +107,17 @@ class DatabaseRepo(
         // launch all network requests concurrently
         val tleJobs = tleUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
         val radioJobs = radioUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
-        // Count successful sources: zero successes = update failed (timestamp untouched, exception surfaced in the UI)
         val tleResults = tleJobs.awaitAll()
         val radioResults = radioJobs.awaitAll()
-        val successCount = tleResults.count { it.second != null } + radioResults.count { it.second != null }
-        if (successCount == 0) {
-            throw java.io.IOException("All data sources failed to download")
+        // Orbital elements are counted on their own. A combined count let a successful transceivers
+        // fetch stand in for a failed orbital one: with a custom TLE URL there are two requests
+        // rather than 28, so if that URL was down and SatNOGS answered, the total was 1, no
+        // exception was raised, and setUpdateSuccessful stamped a fresh timestamp for an update
+        // that refreshed no orbital data at all - which also suppressed the 48-hour auto-update
+        // retry that keys off that timestamp. The failure existed before but 26 other sources hid
+        // it; replacing them made it easy to hit.
+        if (tleResults.none { it.second != null }) {
+            throw java.io.IOException("No orbital data source could be downloaded")
         }
         // parse fetched data concurrently and associate with types
         val importedEntries = tleResults.flatMap { (url, stream) ->
