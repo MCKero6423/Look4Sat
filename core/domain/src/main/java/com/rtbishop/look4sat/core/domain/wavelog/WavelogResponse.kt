@@ -86,8 +86,16 @@ object WavelogResponse {
         if (lower.contains("\"status\"") && SUCCESS_MARKERS.none { lower.contains(it) }) {
             return Verdict.Unreadable(text.take(MAX_DETAIL))
         }
+        // A bulk reply that stored nothing is not an acceptance, whatever its status says. Look4Sat
+        // posts one QSO per request so this is latent today, but `imported:0` reading as success
+        // would silently clear the queue if that ever changes.
+        if (importedZero(lower)) return Verdict.Rejected("server imported nothing")
         return Verdict.Accepted(text.take(MAX_DETAIL))
     }
+
+    /** Whether a bulk reply reports that no record was stored. */
+    private fun importedZero(lower: String): Boolean =
+        IMPORT_COUNT_KEYS.any { lower.contains("\"" + it + "\":0") }
 
     /**
      * The server's own explanation, when it gave one.
@@ -145,6 +153,9 @@ object WavelogResponse {
 
     /** Whitespace next to a colon or comma, which JSON allows and servers use inconsistently. */
     private val AROUND_SEPARATORS = Regex("""\s*(?=[:,])|(?<=[:,])\s*""")
+
+    /** Count fields a bulk reply uses to say how many records it stored. */
+    private val IMPORT_COUNT_KEYS = listOf("imported", "adif_count")
 
     private val REASON_KEYS = listOf("reason", "message", "error")
 }

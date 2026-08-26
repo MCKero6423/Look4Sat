@@ -220,6 +220,36 @@ class WavelogResponseTest {
         assertTrue("got " + verdict, verdict is WavelogResponse.Verdict.Rejected)
     }
 
+    /** A bulk reply that stored nothing is not an acceptance, whatever its status says. */
+    @Test
+    fun `a reply that imported nothing is a rejection`() {
+        for (body in listOf("""{"imported":0,"skipped":3}""",
+            """{"status":"created","adif_count":0,"adif_errors":1,"messages":["bad"]}""")) {
+            assertTrue(
+                "must not be accepted: " + body,
+                WavelogResponse.verdict(200, body) is WavelogResponse.Verdict.Rejected
+            )
+        }
+    }
+
+    /**
+     * The count check must not misfire on a real success. v1 answers with `adif_errors:0` next to
+     * `adif_count:1`, and matching the wrong key would reject every stored QSO.
+     */
+    @Test
+    fun `adif_errors zero does not look like nothing imported`() {
+        for (body in listOf(
+            """{"status":"created","adif_count":1,"adif_errors":0,"messages":[""]}""",
+            """{"status":"created","adif_errors":0}""",
+            """{"imported":2,"skipped":1}"""
+        )) {
+            assertTrue(
+                "must still be accepted: " + body,
+                WavelogResponse.verdict(200, body) is WavelogResponse.Verdict.Accepted
+            )
+        }
+    }
+
     /** A failure with no explanation still has to say something usable. */
     @Test
     fun `a failure without a reason still reports one`() {

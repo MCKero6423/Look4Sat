@@ -76,21 +76,23 @@ class WavelogUploader(
 
         // 3. Upload one by one. ADIF gridsquare = counterpart grid (the QSO partner); blank until the scraper lands
         val entries = queue.all()
-        var ok = 0
-        var fail = 0
+        var uploaded = 0
+        var failed = 0
         var firstError = ""
         for (qso in entries) {
-            if (qso.uploaded) { ok++; continue }
+            // Entries already confirmed by the server are skipped, and NOT counted: adding them to
+            // the total made a re-run report "N uploaded" for QSOs that went up days ago.
+            if (qso.uploaded) continue
             val result = WaveLogApi.postQso(url, apiKey, stationId, qso, qso.gridsquare)
             if (result is WavelogResult.Success) {
-                ok++
+                uploaded++
                 queue.markUploaded(qso.id)
             } else {
-                fail++
+                failed++
                 if (firstError.isBlank()) firstError = (result as? WavelogResult.Failure)?.message ?: ""
             }
         }
-        return UploadOutcome.Done(ok, fail, UploadOutcome.Reason.COMPLETED, firstError)
+        return UploadOutcome.Done(uploaded, failed, UploadOutcome.Reason.COMPLETED, firstError)
     }
 
     private suspend fun getStationGrid(url: String, apiKey: String, stationId: String): String? {
