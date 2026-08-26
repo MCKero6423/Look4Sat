@@ -67,17 +67,33 @@ class DatabaseRepo(
 
     override suspend fun updateFromRemote() = withContext(dispatcher) {
         val dataSourcesSettings = settingsRepo.dataSourcesSettings.value
-        val tleUrls = buildMap {
-            putAll(Sources.satelliteDataUrls)
-            // Switch on + non-empty URL -> All uses the custom URL; otherwise the default URL (online-update default source)
-            put("All", if (dataSourcesSettings.useCustomTLE && dataSourcesSettings.tleUrl.isNotBlank())
-                dataSourcesSettings.tleUrl else Sources.defaultTleUrl)
-        }.filterValues { it.isNotBlank() }
-        val radioUrls = buildMap {
-            putAll(Sources.transceiversDataUrls)
-            put("SatNOGS", if (dataSourcesSettings.useCustomTransceivers && dataSourcesSettings.transceiversUrl.isNotBlank())
-                dataSourcesSettings.transceiversUrl else Sources.defaultTransceiversUrl)
-        }.filterValues { it.isNotBlank() }
+        // A custom URL REPLACES the built-in sources rather than joining them. The previous map
+        // overwrote only the "All" value and still fetched the other 26, so switching this on meant
+        // "my source AND yours" - which defeats the reasons for setting one: a mirror, a filtered
+        // subset, an offline server, or a network where Celestrak is unreachable. On a blocked link
+        // the real behaviour was 26 failing requests.
+        //
+        // Satellites already stored do not disappear: insertEntries is OnConflictStrategy.REPLACE
+        // and nothing is deleted before the insert, so rows the new source does not mention survive.
+        // The type index for the skipped keys goes stale rather than empty, which is the honest
+        // outcome - it is the last known membership, not a claim about this fetch.
+        //
+        // The key is customSourceType, not "All": setSatelliteTypeIds early-returns on "All", so
+        // indexing under it was always a no-op, and "Other" is what manual file import already
+        // uses. Same meaning - satellites from a source the operator supplied - and it makes them
+        // reachable by the type filter, which they were not before.
+        val tleUrls = if (dataSourcesSettings.useCustomTLE && dataSourcesSettings.tleUrl.isNotBlank()) {
+            mapOf(customSourceType to dataSourcesSettings.tleUrl)
+        } else {
+            Sources.satelliteDataUrls.filterValues { it.isNotBlank() }
+        }
+        val radioUrls = if (dataSourcesSettings.useCustomTransceivers &&
+            dataSourcesSettings.transceiversUrl.isNotBlank()
+        ) {
+            mapOf("SatNOGS" to dataSourcesSettings.transceiversUrl)
+        } else {
+            Sources.transceiversDataUrls.filterValues { it.isNotBlank() }
+        }
         // launch all network requests concurrently
         val tleJobs = tleUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
         val radioJobs = radioUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }

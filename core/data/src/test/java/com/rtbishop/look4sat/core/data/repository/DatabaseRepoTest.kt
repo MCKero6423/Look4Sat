@@ -18,6 +18,7 @@
 package com.rtbishop.look4sat.core.data.repository
 
 import com.rtbishop.look4sat.core.domain.model.DataSourcesSettings
+import com.rtbishop.look4sat.core.domain.source.Sources
 import com.rtbishop.look4sat.core.domain.model.DatabaseState
 import com.rtbishop.look4sat.core.domain.model.OtherSettings
 import com.rtbishop.look4sat.core.domain.model.PassesSettings
@@ -102,8 +103,57 @@ class DatabaseRepoTest {
         repository.updateFromRemote()
 
         assertTrue(localSource.insertedEntries.any { it.catnum == 25544 })
-        // New semantics: switch on + non-empty URL -> the All source uses the custom URL, data lands in the All type
-        assertEquals(listOf(25544), settingsRepo.satelliteTypeIdsByType["All"])
+        // A custom URL replaces the built-in TLE sources: none of them is requested. The
+        // transceivers group is separate and its own switch is off here, so it still fetches.
+        val builtInTle = Sources.satelliteDataUrls.values.filter { it.isNotBlank() }
+        assertTrue(
+            "no built-in TLE source may be fetched, got " + remoteSource.requestedUrls,
+            builtInTle.none { it in remoteSource.requestedUrls }
+        )
+        assertTrue(
+            "the operator's URL must be fetched",
+            customCsvUrl in remoteSource.requestedUrls
+        )
+        // Indexed under "Other", the key manual file import uses. It used to be indexed under
+        // "All", where setSatelliteTypeIds early-returns - so the type filter never saw these
+        // satellites at all and this assertion was checking a no-op.
+        assertEquals(listOf(25544), settingsRepo.satelliteTypeIdsByType["Other"])
+        assertEquals(null, settingsRepo.satelliteTypeIdsByType["All"])
+    }
+
+    /** The switch-off path must be untouched: all built-in sources, exactly as before. */
+    @Test
+    fun `without a custom source every built-in source is fetched`() = runTest(dispatcher) {
+        val localSource = FakeLocalSource()
+        val remoteSource = FakeRemoteSource().apply {
+            // Every built-in TLE source has to answer, or updateFromRemote throws because all of
+            // them failed, which would mask what this test checks. The transceivers group is left
+            // unanswered on purpose: org.json is compileOnly in core:domain, so DataParser cannot
+            // parse a radio payload on the JVM anyway.
+            Sources.satelliteDataUrls.values.filter { it.isNotBlank() }
+                .forEach { networkStreams[it] = { validCsvStream() } }
+        }
+        val settingsRepo = FakeSettingsRepo(
+            dataSources = DataSourcesSettings(
+                useCustomTLE = false,
+                useCustomTransceivers = false,
+                tleUrl = "https://example.com/ignored.csv",
+                transceiversUrl = ""
+            )
+        )
+        val repository = DatabaseRepo(dispatcher, dataParser, localSource, remoteSource, settingsRepo)
+
+        repository.updateFromRemote()
+
+        val expected = Sources.satelliteDataUrls.values.filter { it.isNotBlank() }
+        assertTrue(
+            "expected all built-in sources, got " + remoteSource.requestedUrls.size,
+            expected.all { it in remoteSource.requestedUrls }
+        )
+        assertTrue(
+            "the custom URL must not be fetched when the switch is off",
+            "https://example.com/ignored.csv" !in remoteSource.requestedUrls
+        )
     }
 
     private fun validCsvStream(): InputStream = """
@@ -122,9 +172,15 @@ private class FakeRemoteSource : IRemoteSource {
     val fileStreams: MutableMap<String, () -> InputStream> = mutableMapOf()
     val networkStreams: MutableMap<String, () -> InputStream> = mutableMapOf()
 
+    /** Every URL asked for, so a test can assert WHICH sources were fetched, not just the result. */
+    val requestedUrls = mutableListOf<String>()
+
     override suspend fun getFileStream(uri: String): InputStream? = fileStreams[uri]?.invoke()
 
-    override suspend fun getNetworkStream(url: String): InputStream? = networkStreams[url]?.invoke()
+    override suspend fun getNetworkStream(url: String): InputStream? {
+        requestedUrls += url
+        return networkStreams[url]?.invoke()
+    }
 
     override suspend fun getAmSatCatalog(): String? = null
 
