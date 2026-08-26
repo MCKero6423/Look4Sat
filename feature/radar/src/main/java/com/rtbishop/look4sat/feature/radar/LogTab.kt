@@ -75,6 +75,7 @@ import com.rtbishop.look4sat.core.domain.model.SatRadio
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
 import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
+import com.rtbishop.look4sat.core.domain.wavelog.PassClock
 import com.rtbishop.look4sat.core.domain.wavelog.CallsignEntry
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQso
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
@@ -281,6 +282,11 @@ private fun ExpandedLogInput(
     var mode by remember(radio.uuid) { mutableStateOf(radio.uplinkMode ?: "FM") }
     var modeEditable by remember(radio.uuid) { mutableStateOf(false) }
     val editModeLabel = stringResource(id = R.string.wavelog_mode_edit)
+    val editTimeLabel = stringResource(id = R.string.wavelog_time_edit)
+    // Survives rotation like workedThisSession: losing a held clock mid-transcription would put
+    // every remaining contact at the wrong time without saying so.
+    var timeEntry by rememberSaveable { mutableStateOf("") }
+    var timeEditable by rememberSaveable { mutableStateOf(false) }
     // Calls logged during this pass, so a repeat can be mentioned without being blocked: the same
     // station on a later pass is a legitimate new contact. This replaces a 300ms window that
     // swallowed what it guessed were accidental double submissions - a guess that could discard
@@ -322,7 +328,11 @@ private fun ExpandedLogInput(
         queue.add(
             WavelogQso(
                 id = qsoId,
-                timeUtcMs = System.currentTimeMillis(),
+                timeUtcMs = PassClock.resolve(
+                    PassClock.parse(timeEntry),
+                    System.currentTimeMillis(),
+                    utcDayStart(System.currentTimeMillis())
+                ),
                 call = call,
                 mode = mode.trim().ifBlank { "FM" }.uppercase(),
                 freqTxHz = tx,
@@ -455,6 +465,63 @@ private fun ExpandedLogInput(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(text = mode, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        // The clock. Serious operators record a pass and transcribe it afterwards, so a fixed
+        // timestamp made every transcribed contact wrong by however long the transcription took -
+        // and a pass crossing midnight UTC landed a whole day out.
+        val command = PassClock.parse(timeEntry)
+        val holding = PassClock.isHolding(command)
+        if (timeEditable) {
+            OutlinedTextField(
+                value = timeEntry,
+                onValueChange = { timeEntry = it.take(6) },
+                label = { Text(stringResource(id = R.string.wavelog_time_hint)) },
+                supportingText = {
+                    Text(
+                        text = stringResource(
+                            if (command is PassClock.Command.Unrecognised) {
+                                R.string.wavelog_time_unrecognised
+                            } else {
+                                R.string.wavelog_time_help
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                isError = command is PassClock.Command.Unrecognised,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clickable(role = Role.Button, onClickLabel = editTimeLabel) {
+                        timeEditable = true
+                    }
+                    .padding(horizontal = LocalSpacing.current.extraExtraSmall)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.wavelog_time_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (holding) timeEntry.trim() else stringResource(id = R.string.wavelog_time_live),
+                    style = MaterialTheme.typography.bodyMedium,
+                    // A held clock is coloured, because logging at the wrong time silently is the
+                    // failure this whole change exists to prevent.
+                    color = if (holding) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
             }
         }
     }
@@ -597,4 +664,20 @@ private fun buildSessionId(satName: String, aosTimeMs: Long): String {
         cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)
     )
     return "$satName-$stamp"
+}
+
+/**
+ * Midnight UTC of the day a timestamp falls in.
+ *
+ * PassClock needs this passed in: core:domain holds no calendar, so the day boundary is computed
+ * here where java.util is available.
+ */
+private fun utcDayStart(nowMs: Long): Long {
+    val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+    cal.timeInMillis = nowMs
+    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+    cal.set(java.util.Calendar.MINUTE, 0)
+    cal.set(java.util.Calendar.SECOND, 0)
+    cal.set(java.util.Calendar.MILLISECOND, 0)
+    return cal.timeInMillis
 }

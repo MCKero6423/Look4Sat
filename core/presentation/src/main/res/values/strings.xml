@@ -309,6 +309,11 @@
     <string name="wavelog_call_hint">Callsign</string>
     <string name="wavelog_mode_hint">Mode</string>
     <string name="wavelog_mode_edit">Edit the mode</string>
+    <string name="wavelog_time_hint">Time</string>
+    <string name="wavelog_time_live">Now</string>
+    <string name="wavelog_time_edit">Set the logging time</string>
+    <string name="wavelog_time_help">UTC time such as 14:55, or +3 / -2 minutes. Empty logs at the current time.</string>
+    <string name="wavelog_time_unrecognised">Not a time - the current time will be used</string>
     <string name="wavelog_saved">Saved to local log</string>
     <string name="wavelog_upload_done">Uploaded %1$d, %2$d still queued</string>
     <string name="wavelog_upload_all_ok">Uploaded %1$d QSO</string>
