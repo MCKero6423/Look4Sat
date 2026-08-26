@@ -311,6 +311,7 @@
     <string name="wavelog_grid_help">What they sent you. Left empty, it is looked up on QRZ.</string>
     <string name="wavelog_grid_bad">Not a grid square</string>
     <string name="wavelog_grid_square_only">Square only - accurate to about 100 km</string>
+    <string name="wavelog_grid_field_only">Field only - accurate to about 1000 km</string>
     <string name="wavelog_mode_hint">Mode</string>
     <string name="wavelog_mode_edit">Edit the mode</string>
     <string name="wavelog_time_hint">Time</string>

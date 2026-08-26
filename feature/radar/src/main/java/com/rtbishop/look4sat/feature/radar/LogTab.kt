@@ -473,12 +473,13 @@ private fun ExpandedLogInput(
                     // where a wrong square is worse than a missing one.
                     text = when (gridVerdict) {
                         is GridEntry.Verdict.Unusable -> stringResource(id = R.string.wavelog_grid_bad)
-                        is GridEntry.Verdict.Acceptable ->
-                            if (gridVerdict.warning == GridEntry.Warning.SQUARE_ONLY) {
+                        is GridEntry.Verdict.Acceptable -> when (gridVerdict.warning) {
+                            GridEntry.Warning.FIELD_ONLY ->
+                                stringResource(id = R.string.wavelog_grid_field_only)
+                            GridEntry.Warning.SQUARE_ONLY ->
                                 stringResource(id = R.string.wavelog_grid_square_only)
-                            } else {
-                                stringResource(id = R.string.wavelog_grid_help)
-                            }
+                            null -> stringResource(id = R.string.wavelog_grid_help)
+                        }
                         GridEntry.Verdict.Empty -> stringResource(id = R.string.wavelog_grid_help)
                     },
                     style = MaterialTheme.typography.bodySmall

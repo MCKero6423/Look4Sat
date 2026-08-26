@@ -46,6 +46,12 @@ object GridEntry {
 
     /** Worth mentioning but not worth refusing. */
     enum class Warning {
+        /**
+         * Two characters. Legal per ADIF, but a field is 20 by 10 degrees - close to useless for a
+         * satellite contact, so it is worth saying rather than refusing.
+         */
+        FIELD_ONLY,
+
         /** Four characters, so the location is only accurate to about 100km. */
         SQUARE_ONLY
     }
@@ -81,7 +87,14 @@ object GridEntry {
         if (upper[0] !in FIELD_RANGE || upper[1] !in FIELD_RANGE) {
             return Verdict.Unusable(Reason.FIELD_OUT_OF_RANGE)
         }
-        if (!upper[2].isDigit() || !upper[3].isDigit()) {
+        // ASCII digits only. Char.isDigit() is Unicode-aware and covers the whole Nd category, so
+        // it accepted Arabic-Indic, Devanagari and fullwidth digits - which a localised keypad can
+        // produce without the operator seeing any difference. ADIF 3.1.7 defines Digit as "an ASCII
+        // character whose code lies in the range of 48 through 57", and Wavelog stores GRIDSQUARE
+        // verbatim, so such a value would never match a real grid in any statistics query.
+        // Guarded on length: a 2-character locator has no square pair, and reading index 2 of it
+        // would throw.
+        if (text.length >= SQUARE_LENGTH && (!upper[2].isAsciiDigit() || !upper[3].isAsciiDigit())) {
             return Verdict.Unusable(Reason.SQUARE_NOT_DIGITS)
         }
         if (text.length >= SUBSQUARE_LENGTH) {
@@ -89,27 +102,42 @@ object GridEntry {
                 return Verdict.Unusable(Reason.SUBSQUARE_OUT_OF_RANGE)
             }
         }
-        if (text.length == EXTENDED_LENGTH && (!upper[6].isDigit() || !upper[7].isDigit())) {
+        if (text.length == EXTENDED_LENGTH && (!upper[6].isAsciiDigit() || !upper[7].isAsciiDigit())) {
             return Verdict.Unusable(Reason.SQUARE_NOT_DIGITS)
         }
 
         return Verdict.Acceptable(
             normalised = normalise(upper),
-            warning = if (text.length == SQUARE_LENGTH) Warning.SQUARE_ONLY else null
+            warning = when (text.length) {
+                FIELD_LENGTH -> Warning.FIELD_ONLY
+                SQUARE_LENGTH -> Warning.SQUARE_ONLY
+                else -> null
+            }
         )
     }
 
     /** `OL72ap` - upper case field, digits, lower case subsquare, as the convention renders it. */
     private fun normalise(upper: String): String = buildString {
-        append(upper.take(SQUARE_LENGTH))
+        append(upper.take(minOf(upper.length, SQUARE_LENGTH)))
         if (upper.length >= SUBSQUARE_LENGTH) append(upper.substring(4, 6).lowercase())
         if (upper.length == EXTENDED_LENGTH) append(upper.substring(6, 8))
     }
 
+    /** ADIF 3.1.7 defines Digit as ASCII 48-57. Kotlin's isDigit() is far wider. */
+    private fun Char.isAsciiDigit(): Boolean = this in '0'..'9'
+
+    private const val FIELD_LENGTH = 2
     private const val SQUARE_LENGTH = 4
     private const val SUBSQUARE_LENGTH = 6
     private const val EXTENDED_LENGTH = 8
-    private val VALID_LENGTHS = setOf(SQUARE_LENGTH, SUBSQUARE_LENGTH, EXTENDED_LENGTH)
+
+    /**
+     * ADIF 3.1.7: GRIDSQUARE takes "2-character, 4-character, 6-character, or 8-character" locators.
+     * A 10 or 12 character locator stores its first 8 here and the rest in GRIDSQUARE_EXT, which
+     * neither WavelogQso nor Wavelog's own field list carries - so the extra pair has nowhere to go
+     * and the UI clips at 8, which produces the spec-correct GRIDSQUARE value.
+     */
+    private val VALID_LENGTHS = setOf(FIELD_LENGTH, SQUARE_LENGTH, SUBSQUARE_LENGTH, EXTENDED_LENGTH)
     private val FIELD_RANGE = 'A'..'R'
     private val SUBSQUARE_RANGE = 'A'..'X'
 }
