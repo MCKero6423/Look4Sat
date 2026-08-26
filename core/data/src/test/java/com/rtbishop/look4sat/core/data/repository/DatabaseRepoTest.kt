@@ -114,11 +114,14 @@ class DatabaseRepoTest {
             "the operator's URL must be fetched",
             customCsvUrl in remoteSource.requestedUrls
         )
-        // Indexed under "Other", the key manual file import uses. It used to be indexed under
-        // "All", where setSatelliteTypeIds early-returns - so the type filter never saw these
-        // satellites at all and this assertion was checking a no-op.
-        assertEquals(listOf(25544), settingsRepo.satelliteTypeIdsByType["Other"])
+        // Indexed under "Custom". It used to go under "All", where setSatelliteTypeIds
+        // early-returns, so the type filter never saw these satellites and the old assertion here
+        // was checking a no-op.
+        assertEquals(listOf(25544), settingsRepo.satelliteTypeIdsByType["Custom"])
         assertEquals(null, settingsRepo.satelliteTypeIdsByType["All"])
+        // NOT "Other": that key belongs to manual file import, and setSatelliteTypeIds overwrites
+        // rather than merges, so sharing it would have each source wipe the other's index.
+        assertEquals(null, settingsRepo.satelliteTypeIdsByType["Other"])
     }
 
     /** The switch-off path must be untouched: all built-in sources, exactly as before. */

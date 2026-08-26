@@ -42,6 +42,17 @@ class DatabaseRepo(
 
     private val customSourceType = "Other"
 
+    /**
+     * Type key for satellites fetched from a custom URL.
+     *
+     * Separate from customSourceType because setSatelliteTypeIds overwrites rather than merges, so
+     * sharing "Other" with manual file import meant each wiped the other's type index. The
+     * satellites stayed in the database and stayed selectable either way - only their grouping in
+     * the type filter was lost - but the two sources are different things and deserve different
+     * keys.
+     */
+    private val customUrlType = "Custom"
+
     override suspend fun updateTLEFromFile(uri: String): Int = withContext(dispatcher) {
         var importedCount = 0
         remoteSource.getFileStream(uri)?.let { stream ->
@@ -78,12 +89,11 @@ class DatabaseRepo(
         // The type index for the skipped keys goes stale rather than empty, which is the honest
         // outcome - it is the last known membership, not a claim about this fetch.
         //
-        // The key is customSourceType, not "All": setSatelliteTypeIds early-returns on "All", so
-        // indexing under it was always a no-op, and "Other" is what manual file import already
-        // uses. Same meaning - satellites from a source the operator supplied - and it makes them
-        // reachable by the type filter, which they were not before.
+        // The key is customUrlType, not "All": setSatelliteTypeIds early-returns on "All", so
+        // indexing under it was always a no-op and satellites from a custom URL were never
+        // reachable by the type filter at all. They now are.
         val tleUrls = if (dataSourcesSettings.useCustomTLE && dataSourcesSettings.tleUrl.isNotBlank()) {
-            mapOf(customSourceType to dataSourcesSettings.tleUrl)
+            mapOf(customUrlType to dataSourcesSettings.tleUrl)
         } else {
             Sources.satelliteDataUrls.filterValues { it.isNotBlank() }
         }
