@@ -44,7 +44,15 @@ import java.util.Calendar
 import java.util.TimeZone
 
 private val CheckGreen = Color(0xFF4CAF50)
-private val GridLineColor = Color(0xFF3A3A3A)
+/**
+ * Grid rules and column separators.
+ *
+ * Was 0xFF3A3A3A, which computes to 1.65:1 against the navBar background and 1.36:1 against a card,
+ * where Material asks 3:1 for non-text elements - the grid this page is built around was nearly
+ * invisible, and gone in sunlight. 0xFF6D6D6D is the lowest grey clearing 3:1 against both
+ * (3.62:1 and 3.00:1).
+ */
+private val GridLineColor = Color(0xFF6D6D6D)
 
 @Composable
 fun WavelogLogScreen(
@@ -139,15 +147,21 @@ fun WavelogLogScreen(
                                 GridVLine()
                                 Cell(entry.call, 0.dp, weight = 1f)
                                 GridVLine()
+                                // Upload state carried by the glyph, not by colour alone. The
+                                // green tick collapses to 1.17:1 under this app's night filter,
+                                // which zeroes green and blue, so the column disappeared entirely -
+                                // and colour was the only thing separating sent from waiting.
                                 Box(modifier = Modifier.width(44.dp)) {
-                                    if (entry.uploaded) {
-                                        Text(
-                                            text = "✓",
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = CheckGreen
-                                        )
-                                    }
+                                    Text(
+                                        text = if (entry.uploaded) "OK" else "...",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (entry.uploaded) {
+                                            CheckGreen
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
                                 }
                             }
                             // Row divider

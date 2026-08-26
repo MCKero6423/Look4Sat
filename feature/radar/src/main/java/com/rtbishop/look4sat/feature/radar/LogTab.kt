@@ -405,7 +405,7 @@ private fun ExpandedLogInput(
             if (isLinearRange) {
                 Text(
                     text = "  (${formatFrequency(upLow)} – ${formatFrequency(upHigh)})",
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -426,7 +426,7 @@ private fun ExpandedLogInput(
             if (downLow != null && downHigh != null && downLow != downHigh) {
                 Text(
                     text = "  (${formatFrequency(downLow)} – ${formatFrequency(downHigh)})",
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
