@@ -349,6 +349,7 @@
     <string name="prefs_wavelog_qrz_label">Cookie</string>
     <string name="wavelog_copy">Copy</string>
     <string name="wavelog_delete_undo">Undo</string>
+    <string name="wavelog_delete_action">Delete this contact</string>
     <string name="wavelog_col_time">Time</string>
     <string name="wavelog_col_freq">Freq</string>
     <string name="wavelog_col_sat">Satellite</string>

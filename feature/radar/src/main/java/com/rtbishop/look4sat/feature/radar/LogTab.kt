@@ -18,6 +18,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import com.rtbishop.look4sat.core.presentation.LocalSpacing
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +62,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -574,10 +580,33 @@ internal fun SwipeDeleteRow(
         }
     }
 
+    val deleteActionLabel = stringResource(id = R.string.wavelog_delete_action)
+    val undoActionLabel = stringResource(id = R.string.wavelog_delete_undo)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .onSizeChanged { rowWidth = it.width }
+            // Deleting was reachable ONLY by dragging, so TalkBack, switch access and Voice Access
+            // users could not delete a record at all - not with difficulty, at all. The Compose
+            // accessibility guide names this exact case: swipe gestures should be exposed as custom
+            // actions because they are hard or impossible for users with motor impairments.
+            .semantics {
+                customActions = buildList {
+                    if (pending) {
+                        add(CustomAccessibilityAction(undoActionLabel) {
+                            pending = false
+                            offsetX = 0f
+                            true
+                        })
+                    } else {
+                        add(CustomAccessibilityAction(deleteActionLabel) {
+                            pending = true
+                            offsetX = -threshold
+                            true
+                        })
+                    }
+                }
+            }
     ) {
         // Background layer (right-side icons: trash / undo + countdown)
         Box(
@@ -603,22 +632,34 @@ internal fun SwipeDeleteRow(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = WaveLogYellow,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .background(WaveLogYellow.copy(alpha = 0.15f))
-                            .clickable {
+                            // 48dp, the Material minimum. This was a 29dp target with a five-second
+                            // countdown running behind it, so a miss was unrecoverable - the worst
+                            // possible place in the screen to be hard to hit.
+                            .heightIn(min = 48.dp)
+                            .widthIn(min = 64.dp)
+                            .clickable(role = Role.Button) {
                                 pending = false
                                 offsetX = 0f
                             }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .wrapContentHeight(Alignment.CenterVertically)
+                            .padding(horizontal = 10.dp)
                     )
                 }
             } else {
-                // Trash icon (always visible while swiping, yellow)
-                Text(
-                    text = "🗑",
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(end = 16.dp)
+                // A real icon, not an emoji: emoji render differently on every device and font, and
+                // this project forbids them as icons. contentDescription is null because the row
+                // already exposes delete as a custom accessibility action.
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_delete),
+                    contentDescription = null,
+                    tint = WaveLogYellow,
+                    modifier = Modifier
+                        .padding(end = 16.dp)
+                        .size(24.dp)
                 )
             }
         }

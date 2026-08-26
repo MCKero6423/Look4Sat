@@ -318,6 +318,7 @@
     <string name="prefs_wavelog_qrz_label">Cookie</string>
     <string name="wavelog_copy">复制</string>
     <string name="wavelog_delete_undo">撤销</string>
+    <string name="wavelog_delete_action">删除这条联络</string>
     <string name="wavelog_col_time">时间</string>
     <string name="wavelog_col_freq">频率</string>
     <string name="wavelog_col_sat">卫星</string>
