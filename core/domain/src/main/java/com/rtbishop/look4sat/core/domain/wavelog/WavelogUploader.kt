@@ -13,12 +13,32 @@ import org.json.JSONObject
 
 sealed class UploadOutcome {
     data class NeedConfirm(val stationGrid: String, val userGrid: String) : UploadOutcome()
+
+    /**
+     * The upload finished. [failedCount] entries stay in the queue.
+     *
+     * [reason] is machine-readable so the UI can pick its own wording; [firstError] carries the
+     * server's own explanation for the first failure, which is worth showing verbatim because it
+     * is the only thing that says WHY Wavelog refused a QSO.
+     */
     data class Done(
         val successCount: Int,
         val failedCount: Int,
-        val message: String,
+        val reason: Reason = Reason.COMPLETED,
         val firstError: String = ""
     ) : UploadOutcome()
+
+    /** Why an upload ended, for the UI to phrase. */
+    enum class Reason {
+        /** Ran to completion. Check the counts. */
+        COMPLETED,
+
+        /** No server, key or station id configured. */
+        NOT_CONFIGURED,
+
+        /** The station profile could not be read - wrong id, or a key without permission. */
+        NO_STATION_INFO
+    }
 }
 
 class WavelogUploader(
@@ -36,13 +56,13 @@ class WavelogUploader(
         val apiKey = settings.wavelogApiKey
         val stationId = settings.wavelogStationId
         if (url.isBlank() || apiKey.isBlank() || stationId.isBlank()) {
-            return UploadOutcome.Done(0, queue.all().size, "未配置 WaveLog 服务器")
+            return UploadOutcome.Done(0, queue.all().size, UploadOutcome.Reason.NOT_CONFIGURED)
         }
 
         // 1. Fetch station info (station grid); fall back to user QTH when v1 lacks the endpoint
         val stationGrid = getStationGrid(url, apiKey, stationId) ?: userQthGrid()
         if (stationGrid.isNullOrBlank()) {
-            return UploadOutcome.Done(0, queue.all().size, "无法获取站点信息(检查站点 ID/密钥权限)")
+            return UploadOutcome.Done(0, queue.all().size, UploadOutcome.Reason.NO_STATION_INFO)
         }
 
         // 2. Grid check: cloud station grid first 4 chars vs current station QTH first 4 chars
@@ -70,8 +90,7 @@ class WavelogUploader(
                 if (firstError.isBlank()) firstError = (result as? WavelogResult.Failure)?.message ?: ""
             }
         }
-        val message = if (fail == 0) "成功上传 $ok 条" else "成功 $ok 条, 失败 $fail 条(保留待重试)"
-        return UploadOutcome.Done(ok, fail, message, firstError)
+        return UploadOutcome.Done(ok, fail, UploadOutcome.Reason.COMPLETED, firstError)
     }
 
     private suspend fun getStationGrid(url: String, apiKey: String, stationId: String): String? {

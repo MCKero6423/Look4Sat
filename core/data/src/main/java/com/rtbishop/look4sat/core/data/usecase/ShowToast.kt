@@ -29,4 +29,8 @@ class ShowToast(private val context: Context) : IShowToast {
     override fun invoke(resId: Int) {
         invoke(context.getString(resId))
     }
+
+    override fun invoke(resId: Int, vararg formatArgs: Any) {
+        invoke(context.getString(resId, *formatArgs))
+    }
 }

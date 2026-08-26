@@ -22,4 +22,12 @@ interface IShowToast {
 
     /** Show by resource ID (four-language text) */
     operator fun invoke(resId: Int)
+
+    /**
+     * Show a resource with format arguments, so a count can appear in a localised message.
+     *
+     * The alternative is building the string in a view model, which puts wording outside the
+     * resource files and hardcodes one language.
+     */
+    operator fun invoke(resId: Int, vararg formatArgs: Any)
 }

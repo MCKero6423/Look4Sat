@@ -62,7 +62,6 @@ import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.repository.IContainerProvider
 import com.rtbishop.look4sat.core.domain.repository.MutualPassData
-import com.rtbishop.look4sat.core.domain.wavelog.UploadOutcome
 import com.rtbishop.look4sat.core.domain.wavelog.WavelogQueue
 import com.rtbishop.look4sat.core.domain.utility.DopplerFrequencyCalculator
 import com.rtbishop.look4sat.core.domain.utility.toDegrees
@@ -128,21 +127,11 @@ fun RadarDestination(navigateUp: () -> Unit) {
         viewModel.onAction(RadarAction.SstvPermissionResult(granted))
         viewModel.onAction(RadarAction.CwPermissionResult(granted))
     }
-    // WaveLog (4.5.2): auto-upload - retries the local queue every 10 min (when the switch is on)
-    val wavelogUploader = remember { container.provideWavelogUploader() }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(10 * 60 * 1000L)
-            val s = container.settingsRepo.otherSettings.value
-            if (s.wavelogAutoUpload && s.wavelogUrl.isNotBlank()) {
-                // Grid mismatch is skipped silently (left for manual-upload confirmation); other failures retry on the next tick
-                val outcome = wavelogUploader.uploadQueue()
-                if (outcome is UploadOutcome.NeedConfirm) {
-                    // Skip this run; the user can upload and confirm manually in settings
-                }
-            }
-        }
-    }
+    // Auto-upload happens when a QSO is saved, not on a timer. The ten-minute polling loop that
+    // used to live here uploaded in the background with no way to tell the operator what happened:
+    // a grid mismatch was skipped by an empty if, and any other failure just retried silently
+    // forever. A QSO that cannot be uploaded now stays in the queue for a manual upload from
+    // settings, where the result is actually shown.
     RadarScreen(
         uiState,
         viewModel::onAction,

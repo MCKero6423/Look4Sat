@@ -261,6 +261,13 @@
     <string name="wavelog_call_hint">对方呼号</string>
     <string name="wavelog_mode_hint">模式</string>
     <string name="wavelog_saved">已存入本地日志</string>
+    <string name="wavelog_upload_done">已上传 %1$d 条, %2$d 条仍在队列</string>
+    <string name="wavelog_upload_all_ok">已上传 %1$d 条</string>
+    <string name="wavelog_not_configured">未配置 WaveLog 服务器</string>
+    <string name="wavelog_no_station">读不到站点信息 - 请检查站点 ID 与密钥权限</string>
+    <string name="wavelog_upload_failed">上传失败</string>
+    <string name="lotw_list_updated">LoTW 卫星列表已更新: %1$d 个</string>
+    <string name="lotw_list_failed">LoTW 列表更新失败: %1$s</string>
     <string name="log_call_too_short">呼号太短</string>
     <string name="log_call_illegal">呼号里不能有这个字符</string>
     <string name="log_call_not_a_call">这看起来不像呼号</string>

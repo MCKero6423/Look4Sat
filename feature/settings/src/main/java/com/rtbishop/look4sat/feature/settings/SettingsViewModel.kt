@@ -275,9 +275,11 @@ class SettingsViewModel(
         viewModelScope.launch {
             when (val r = lotwRepo.refresh()) {
                 is com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo.RefreshResult.Ok ->
-                    showToast("LoTW 卫星列表已更新: ${r.count} 个")
+                    showToast(R.string.lotw_list_updated, r.count)
                 is com.rtbishop.look4sat.core.domain.wavelog.ILotwSatellitesRepo.RefreshResult.Error ->
-                    wavelogError = "LoTW 卫星列表更新失败: ${r.message}"
+                    // Server's own words only: the dialog supplies the framing, so the wording
+                    // stays in the resource files rather than being built here in one language.
+                    wavelogError = r.message
             }
         }
     }
@@ -286,18 +288,32 @@ class SettingsViewModel(
         viewModelScope.launch {
             val result = pendingUploader?.uploadQueue()
             when (result) {
-                is UploadOutcome.Done -> {
-                    if (result.failedCount > 0 && result.firstError.isNotBlank()) {
-                        wavelogError = result.firstError
-                    } else {
-                        showToast("WaveLog: ${result.message}")
-                    }
-                }
+                is UploadOutcome.Done -> reportUpload(result)
                 is UploadOutcome.NeedConfirm -> {
                     gridConfirm = GridConfirmData(result.stationGrid, result.userGrid)
                 }
-                null -> showToast("WaveLog: 上传失败")
+                null -> showToast(R.string.wavelog_upload_failed)
             }
+        }
+    }
+
+    /**
+     * Report an upload outcome, keeping the wording in the resource files.
+     *
+     * The server's own explanation goes to [wavelogError] rather than a Toast, because it is the
+     * only thing that says why Wavelog refused a QSO and a Toast is gone in three seconds.
+     */
+    private fun reportUpload(result: UploadOutcome.Done) {
+        when {
+            result.failedCount > 0 && result.firstError.isNotBlank() ->
+                wavelogError = result.firstError
+            result.reason == UploadOutcome.Reason.NOT_CONFIGURED ->
+                showToast(R.string.wavelog_not_configured)
+            result.reason == UploadOutcome.Reason.NO_STATION_INFO ->
+                showToast(R.string.wavelog_no_station)
+            result.failedCount > 0 ->
+                showToast(R.string.wavelog_upload_done, result.successCount, result.failedCount)
+            else -> showToast(R.string.wavelog_upload_all_ok, result.successCount)
         }
     }
 
@@ -309,8 +325,8 @@ class SettingsViewModel(
         viewModelScope.launch {
             val result = pendingUploader?.uploadQueue(force = true)
             when (result) {
-                is UploadOutcome.Done -> showToast("WaveLog: ${result.message}")
-                else -> showToast("WaveLog: 上传失败")
+                is UploadOutcome.Done -> reportUpload(result)
+                else -> showToast(R.string.wavelog_upload_failed)
             }
         }
     }

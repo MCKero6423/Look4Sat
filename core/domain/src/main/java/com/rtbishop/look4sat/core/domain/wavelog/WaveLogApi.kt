@@ -238,9 +238,18 @@ object WaveLogApi {
             put("sat_name", satName)
             if (satMode.isNotBlank()) put("sat_mode", satMode)
         }
+        // The body decides, not the status code: Wavelog validates after responding, so a rejected
+        // QSO arrives as HTTP 200 with {"status":"failed"}. Trusting the code marked it uploaded
+        // and dropped it from the queue.
         val (code, resp) = httpRequest("$base/index.php/api/v2/qso", "POST", apiKey, v2Body.toString())
-        if (code in 200..299) return@withContext WavelogResult.Success("已上传 (v2)")
-        if (code == 409) return@withContext WavelogResult.Success("重复(已存在)")
+        when (val verdict = WavelogResponse.verdict(code, resp)) {
+            is WavelogResponse.Verdict.Accepted -> return@withContext WavelogResult.Success("v2")
+            WavelogResponse.Verdict.Duplicate -> return@withContext WavelogResult.Success("duplicate")
+            is WavelogResponse.Verdict.Rejected ->
+                return@withContext WavelogResult.Failure(verdict.reason)
+            // Unreadable falls through to v1: an older server may not have the v2 endpoint at all.
+            is WavelogResponse.Verdict.Unreadable -> Unit
+        }
 
         // v1: POST /index.php/api/qso (key in body + ADIF)
         val v1Body = JSONObject().apply {
@@ -250,13 +259,29 @@ object WaveLogApi {
             put("string", toAdif(qso, gridsquare, satName))
         }
         val (code1, resp1) = httpRequest("$base/index.php/api/qso", "POST", apiKey, v1Body.toString())
-        if (code1 in 200..299) return@withContext WavelogResult.Success("已上传 (v1)")
+        when (val verdict = WavelogResponse.verdict(code1, resp1)) {
+            is WavelogResponse.Verdict.Accepted -> return@withContext WavelogResult.Success("v1")
+            WavelogResponse.Verdict.Duplicate -> return@withContext WavelogResult.Success("duplicate")
+            is WavelogResponse.Verdict.Rejected ->
+                return@withContext WavelogResult.Failure(verdict.reason)
+            is WavelogResponse.Verdict.Unreadable -> Unit
+        }
 
-        // v1 without index.php
+        // v1 without index.php, for a server whose rewrite rules differ
         val (code1b, resp1b) = httpRequest("$base/api/qso", "POST", apiKey, v1Body.toString())
-        if (code1b in 200..299) return@withContext WavelogResult.Success("已上传 (v1)")
+        when (val verdict = WavelogResponse.verdict(code1b, resp1b)) {
+            is WavelogResponse.Verdict.Accepted -> return@withContext WavelogResult.Success("v1")
+            WavelogResponse.Verdict.Duplicate -> return@withContext WavelogResult.Success("duplicate")
+            is WavelogResponse.Verdict.Rejected ->
+                return@withContext WavelogResult.Failure(verdict.reason)
+            is WavelogResponse.Verdict.Unreadable -> Unit
+        }
 
-        WavelogResult.Failure("上传失败: v2 HTTP $code, v1 HTTP $code1 — ${shortError(resp1.ifBlank { resp1b })}")
+        // Every endpoint answered something we could not read. Keeping the QSO queued is the only
+        // honest outcome: it may have been stored, and dropping it would lose the contact.
+        WavelogResult.Failure(
+            "unreadable response: v2 HTTP $code, v1 HTTP $code1 - ${shortError(resp1.ifBlank { resp1b })}"
+        )
     }
 
     /** v1 ADIF string (freq in MHz, length = UTF-8 byte count, sat_name normalized) */
