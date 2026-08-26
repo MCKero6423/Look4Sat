@@ -307,6 +307,8 @@
     <string name="wavelog_title">Log</string>
     <string name="wavelog_select_transponder">Select transponder</string>
     <string name="wavelog_call_hint">Callsign</string>
+    <string name="wavelog_grid_hint">Grid (optional)</string>
+    <string name="wavelog_grid_help">What they sent you. Left empty, it is looked up on QRZ.</string>
     <string name="wavelog_mode_hint">Mode</string>
     <string name="wavelog_mode_edit">Edit the mode</string>
     <string name="wavelog_time_hint">Time</string>

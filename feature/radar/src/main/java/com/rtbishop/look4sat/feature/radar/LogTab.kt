@@ -295,6 +295,10 @@ private fun ExpandedLogInput(
     // deliberately NOT restored when the user swipes the app away - that is them ending the session.
     var timeEntry by rememberSaveable { mutableStateOf("") }
     var timeEditable by rememberSaveable { mutableStateOf(false) }
+    // Typed by the operator. On FM satellites the grid IS the exchange, and until now it could only
+    // arrive by scraping QRZ - which needs a cookie the operator may not have and cannot supply for
+    // a station that has no locator on file.
+    var gridEntry by rememberSaveable { mutableStateOf("") }
     // Calls logged during this pass, so a repeat can be mentioned without being blocked: the same
     // station on a later pass is a legitimate new contact. This replaces a 300ms window that
     // swallowed what it guessed were accidental double submissions - a guess that could discard
@@ -333,6 +337,7 @@ private fun ExpandedLogInput(
         val tx = radio.uplinkLow ?: radio.downlinkLow ?: 0L
         val rx = radio.downlinkLow ?: radio.uplinkLow ?: 0L
         val qsoId = UUID.randomUUID().toString()
+        val typedGrid = gridEntry.trim().uppercase()
         queue.add(
             WavelogQso(
                 id = qsoId,
@@ -347,10 +352,12 @@ private fun ExpandedLogInput(
                 freqRxHz = rx,
                 satName = satelliteName,
                 catnum = satelliteCatnum,
+                gridsquare = typedGrid,
                 sessionId = buildSessionId(satelliteName, aosTimeMs)
             )
         )
         callsign = ""
+        gridEntry = ""
         workedThisSession = workedThisSession + call
         onSaved()
         showToast(
@@ -366,6 +373,9 @@ private fun ExpandedLogInput(
         // Grid backfill. The view model owns the cookie and the request; this used to read
         // SharedPreferences through LocalContext right here, inside composition. Failures now say
         // something: an expired cookie was indistinguishable from a station with no grid filed.
+        // A typed grid is better evidence than a scrape, so the lookup is skipped entirely rather
+        // than allowed to overwrite it.
+        if (typedGrid.isNotBlank()) return
         onLookupGrid(call) { outcome ->
             when (outcome) {
                 is QrzGrid.Found -> {
@@ -435,6 +445,26 @@ private fun ExpandedLogInput(
             value = callsign,
             onValueChange = { callsign = it.take(12) },
             label = { Text(stringResource(id = R.string.wavelog_call_hint)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { submit() }),
+            textStyle = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+        // The counterpart grid, optional and second. On FM satellites this is the exchange, and it
+        // could previously only arrive by scraping QRZ - which needs a cookie, and returns nothing
+        // for a station with no locator on file. Typed here it also skips the lookup entirely,
+        // because what the operator heard beats what a web page says.
+        OutlinedTextField(
+            value = gridEntry,
+            onValueChange = { gridEntry = it.take(6).uppercase() },
+            label = { Text(stringResource(id = R.string.wavelog_grid_hint)) },
+            supportingText = {
+                Text(
+                    text = stringResource(id = R.string.wavelog_grid_help),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),

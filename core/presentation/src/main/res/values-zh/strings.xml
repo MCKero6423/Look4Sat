@@ -276,6 +276,8 @@
     <string name="wavelog_title">日志</string>
     <string name="wavelog_select_transponder">选择转发器</string>
     <string name="wavelog_call_hint">对方呼号</string>
+    <string name="wavelog_grid_hint">网格 (可选)</string>
+    <string name="wavelog_grid_help">对方报给你的网格。留空则从 QRZ 查询。</string>
     <string name="wavelog_mode_hint">模式</string>
     <string name="wavelog_mode_edit">修改模式</string>
     <string name="wavelog_time_hint">时间</string>
