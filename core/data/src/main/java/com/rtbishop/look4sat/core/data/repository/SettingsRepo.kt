@@ -455,18 +455,44 @@ class SettingsRepo(
         _dataSourcesSettings.value = settings
     }
 
+    /** Placeholders a 4.4.7-era build could persist. Neither is a reachable address. */
+    private val placeholderTleUrl = "https://example.com/tle.txt"
+    private val placeholderRadioUrl = "https://example.com/radio.json"
+    private val keyPlaceholderUrlsMigrated = "placeholderUrlsMigrated"
+
+    /**
+     * Replace the example.com placeholders an old build could store.
+     *
+     * Runs once, following the pattern of migrateRCFormats. This used to be a rewrite applied on
+     * every read, so the stored value and the returned value disagreed indefinitely and nothing
+     * ever settled the difference.
+     */
+    private fun migratePlaceholderUrls() {
+        if (preferences.getBoolean(keyPlaceholderUrlsMigrated, false)) return
+        preferences.edit {
+            if (preferences.getString(keyTleUrl, null) == placeholderTleUrl) {
+                putString(keyTleUrl, Sources.defaultTleUrl)
+                putBoolean(keyUseCustomTle, false)
+            }
+            if (preferences.getString(keyTransceiversUrl, null) == placeholderRadioUrl) {
+                putString(keyTransceiversUrl, Sources.defaultTransceiversUrl)
+                putBoolean(keyUseCustomTransceivers, false)
+            }
+            putBoolean(keyPlaceholderUrlsMigrated, true)
+        }
+    }
+
     private fun getDataSourcesSettings(): DataSourcesSettings {
-        // 4.4.8 fix: legacy example.com placeholder URLs count as unconfigured -> replaced with the real default URL and the switch forced off,
-        // otherwise the online All/SatNOGS sources would point at the wrong address and fail to update
-        val storedTleUrl = preferences.getString(keyTleUrl, Sources.defaultTleUrl) ?: Sources.defaultTleUrl
-        val storedTxUrl = preferences.getString(keyTransceiversUrl, Sources.defaultTransceiversUrl) ?: Sources.defaultTransceiversUrl
-        val tleUrl = if (storedTleUrl == "https://example.com/tle.txt") Sources.defaultTleUrl else storedTleUrl
-        val txUrl = if (storedTxUrl == "https://example.com/radio.json") Sources.defaultTransceiversUrl else storedTxUrl
+        migratePlaceholderUrls()
+        // The switch is reported as the operator set it. It used to be ANDed with
+        // `url != default`, so typing the default URL by hand switched custom sources off by
+        // itself and the settings screen showed a state nobody had chosen.
         return DataSourcesSettings(
-            useCustomTLE = preferences.getBoolean(keyUseCustomTle, false) && tleUrl != Sources.defaultTleUrl,
-            useCustomTransceivers = preferences.getBoolean(keyUseCustomTransceivers, false) && txUrl != Sources.defaultTransceiversUrl,
-            tleUrl = tleUrl,
-            transceiversUrl = txUrl
+            useCustomTLE = preferences.getBoolean(keyUseCustomTle, false),
+            useCustomTransceivers = preferences.getBoolean(keyUseCustomTransceivers, false),
+            tleUrl = preferences.getString(keyTleUrl, Sources.defaultTleUrl) ?: Sources.defaultTleUrl,
+            transceiversUrl = preferences.getString(keyTransceiversUrl, Sources.defaultTransceiversUrl)
+                ?: Sources.defaultTransceiversUrl
         )
     }
 
