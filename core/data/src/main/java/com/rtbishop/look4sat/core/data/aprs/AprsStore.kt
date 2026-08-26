@@ -24,6 +24,15 @@ object AprsStore {
     private const val KEY_STATUS = "status"
     private const val KEY_SYMBOL_TABLE = "symbol_table"
     private const val KEY_SYMBOL_CODE = "symbol_code"
+
+    /**
+     * A house, not a car.
+     *
+     * Only fresh installs see this: saveConfig writes every key unconditionally and the enable
+     * switch calls it, so anyone who has ever turned APRS on has both symbol keys on disk and this
+     * fallback cannot reach them.
+     */
+    private const val DEFAULT_SYMBOL_CODE = "-"
     private const val KEY_LAST_TIME = "last_report_time"
     private const val KEY_LAST_OK = "last_report_ok"
     private const val KEY_LAST_DETAIL = "last_report_detail"
@@ -41,7 +50,7 @@ object AprsStore {
             intervalMin = p.getInt(KEY_INTERVAL, 5),
             statusText = p.getString(KEY_STATUS, "Look4Sat APRS") ?: "Look4Sat APRS",
             symbolTable = p.getString(KEY_SYMBOL_TABLE, "/") ?: "/",
-            symbolCode = p.getString(KEY_SYMBOL_CODE, ">") ?: ">"
+            symbolCode = p.getString(KEY_SYMBOL_CODE, DEFAULT_SYMBOL_CODE) ?: DEFAULT_SYMBOL_CODE
         )
     }
 

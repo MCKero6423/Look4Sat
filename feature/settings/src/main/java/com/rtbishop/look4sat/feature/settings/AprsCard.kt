@@ -11,6 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
+import com.rtbishop.look4sat.core.domain.aprs.AprsSymbols
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -179,6 +185,7 @@ fun AprsCard() {
 }
 
 /** APRS settings dialog (plenty of room, full config) */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AprsSettingsDialog(
     config: AprsConfig,
@@ -194,6 +201,7 @@ private fun AprsSettingsDialog(
     var status by remember { mutableStateOf(config.statusText) }
     var symbolTable by remember { mutableStateOf(config.symbolTable) }
     var symbolCode by remember { mutableStateOf(config.symbolCode) }
+    var symbolMenuExpanded by remember { mutableStateOf(false) }
     val textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
     val context = LocalContext.current
 
@@ -274,24 +282,62 @@ private fun AprsSettingsDialog(
                         textStyle = textStyle
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // A list rather than two free-text fields. The fields accepted any string and used
+                // only the first character, so typing "satellite" persisted the word and beaconed
+                // as `/`. The pair that makes this worth doing: \S is Satellite but /S is SHUTTLE.
+                val selected = AprsSymbols.find(symbolTable, symbolCode)
+                val customLabel = stringResource(
+                    id = R.string.prefs_aprs_symbol_custom,
+                    symbolTable.take(1),
+                    symbolCode.take(1)
+                )
+                val selectedLabel = selected?.let { symbolLabel(it.descriptionKey) } ?: customLabel
+                ExposedDropdownMenuBox(
+                    expanded = symbolMenuExpanded,
+                    onExpandedChange = { symbolMenuExpanded = it }
+                ) {
                     OutlinedTextField(
-                        value = symbolTable,
-                        onValueChange = { symbolTable = it },
-                        label = { Text(stringResource(id = R.string.prefs_aprs_symbol_table)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        textStyle = textStyle
+                        value = selectedLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(id = R.string.prefs_aprs_symbol)) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = symbolMenuExpanded)
+                        },
+                        textStyle = textStyle,
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = symbolCode,
-                        onValueChange = { symbolCode = it },
-                        label = { Text(stringResource(id = R.string.prefs_aprs_symbol_code)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        textStyle = textStyle
-                    )
+                    ExposedDropdownMenu(
+                        expanded = symbolMenuExpanded,
+                        onDismissRequest = { symbolMenuExpanded = false }
+                    ) {
+                        // An existing setting that is not on the list appears first and stays
+                        // selectable, so opening the menu cannot silently change it.
+                        if (selected == null) {
+                            DropdownMenuItem(
+                                text = { Text(text = customLabel, maxLines = 1) },
+                                onClick = { symbolMenuExpanded = false }
+                            )
+                        }
+                        AprsSymbols.curated.forEach { symbol ->
+                            DropdownMenuItem(
+                                text = { Text(text = symbolLabel(symbol.descriptionKey), maxLines = 1) },
+                                onClick = {
+                                    symbolTable = symbol.table.toString()
+                                    symbolCode = symbol.code.toString()
+                                    symbolMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
                 }
+                Text(
+                    text = stringResource(id = R.string.prefs_aprs_symbol_help),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text(
                     text = stringResource(id = R.string.prefs_aprs_passcode_hint),
                     fontSize = 12.sp,
@@ -316,7 +362,7 @@ private fun AprsSettingsDialog(
                         intervalMin = interval.toIntOrNull() ?: 5,
                         statusText = status,
                         symbolTable = symbolTable.ifBlank { "/" },
-                        symbolCode = symbolCode.ifBlank { ">" }
+                        symbolCode = symbolCode.ifBlank { "-" }
                     )
                 )
             }) { Text(stringResource(id = R.string.prefs_aprs_save)) }
@@ -338,4 +384,31 @@ private fun AprsSwitchRow(labelResId: Int, checked: Boolean, onCheckedChange: ((
         Text(text = stringResource(id = labelResId))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
+}
+
+/**
+ * Resolve a symbol's description key to its localised text.
+ *
+ * AprsSymbols names a resource rather than holding text, because core:domain cannot reach resources
+ * and hardcoding English there would put wording outside the locale files. The mapping has to live
+ * on this side, and an unknown key falls back to the key itself rather than crashing - a missing
+ * translation should not take the settings screen down.
+ */
+@Composable
+private fun symbolLabel(descriptionKey: String): String = when (descriptionKey) {
+    "aprs_symbol_house" -> stringResource(id = R.string.aprs_symbol_house)
+    "aprs_symbol_house_alt" -> stringResource(id = R.string.aprs_symbol_house_alt)
+    "aprs_symbol_person" -> stringResource(id = R.string.aprs_symbol_person)
+    "aprs_symbol_yagi" -> stringResource(id = R.string.aprs_symbol_yagi)
+    "aprs_symbol_satellite" -> stringResource(id = R.string.aprs_symbol_satellite)
+    "aprs_symbol_portable" -> stringResource(id = R.string.aprs_symbol_portable)
+    "aprs_symbol_phone" -> stringResource(id = R.string.aprs_symbol_phone)
+    "aprs_symbol_tcpip" -> stringResource(id = R.string.aprs_symbol_tcpip)
+    "aprs_symbol_ht" -> stringResource(id = R.string.aprs_symbol_ht)
+    "aprs_symbol_car" -> stringResource(id = R.string.aprs_symbol_car)
+    "aprs_symbol_truck" -> stringResource(id = R.string.aprs_symbol_truck)
+    "aprs_symbol_van" -> stringResource(id = R.string.aprs_symbol_van)
+    "aprs_symbol_rv" -> stringResource(id = R.string.aprs_symbol_rv)
+    "aprs_symbol_bike" -> stringResource(id = R.string.aprs_symbol_bike)
+    else -> descriptionKey
 }

@@ -145,8 +145,10 @@ class AprsBeaconTest {
 
     @Test
     fun `the symbol code falls back when unprintable`() {
-        assertEquals('>', AprsBeacon.codeOf(""))
-        assertEquals('>', AprsBeacon.codeOf(" "))
+        // A house, not a car. The old fallback was '>' (CAR), which showed a phone-based beacon as
+        // a vehicle for every operator who was not driving.
+        assertEquals('-', AprsBeacon.codeOf(""))
+        assertEquals('-', AprsBeacon.codeOf(" "))
         assertEquals('[', AprsBeacon.codeOf("["))
     }
 

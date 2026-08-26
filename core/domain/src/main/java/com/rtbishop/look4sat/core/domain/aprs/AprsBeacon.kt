@@ -143,5 +143,14 @@ object AprsBeacon {
     private const val CRLF_BYTES = 2
 
     /** Fallback symbol. `>` is a car on the primary table - a reasonable stand-in for a phone. */
-    private const val DEFAULT_SYMBOL = '>'
+    /**
+     * Substituted when the stored code is unusable.
+     *
+     * A house, not a car. The old default was '>' (CAR) with a comment conceding it was "a
+     * reasonable stand-in for a phone" - but a station beaconing from a handset showed up as a
+     * vehicle for every operator who was not driving, and aprs.fi names transmit-side symbol
+     * misconfiguration among the first things to check when a station looks wrong. A house is
+     * correct for most users and obviously wrong rather than misleading for the rest.
+     */
+    private const val DEFAULT_SYMBOL = '-'
 }
