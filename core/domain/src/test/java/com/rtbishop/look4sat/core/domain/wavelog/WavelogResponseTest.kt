@@ -134,6 +134,92 @@ class WavelogResponseTest {
         )
     }
 
+    /**
+     * The defect that lost contacts. Wavelog's own rejection text is "Duplicate for <call>", and
+     * Api_v2 surfaces that inside validation_error bodies - so matching the bare word classified a
+     * hard rejection as a duplicate, which maps to success and drops the QSO from the queue.
+     *
+     * Bodies transcribed from the Wavelog server source, not from its documentation.
+     */
+    @Test
+    fun `the word duplicate in a rejection does not make it a duplicate`() {
+        val bodies = listOf(
+            400 to """{"error":{"code":"validation_error","message":"duplicate submode is invalid"}}""",
+            400 to """{"status":"failed","reason":"duplicate key violation; QSO NOT stored"}""",
+            200 to """{"status":"failed","reason":"Duplicate for BG7NTA"}"""
+        )
+        for ((code, body) in bodies) {
+            val verdict = WavelogResponse.verdict(code, body)
+            assertTrue(
+                "must be a rejection, got " + verdict + " for " + body,
+                verdict is WavelogResponse.Verdict.Rejected
+            )
+        }
+    }
+
+    /** A success that mentions the word must still be a success. */
+    @Test
+    fun `the word duplicate in a success does not make it a failure`() {
+        val verdict = WavelogResponse.verdict(
+            201,
+            """{"status":"created","adif_errors":0,"messages":["Removed duplicate mode entry"]}"""
+        )
+        assertTrue("got " + verdict, verdict is WavelogResponse.Verdict.Accepted)
+    }
+
+    /**
+     * A reverse proxy or a PHP fatal answers 200 with HTML. There is no status token, so it used to
+     * read as a stored QSO and a misconfigured proxy would eat contacts silently.
+     */
+    @Test
+    fun `an html body is never an acceptance`() {
+        val pages = listOf(
+            "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head></html>",
+            "<html><body><h1>Maintenance</h1></body></html>",
+            "<br /><b>Fatal error</b>: Uncaught Error in /var/www/index.php"
+        )
+        for (page in pages) {
+            val verdict = WavelogResponse.verdict(200, page)
+            assertTrue(
+                "html must not be accepted, got " + verdict,
+                verdict is WavelogResponse.Verdict.Unreadable
+            )
+        }
+    }
+
+    /** The v2 endpoint reports errors in an envelope with no status key at all. */
+    @Test
+    fun `a v2 error envelope is a rejection`() {
+        val verdict = WavelogResponse.verdict(
+            401,
+            """{"error":{"code":"invalid_token","message":"Bearer token must start with wl2_"}}"""
+        )
+        assertEquals(
+            WavelogResponse.Verdict.Rejected("Bearer token must start with wl2_"),
+            verdict
+        )
+    }
+
+    /** The QSO endpoint answers `created`, which is what the v1 source actually emits. */
+    @Test
+    fun `the created status the qso endpoint returns is accepted`() {
+        val verdict = WavelogResponse.verdict(
+            201,
+            """{"status":"created","adif_count":1,"adif_errors":0,"messages":[""]}"""
+        )
+        assertTrue("got " + verdict, verdict is WavelogResponse.Verdict.Accepted)
+    }
+
+    /** v1 uses `abort` with a 400 when any record in a batch failed. Not a success. */
+    @Test
+    fun `an abort status is a rejection`() {
+        val verdict = WavelogResponse.verdict(
+            400,
+            """{"status":"abort","messages":["Bad ADIF field CALL"]}"""
+        )
+        assertTrue("got " + verdict, verdict is WavelogResponse.Verdict.Rejected)
+    }
+
     /** A failure with no explanation still has to say something usable. */
     @Test
     fun `a failure without a reason still reports one`() {

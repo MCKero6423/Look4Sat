@@ -61,16 +61,26 @@ object WavelogResponse {
         val lower = text.lowercase().replace(AROUND_SEPARATORS, "")
         // Duplicate reported three ways: a 409, the word in a message, or Wavelog's own
         // `{"status":"dupe"}` - which arrives with HTTP 200 and is documented, not guessed.
-        if (statusCode == DUPLICATE_CODE ||
-            DUPLICATE_MARKERS.any { lower.contains(it) }
-        ) {
-            return Verdict.Duplicate
-        }
+        // An HTML body is a proxy or a PHP fatal, never a verdict. Checked first because such a
+        // page carries no status token and would otherwise read as an acceptance, so a
+        // misconfigured reverse proxy answering 200 would eat contacts.
+        if (lower.startsWith("<")) return Verdict.Unreadable(text.take(MAX_DETAIL))
+
+        // Duplicate only when the STATUS says so, or on a 409. The word alone is not enough: the
+        // server's own rejection text is "Duplicate for <call>", and Api_v2 surfaces that inside
+        // validation_error bodies - so matching the bare substring classified a hard rejection as
+        // a duplicate, which maps to success and drops the QSO from the queue. That is the very
+        // defect this class was written to prevent, reached through a different door.
+        if (statusCode == DUPLICATE_CODE || lower.contains(DUPE_STATUS)) return Verdict.Duplicate
         if (statusCode !in SUCCESS_CODES) {
             return Verdict.Rejected(reasonFrom(text).ifBlank { "HTTP $statusCode" })
         }
         if (FAILURE_MARKERS.any { lower.contains(it) }) {
             return Verdict.Rejected(reasonFrom(text).ifBlank { "server reported failure" })
+        }
+        // The v2 endpoint reports errors in an envelope with no status key at all.
+        if (lower.contains("\"error\":")) {
+            return Verdict.Rejected(reasonFrom(text).ifBlank { "server reported an error" })
         }
         // A status field we cannot read is not a success. Saying so keeps the QSO queued.
         if (lower.contains("\"status\"") && SUCCESS_MARKERS.none { lower.contains(it) }) {
@@ -115,15 +125,23 @@ object WavelogResponse {
      * `successful` matters as much as `success`: the API reference uses both, and treating one as
      * unrecognised would leave a stored QSO queued forever.
      */
+    /**
+     * Success wordings, taken from the Wavelog server source rather than its documentation.
+     *
+     * The QSO endpoint answers `created`; `success` and `successful` come from other endpoints and
+     * are kept because a future version may use them. `abort` is NOT here - v1 uses it when any
+     * record in a batch failed, and it arrives with a 400.
+     */
     private val SUCCESS_MARKERS = listOf(
+        "\"status\":\"created\"",
         "\"status\":\"success\"",
         "\"status\":\"successful\"",
-        "\"status\":\"created\"",
         "\"status\":\"ok\""
     )
 
     /** `dupe` is Wavelog's own wording and arrives with a 200. */
-    private val DUPLICATE_MARKERS = listOf("\"status\":\"dupe\"", "duplicate")
+    /** Wavelog's own duplicate status. The bare word "duplicate" is deliberately NOT a marker. */
+    private const val DUPE_STATUS = "\"status\":\"dupe\""
 
     /** Whitespace next to a colon or comma, which JSON allows and servers use inconsistently. */
     private val AROUND_SEPARATORS = Regex("""\s*(?=[:,])|(?<=[:,])\s*""")

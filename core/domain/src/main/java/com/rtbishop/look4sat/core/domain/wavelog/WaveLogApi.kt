@@ -242,13 +242,14 @@ object WaveLogApi {
         // QSO arrives as HTTP 200 with {"status":"failed"}. Trusting the code marked it uploaded
         // and dropped it from the queue.
         val (code, resp) = httpRequest("$base/index.php/api/v2/qso", "POST", apiKey, v2Body.toString())
-        when (val verdict = WavelogResponse.verdict(code, resp)) {
+        val v2Verdict = WavelogResponse.verdict(code, resp)
+        when (v2Verdict) {
             is WavelogResponse.Verdict.Accepted -> return@withContext WavelogResult.Success("v2")
             WavelogResponse.Verdict.Duplicate -> return@withContext WavelogResult.Success("duplicate")
-            is WavelogResponse.Verdict.Rejected ->
-                return@withContext WavelogResult.Failure(verdict.reason)
-            // Unreadable falls through to v1: an older server may not have the v2 endpoint at all.
-            is WavelogResponse.Verdict.Unreadable -> Unit
+            // Anything else falls through to v1. A rejection here is NOT final: v2 refuses a legacy
+            // v1 key with 401 invalid_token, and returning at that point stopped a v1-only operator
+            // from uploading at all. The v1 attempt below is the one that can speak for them.
+            else -> Unit
         }
 
         // v1: POST /index.php/api/qso (key in body + ADIF)
@@ -259,12 +260,13 @@ object WaveLogApi {
             put("string", toAdif(qso, gridsquare, satName))
         }
         val (code1, resp1) = httpRequest("$base/index.php/api/qso", "POST", apiKey, v1Body.toString())
-        when (val verdict = WavelogResponse.verdict(code1, resp1)) {
+        val v1Verdict = WavelogResponse.verdict(code1, resp1)
+        when (v1Verdict) {
             is WavelogResponse.Verdict.Accepted -> return@withContext WavelogResult.Success("v1")
             WavelogResponse.Verdict.Duplicate -> return@withContext WavelogResult.Success("duplicate")
-            is WavelogResponse.Verdict.Rejected ->
-                return@withContext WavelogResult.Failure(verdict.reason)
-            is WavelogResponse.Verdict.Unreadable -> Unit
+            // Also falls through: a server with different rewrite rules answers this path with a
+            // 404 page, which is a rejection but says nothing about whether the QSO can be stored.
+            else -> Unit
         }
 
         // v1 without index.php, for a server whose rewrite rules differ
@@ -279,8 +281,17 @@ object WaveLogApi {
 
         // Every endpoint answered something we could not read. Keeping the QSO queued is the only
         // honest outcome: it may have been stored, and dropping it would lose the contact.
+        // No endpoint accepted it. The v2 reason is preferred when it explained itself, since a 401
+        // invalid_token is the most actionable thing an operator can be told; otherwise all three
+        // status codes go out, because the third was previously dropped from this message.
+        val reasons = listOfNotNull(
+            (v1Verdict as? WavelogResponse.Verdict.Rejected)?.reason,
+            (v2Verdict as? WavelogResponse.Verdict.Rejected)?.reason
+        ).filter { it.isNotBlank() }
         WavelogResult.Failure(
-            "unreadable response: v2 HTTP $code, v1 HTTP $code1 - ${shortError(resp1.ifBlank { resp1b })}"
+            reasons.firstOrNull()
+                ?: ("no endpoint accepted it: v2 HTTP $code, v1 HTTP $code1, v1-alt HTTP $code1b" +
+                    " - " + shortError(resp1.ifBlank { resp1b }))
         )
     }
 
