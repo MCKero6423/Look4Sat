@@ -277,6 +277,7 @@
     <string name="wavelog_select_transponder">选择转发器</string>
     <string name="wavelog_call_hint">对方呼号</string>
     <string name="wavelog_mode_hint">模式</string>
+    <string name="wavelog_mode_edit">修改模式</string>
     <string name="wavelog_saved">已存入本地日志</string>
     <string name="wavelog_upload_done">已上传 %1$d 条, %2$d 条仍在队列</string>
     <string name="wavelog_upload_all_ok">已上传 %1$d 条</string>

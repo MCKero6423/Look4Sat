@@ -308,6 +308,7 @@
     <string name="wavelog_select_transponder">Select transponder</string>
     <string name="wavelog_call_hint">Callsign</string>
     <string name="wavelog_mode_hint">Mode</string>
+    <string name="wavelog_mode_edit">Edit the mode</string>
     <string name="wavelog_saved">Saved to local log</string>
     <string name="wavelog_upload_done">Uploaded %1$d, %2$d still queued</string>
     <string name="wavelog_upload_all_ok">Uploaded %1$d QSO</string>

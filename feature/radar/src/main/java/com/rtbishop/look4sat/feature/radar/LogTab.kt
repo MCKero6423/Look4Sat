@@ -58,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -279,6 +280,7 @@ private fun ExpandedLogInput(
     // previous one's mode and uploaded a value the operator never chose.
     var mode by remember(radio.uuid) { mutableStateOf(radio.uplinkMode ?: "FM") }
     var modeEditable by remember(radio.uuid) { mutableStateOf(false) }
+    val editModeLabel = stringResource(id = R.string.wavelog_mode_edit)
     // Calls logged during this pass, so a repeat can be mentioned without being blocked: the same
     // station on a later pass is a legitimate new contact. This replaces a 300ms window that
     // swallowed what it guessed were accidental double submissions - a guess that could discard
@@ -442,7 +444,9 @@ private fun ExpandedLogInput(
                     // 48dp is the Material Design minimum for anything tappable, and this row is
                     // tapped to reveal the mode field. Padding alone left it around 20dp.
                     .heightIn(min = 48.dp)
-                    .clickable { modeEditable = true }
+                    // Role.Button so TalkBack announces it as interactive. A bare clickable
+                    // declares no role, so the row read as two labels and the tap was undiscoverable.
+                    .clickable(role = Role.Button, onClickLabel = editModeLabel) { modeEditable = true }
                     .padding(horizontal = LocalSpacing.current.extraExtraSmall)
             ) {
                 Text(
