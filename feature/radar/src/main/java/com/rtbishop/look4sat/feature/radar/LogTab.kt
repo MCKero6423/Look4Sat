@@ -16,6 +16,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import com.rtbishop.look4sat.core.presentation.LocalSpacing
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -273,7 +275,10 @@ private fun ExpandedLogInput(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var callsign by remember { mutableStateOf("") }
-    var mode by remember { mutableStateOf(radio.uplinkMode ?: "FM") }
+    // Keyed on the transponder. Without the key, switching transponder mid-session kept the
+    // previous one's mode and uploaded a value the operator never chose.
+    var mode by remember(radio.uuid) { mutableStateOf(radio.uplinkMode ?: "FM") }
+    var modeEditable by remember(radio.uuid) { mutableStateOf(false) }
     // Calls logged during this pass, so a repeat can be mentioned without being blocked: the same
     // station on a later pass is a legitimate new contact. This replaces a 300ms window that
     // swallowed what it guessed were accidental double submissions - a guess that could discard
@@ -416,14 +421,38 @@ private fun ExpandedLogInput(
             textStyle = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth()
         )
-        OutlinedTextField(
-            value = mode,
-            onValueChange = { mode = it.take(8) },
-            label = { Text(stringResource(id = R.string.wavelog_mode_hint)) },
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.fillMaxWidth()
-        )
+        // The mode comes from the transponder, so it is shown rather than typed - one less field
+        // during a pass that lasts eight minutes. Tapping it reveals the field, because a
+        // transponder record can be wrong and the operator has to be able to say so.
+        if (modeEditable) {
+            OutlinedTextField(
+                value = mode,
+                onValueChange = { mode = it.take(8) },
+                label = { Text(stringResource(id = R.string.wavelog_mode_hint)) },
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // 48dp is the Material Design minimum for anything tappable, and this row is
+                    // tapped to reveal the mode field. Padding alone left it around 20dp.
+                    .heightIn(min = 48.dp)
+                    .clickable { modeEditable = true }
+                    .padding(horizontal = LocalSpacing.current.extraExtraSmall)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.wavelog_mode_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(text = mode, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }
 
