@@ -66,7 +66,19 @@ class QrzGridSource(
     }
 
     /** Fetch [url], retrying transport failures with backoff. Null when every attempt failed. */
-    private suspend fun fetchWithRetry(url: String, cookieHeader: String): String? {
+    /**
+     * Normalise whatever the operator pasted into a Cookie header value.
+     *
+     * They paste either a raw `k=v; k=v` header or the JSON array a cookie-export extension
+     * produces. The old client normalised this and the rewrite dropped it, so a JSON export that
+     * used to work went out as a literal JSON blob, QRZ served its signed-out page, and the app
+     * told the operator their cookie had expired when it was perfectly good.
+     */
+    private fun normalise(raw: String): String = QrzGridParser.cookieHeader(raw)
+
+    private suspend fun fetchWithRetry(url: String, rawCookie: String): String? {
+        val cookieHeader = normalise(rawCookie)
+        if (cookieHeader.isBlank()) return null
         repeat(MAX_ATTEMPTS) { attempt ->
             try {
                 val request = Request.Builder().url(url)

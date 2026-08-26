@@ -92,8 +92,11 @@ object CallsignEntry {
         if (call.length < MIN_LENGTH) return Verdict.Rejected(Reason.TOO_SHORT)
         if (call.length > MAX_LENGTH) return Verdict.Rejected(Reason.TOO_LONG)
         if (!allowed.matches(call)) return Verdict.Rejected(Reason.ILLEGAL_CHARACTERS)
-        val core = call.substringBefore('/').substringBefore('-')
-        if (core.none { it.isDigit() } || core.none { it.isLetter() }) {
+        // Any segment may be the callsign, not just the first. A portable call can be written
+        // prefix-first - DL/W1AW, ZL/JA1ABC, OH/W1AW/MM - where the leading token is a country
+        // prefix with no digit in it. Testing only the first segment rejected all of those, which
+        // the old length-only check had accepted.
+        if (call.split('/', '-').none(::looksLikeCallsign)) {
             return Verdict.Rejected(Reason.NOT_A_CALLSIGN)
         }
         val warning = when {
@@ -103,6 +106,10 @@ object CallsignEntry {
         }
         return Verdict.Acceptable(call, warning)
     }
+
+    /** A segment that could be a callsign: contains both a letter and a digit. */
+    private fun looksLikeCallsign(segment: String): Boolean =
+        segment.any { it.isDigit() } && segment.any { it.isLetter() }
 
     /**
      * Whether this looks like a Maidenhead locator typed into the wrong field.

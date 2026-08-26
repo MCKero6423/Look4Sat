@@ -17,6 +17,8 @@ class CallsignEntryTest {
     private val realCallsigns = listOf(
         "W1AW", "BG7NTA", "G0ABC", "VK2XYZ", "JA1ABC", "PY2ABC",
         "W1AW/4", "K1ABC/P", "DL1ABC/M", "SV2ASP/A", "OH2ABC/MM",
+        // Prefix-first portable calls: the LEADING token is a country prefix with no digit in it.
+        "DL/W1AW", "ZL/JA1ABC", "OH/W1AW/MM", "PA/G0ABC/P", "F/BG7NTA",
         "2E0ABC", "2M0XYZ", "9A1CCY", "4X4ABC", "3DA0ABC",
         "VP2MDD", "ZS6ABC", "5B4ABC", "HB9ABC", "OE1ABC",
         "LU1ABC", "CT1ABC", "EA8ABC", "TF3ABC", "VU2ABC",
@@ -65,6 +67,21 @@ class CallsignEntryTest {
     }
 
     /** No callsign is all digits or all letters. */
+    /**
+     * The regression this guards. Checking only the first segment rejected every prefix-first
+     * portable call, because a country prefix like DL or ZL has no digit in it. The old
+     * length-only check had accepted them, so this was a real loss for anyone logging one.
+     */
+    @Test
+    fun `a prefix-first portable callsign is accepted`() {
+        for (call in listOf("DL/W1AW", "ZL/JA1ABC", "OH/W1AW/MM", "PA/G0ABC/P", "F/BG7NTA")) {
+            assertTrue(
+                "$call must be accepted",
+                CallsignEntry.check(call) is CallsignEntry.Verdict.Acceptable
+            )
+        }
+    }
+
     @Test
     fun `something with no digit or no letter is not a callsign`() {
         assertEquals(
