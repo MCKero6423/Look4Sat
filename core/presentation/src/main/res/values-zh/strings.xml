@@ -280,6 +280,7 @@
     <string name="wavelog_mode_edit">修改模式</string>
     <string name="wavelog_time_hint">时间</string>
     <string name="wavelog_time_live">当前</string>
+    <string name="wavelog_time_held">按住 %1$s</string>
     <string name="wavelog_time_edit">设置记录时间</string>
     <string name="wavelog_time_help">UTC 时间如 14:55, 或 +3 / -2 分钟。留空则用当前时间。</string>
     <string name="wavelog_time_unrecognised">不是时间 - 将使用当前时间</string>

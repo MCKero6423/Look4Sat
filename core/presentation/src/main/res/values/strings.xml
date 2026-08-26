@@ -311,6 +311,7 @@
     <string name="wavelog_mode_edit">Edit the mode</string>
     <string name="wavelog_time_hint">Time</string>
     <string name="wavelog_time_live">Now</string>
+    <string name="wavelog_time_held">Held at %1$s</string>
     <string name="wavelog_time_edit">Set the logging time</string>
     <string name="wavelog_time_help">UTC time such as 14:55, or +3 / -2 minutes. Empty logs at the current time.</string>
     <string name="wavelog_time_unrecognised">Not a time - the current time will be used</string>

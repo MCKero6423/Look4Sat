@@ -40,7 +40,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -145,7 +145,7 @@ fun LogTab(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuExpanded) },
                 textStyle = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth()
             )
             ExposedDropdownMenu(
@@ -283,8 +283,10 @@ private fun ExpandedLogInput(
     var modeEditable by remember(radio.uuid) { mutableStateOf(false) }
     val editModeLabel = stringResource(id = R.string.wavelog_mode_edit)
     val editTimeLabel = stringResource(id = R.string.wavelog_time_edit)
-    // Survives rotation like workedThisSession: losing a held clock mid-transcription would put
-    // every remaining contact at the wrong time without saying so.
+    // rememberSaveable, not remember: this goes through the saved instance state, so a held clock
+    // survives rotation AND system-initiated process death. Losing it mid-transcription would put
+    // every remaining contact at the wrong time and on the wrong UTC day without saying so. It is
+    // deliberately NOT restored when the user swipes the app away - that is them ending the session.
     var timeEntry by rememberSaveable { mutableStateOf("") }
     var timeEditable by rememberSaveable { mutableStateOf(false) }
     // Calls logged during this pass, so a repeat can be mentioned without being blocked: the same
@@ -512,10 +514,16 @@ private fun ExpandedLogInput(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = if (holding) timeEntry.trim() else stringResource(id = R.string.wavelog_time_live),
+                    // A held clock is marked in words as well as colour. Material is explicit that
+                    // colour must not be the only carrier of meaning, and roughly one man in twelve
+                    // cannot reliably separate the primary colour from the default text here. The
+                    // consequence of missing it is every remaining contact logged at the wrong time.
+                    text = if (holding) {
+                        stringResource(id = R.string.wavelog_time_held, timeEntry.trim())
+                    } else {
+                        stringResource(id = R.string.wavelog_time_live)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    // A held clock is coloured, because logging at the wrong time silently is the
-                    // failure this whole change exists to prevent.
                     color = if (holding) {
                         MaterialTheme.colorScheme.primary
                     } else {
