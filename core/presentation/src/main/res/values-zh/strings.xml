@@ -266,6 +266,7 @@
     <string name="wavelog_not_configured">未配置 WaveLog 服务器</string>
     <string name="wavelog_no_station">读不到站点信息 - 请检查站点 ID 与密钥权限</string>
     <string name="wavelog_upload_failed">上传失败</string>
+    <string name="wavelog_upload_queued">部分联络未能上传, 仍在队列中</string>
     <string name="lotw_list_updated">LoTW 卫星列表已更新: %1$d 个</string>
     <string name="lotw_list_failed">LoTW 列表更新失败: %1$s</string>
     <string name="log_call_too_short">呼号太短</string>

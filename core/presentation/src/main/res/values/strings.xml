@@ -297,6 +297,7 @@
     <string name="wavelog_not_configured">WaveLog server not configured</string>
     <string name="wavelog_no_station">Cannot read the station profile - check the station ID and key permissions</string>
     <string name="wavelog_upload_failed">Upload failed</string>
+    <string name="wavelog_upload_queued">Some contacts could not be uploaded and stay in the queue</string>
     <string name="lotw_list_updated">LoTW satellite list updated: %1$d entries</string>
     <string name="lotw_list_failed">LoTW list update failed: %1$s</string>
     <string name="log_call_too_short">Callsign too short</string>

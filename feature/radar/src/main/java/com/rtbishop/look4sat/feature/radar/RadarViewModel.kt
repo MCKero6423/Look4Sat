@@ -28,6 +28,8 @@ import com.rtbishop.look4sat.core.domain.predict.OrbitalPass
 import com.rtbishop.look4sat.core.domain.predict.OrbitalPos
 import com.rtbishop.look4sat.core.domain.qrz.IQrzGridLookup
 import com.rtbishop.look4sat.core.domain.qrz.QrzGrid
+import com.rtbishop.look4sat.core.domain.wavelog.UploadOutcome
+import com.rtbishop.look4sat.core.domain.wavelog.WavelogUploader
 import com.rtbishop.look4sat.core.domain.repository.IMainContainer
 import com.rtbishop.look4sat.core.domain.repository.IRadioTrackingService
 import com.rtbishop.look4sat.core.domain.repository.IReporter
@@ -67,7 +69,8 @@ class RadarViewModel(
     private val cwDecoderFactory: () -> ICwDecoder,
     private val saveImage: ISaveImage,
     private val showToast: IShowToast,
-    private val qrzGridLookup: IQrzGridLookup
+    private val qrzGridLookup: IQrzGridLookup,
+    private val wavelogUploader: WavelogUploader
 ) : ViewModel() {
 
     private var stationPos = settingsRepo.stationPosition.value
@@ -548,6 +551,26 @@ class RadarViewModel(
     }
 
     /**
+     * Upload the queue now, if the operator asked for automatic uploads.
+     *
+     * Called when a contact is saved rather than on a timer. The ten-minute polling loop this
+     * replaces ran in the background with no way to report anything, so a grid mismatch was
+     * silently skipped and every other failure retried forever. Uploading as the contact is saved
+     * means somebody is present to see the result, and a QSO that cannot go now waits in the queue
+     * for a manual upload from settings.
+     */
+    fun uploadIfAutomatic(onResult: (UploadOutcome?) -> Unit) {
+        val settings = settingsRepo.otherSettings.value
+        if (!settings.wavelogAutoUpload || settings.wavelogUrl.isBlank()) {
+            onResult(null)
+            return
+        }
+        viewModelScope.launch {
+            onResult(runCatching { wavelogUploader.uploadQueue() }.getOrNull())
+        }
+    }
+
+    /**
      * Look up a station's grid and hand the outcome back.
      *
      * Lives here rather than in the composable, which read the QRZ cookie straight out of
@@ -619,7 +642,8 @@ class RadarViewModel(
                     cwDecoderFactory = { container.provideCwDecoder() },
                     saveImage = container.provideSaveImage(),
                     showToast = container.provideShowToast(),
-                    qrzGridLookup = container.provideQrzGridLookup()
+                    qrzGridLookup = container.provideQrzGridLookup(),
+                    wavelogUploader = container.provideWavelogUploader()
                 )
             }
         }

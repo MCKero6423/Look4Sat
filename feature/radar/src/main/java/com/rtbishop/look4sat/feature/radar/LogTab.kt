@@ -101,6 +101,7 @@ fun LogTab(
     txBaseFrequencyHz: Long? = null,
     aosTimeMs: Long = 0L,
     onLookupGrid: (String, (QrzGrid) -> Unit) -> Unit,
+    onAutoUpload: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -177,6 +178,7 @@ fun LogTab(
                 txBaseFrequencyHz = txBaseFrequencyHz,
                 aosTimeMs = aosTimeMs,
                 onLookupGrid = onLookupGrid,
+                onAutoUpload = onAutoUpload,
                 onSaved = { refreshTick++ }
             )
         }
@@ -265,6 +267,7 @@ private fun ExpandedLogInput(
     txBaseFrequencyHz: Long? = null,
     aosTimeMs: Long = 0L,
     onLookupGrid: (String, (QrzGrid) -> Unit) -> Unit,
+    onAutoUpload: () -> Unit,
     onSaved: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -332,6 +335,9 @@ private fun ExpandedLogInput(
                 null -> savedMsg
             }
         )
+        // Upload now if the operator asked for it. Doing this as the contact is saved, rather than
+        // on a timer, means the result can actually be shown to somebody.
+        onAutoUpload()
         // Grid backfill. The view model owns the cookie and the request; this used to read
         // SharedPreferences through LocalContext right here, inside composition. Failures now say
         // something: an expired cookie was indistinguishable from a station with no grid filed.
