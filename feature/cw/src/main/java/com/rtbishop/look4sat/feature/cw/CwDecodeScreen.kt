@@ -58,9 +58,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -108,6 +110,12 @@ fun CwDecodeScreen() {
     // Hoisted so the toolbar button can reach it: the record below does not follow
     // the decode, so jumping to the newest text has to be an explicit action.
     val transcriptScroll = rememberScrollState()
+    val clipboard = LocalClipboardManager.current
+    val showToast = remember { container.provideShowToast() }
+    val copiedMessage = stringResource(R.string.cw_copied)
+    val emptyRecordMessage = stringResource(R.string.cw_record_empty)
+    // Archiving the tail on the way out has to outlive this composable's own scope.
+    val appScope = container.appScope
 
     val decodedText by decoder.decodedText.collectAsState()
     val historyText by decoder.historyText.collectAsState()
@@ -130,7 +138,13 @@ fun CwDecodeScreen() {
     // permission so granting the permission mid-flow restarts collection
     // (isListening may already be true when the launcher returns).
     LaunchedEffect(isListening, permissionGranted) {
-        if (!isListening) return@LaunchedEffect
+        if (!isListening) {
+            // Pausing must not throw away the tail. The live window plus the batch waiting to
+            // be archived are both still holding audio at this point, and nothing else ever
+            // decodes either of them, so the end of the transmission would be lost outright.
+            decoder.flush()
+            return@LaunchedEffect
+        }
         if (!permissionGranted) {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return@LaunchedEffect
@@ -143,8 +157,14 @@ fun CwDecodeScreen() {
 
     DisposableEffect(Unit) {
         onDispose {
-            // OrtSession holds native memory and must be released explicitly.
-            decoder.close()
+            // Archive the tail before tearing down, on a scope that outlives this composable:
+            // the screen's own scope is cancelled as it leaves, which would abort the decode.
+            // close() waits for it, because the inference needs the session it is closing.
+            appScope.launch {
+                runCatching { decoder.flush() }
+                // OrtSession holds native memory and must be released explicitly.
+                decoder.close()
+            }
         }
     }
 
@@ -162,6 +182,24 @@ fun CwDecodeScreen() {
                     .weight(1f)
                     .padding(start = 12.dp)
             )
+            // Copy the record out. The decoder is built fresh every time this screen is opened,
+            // so leaving the screen loses the transcript - and until now there was no way at all
+            // to get the text off it. An operator who has just copied a callsign by ear should not
+            // have to transcribe it a second time by hand.
+            IconButton(
+                onClick = {
+                    if (historyText.isNotEmpty()) {
+                        clipboard.setText(AnnotatedString(historyText))
+                        showToast(copiedMessage)
+                    }
+                },
+                enabled = historyText.isNotEmpty()
+            ) {
+                Icon(
+                    painter = painterResource(CoreR.drawable.ic_save),
+                    contentDescription = stringResource(R.string.cw_copy)
+                )
+            }
             // Jump to the newest text. The record below deliberately does not follow the decode,
             // so this is how you get back to the bottom after reading earlier traffic.
             IconButton(onClick = { scope.launch { transcriptScroll.animateScrollTo(transcriptScroll.maxValue) } }) {
@@ -239,6 +277,16 @@ fun CwDecodeScreen() {
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         )
 
+        // The pane below was an unlabelled grey box showing a bare ellipsis, which reads as a
+        // disabled text field rather than a transcript. Naming it is what makes the split
+        // between the live line above and the record below legible at all.
+        Text(
+            text = stringResource(R.string.cw_record_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 12.dp, top = 4.dp)
+        )
+
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -247,7 +295,13 @@ fun CwDecodeScreen() {
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
-            val transcript = (historyText + decodedText).ifEmpty { "…" }
+            // The record shows settled text only. decodedText is the live 20-second window,
+            // which the model rewrites from scratch every 1.5 seconds as more context arrives -
+            // right for the line above, where the newest guess is what you want, but it meant the
+            // bottom of the record kept changing and sometimes got shorter. That reads as the
+            // decoder deleting what it just wrote, which for something whose whole purpose is to
+            // be read back is the one thing it must not do.
+            val transcript = historyText.ifEmpty { emptyRecordMessage }
             // This pane does not follow the decode. The single line above it is where new
             // characters appear; this is the record, and a record that scrolls itself is worse
             // than paper - you cannot read back over what just arrived because it keeps moving.

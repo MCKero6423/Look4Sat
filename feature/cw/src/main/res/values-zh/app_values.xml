@@ -14,4 +14,8 @@
     <string name="cw_waterfall_shifted">音调 %1$d 赫兹，已搬入解码范围</string>
     <string name="cw_waterfall_outside">音调 %1$d 赫兹，在解码范围外</string>
     <string name="cw_waterfall_inside">音调 %1$d 赫兹</string>
+    <string name="cw_copy">复制记录</string>
+    <string name="cw_copied">记录已复制</string>
+    <string name="cw_record_label">记录</string>
+    <string name="cw_record_empty">解码文字会汇集到这里。离开本页前请复制：记录不会被存下来。</string>
 </resources>

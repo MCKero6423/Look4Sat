@@ -37,9 +37,11 @@ interface ICwDecoder {
     val decodedText: StateFlow<String>
 
     /**
-     * Permanent transcript of everything that has scrolled out of the live
-     * window. Unlike [decodedText] this only ever grows (until [reset]); it is
-     * what the user reads back after a signal has passed.
+     * Transcript of audio that has been archived, and will not be revised.
+     *
+     * Only ever grows until [reset]. [decodedText] is rewritten from scratch on every
+     * redecode, so a pane that concatenates it loses text the operator has already read -
+     * which a paper log does not do. This is the flow such a pane must bind to.
      */
     val historyText: StateFlow<String>
 
@@ -73,6 +75,17 @@ interface ICwDecoder {
 
     /** Non-null when the decoder cannot run, for example the model failed to load. */
     val errorMessage: StateFlow<String?>
+
+    /**
+     * Decode whatever audio is still held in the pipeline into [historyText].
+     *
+     * Nothing reaches [historyText] until audio has been pushed out of the live window and
+     * then accumulated into a full archive batch, so the last stretch of a session is always
+     * still in flight when capture stops - and neither holding place drains on its own. That
+     * stretch is the end of the transmission, the part with the call sign in it. Call on
+     * pause and before [close].
+     */
+    suspend fun flush()
 
     /** Feed captured mono PCM in -1..1. Safe to call from a capture thread. */
     suspend fun processBuffer(samples: FloatArray, sampleRate: Int)

@@ -65,13 +65,28 @@ class CwDeepDecoder(
     private val isToneShiftEnabled: () -> Boolean = { false }
 ) : ICwDecoder {
 
-    private companion object {
+    // internal, not private: the archive timing is user-visible behaviour and its test asserts
+    // against these constants directly rather than a copy that could silently drift.
+    internal companion object {
         const val TAG = "CwDeepDecoder"
         const val MODEL_ASSET = "deepcw/model.onnx"
         const val METADATA_ASSET = "deepcw/model.onnx.json"
 
-        /** Evicted audio is decoded into permanent history once this much accumulates. */
-        const val ARCHIVE_SECONDS = 15.0
+        /**
+         * Evicted audio is decoded into permanent history once this much accumulates.
+         *
+         * This is the delay before decoded text reaches the record, and it is additive with
+         * the 20 s live window: at the old 15 s the record showed nothing for the first 35 s
+         * of a session, and thereafter text that had scrolled out of the live window sat
+         * invisible for up to 15 s before landing - the record appeared to stall and, when
+         * it was still concatenating the live window, to delete what it had just shown.
+         *
+         * Each batch is one full inference, so this trades CPU for latency. 4 s holds the gap
+         * under the ~4.7 s a seven-character call sign takes at 18 WPM - the record must not
+         * stall for longer than the one thing an operator most needs to read back - while the
+         * archive path still fires less than half as often as the 1.5 s live redecode cycle.
+         */
+        const val ARCHIVE_SECONDS = 4.0
         val ARCHIVE_THRESHOLD: Int = (CwDeepSpectrogram.SAMPLE_RATE * ARCHIVE_SECONDS).toInt()
 
         /**
@@ -105,22 +120,18 @@ class CwDeepDecoder(
     override val decodedText: StateFlow<String> = _decodedText.asStateFlow()
 
     /**
-     * Archived text, plus a provisional decode of audio not yet archived.
+     * Archived text: only appended to, so a pane bound to it never loses what it showed.
      *
-     * Kept as one flow of the two parts concatenated. Without the provisional part the
-     * transcript visibly shrank: audio leaving the 20 s window waits for a full
-     * [ARCHIVE_SECONDS] batch before it is decoded into the archive, so for up to 15 s its
-     * characters were in neither place - measured, up to 30 characters at 20 WPM would
-     * vanish and reappear later, which reads as the box deleting text.
+     * This once carried a provisional tail meant to cover the gap while audio waited to be
+     * archived, but the decode feeding that tail was never wired up, so the tail was always
+     * empty and the gap stayed. It is closed instead by archiving in [ARCHIVE_SECONDS]
+     * batches, which no longer concatenate anything that gets rewritten.
      */
     private val _historyText = MutableStateFlow("")
     override val historyText: StateFlow<String> = _historyText.asStateFlow()
 
     /** Permanently archived text; the provisional tail is appended to this for display. */
     private var committedText = ""
-
-    /** Provisional decode of the pending archive batch, replaced when it is archived. */
-    private var pendingText = ""
 
     private val _estimatedPitch = MutableStateFlow<Float?>(null)
     override val estimatedPitch: StateFlow<Float?> = _estimatedPitch.asStateFlow()
@@ -143,11 +154,13 @@ class CwDeepDecoder(
     private val buffer = CwDeepBuffer()
 
     /**
-     * Evicted audio accumulates here until it reaches [ARCHIVE_SECONDS], then
-     * is decoded once and appended to [historyText]. Archiving in ~15 s chunks
-     * keeps the extra inference cheap (short window) while long enough to be
-     * decoded accurately — the content has already been through the 20 s window
-     * many times, so a slightly shorter archive decode loses almost nothing.
+     * Evicted audio accumulates here until it reaches [ARCHIVE_SECONDS], then is decoded
+     * once and appended to [historyText]. The batch stays short enough that the record does
+     * not visibly stall, and accuracy barely suffers: this content has already been through
+     * the 20 s window many times, so the archive decode is a confirmation, not a first look.
+     *
+     * Sized to the full window rather than the batch: [flush] hands over whatever the live
+     * window holds, which can be the whole 20 s.
      */
     private val archiveBuffer = FloatArray(CwDeepBuffer.DEFAULT_MAX_SECONDS.toInt() * CwDeepSpectrogram.SAMPLE_RATE)
     private var archiveSize = 0
@@ -410,9 +423,7 @@ class CwDeepDecoder(
     private fun dropBufferedAudio() {
         buffer.reset()
         archiveSize = 0
-        // The provisional text describes audio being discarded, so it goes with it.
         // Committed text stays: it was correct for audio that really was archived.
-        pendingText = ""
         _historyText.value = committedText
     }
 
@@ -498,6 +509,37 @@ class CwDeepDecoder(
     }
 
     /**
+     * Archive whatever audio is still in the pipeline, so stopping does not discard it.
+     *
+     * Two places hold audio that would otherwise never be decoded into the record: the
+     * batch accumulating towards [ARCHIVE_THRESHOLD], and the live window itself, whose
+     * contents only ever reach the archive by being pushed out by newer audio. Together
+     * that is the last [CwDeepBuffer.DEFAULT_MAX_SECONDS] + [ARCHIVE_SECONDS] of a session
+     * - which includes the end of every transmission, the part with the call sign in it.
+     *
+     * Order matters: the pending batch left the window before anything still in it, so it
+     * has to be archived first or the record comes out with its text transposed.
+     */
+    override suspend fun flush() {
+        if (archiveSize > 0) {
+            val pending = archiveBuffer.copyOf(archiveSize)
+            archiveSize = 0
+            runCatching { archiveDecode(pending) }
+                .onFailure { if (it is CancellationException) throw it }
+        }
+        // Draining the window empties it, so a second flush cannot double-archive the tail.
+        val window = buffer.snapshot()
+        if (window.isNotEmpty()) {
+            buffer.reset()
+            runCatching { archiveDecode(window) }
+                .onFailure { if (it is CancellationException) throw it }
+        }
+        // The live line described audio that is now in the record; leaving it would show the
+        // same characters twice, in two places, one of them stale.
+        _decodedText.value = ""
+    }
+
+    /**
      * Decode a chunk of audio that has scrolled out of the live window and
      * append it to [historyText]. Unlike the live window this never replaces —
      * the archived audio is final, so its text is permanent.
@@ -508,27 +550,8 @@ class CwDeepDecoder(
         if (audio.size < CwDeepSpectrogram.FFT_LENGTH) return@withContext
         val spectrogram = CwDeepSpectrogram.compute(audio)
         val text = runInference(activeSession, activeEnvironment, spectrogram)
-        // This batch is final, so its provisional decode is superseded rather than kept.
         committedText += text
-        pendingText = ""
         _historyText.value = committedText
-    }
-
-    /**
-     * Decode the audio waiting to be archived, so it stays on screen until it is.
-     *
-     * Provisional: the batch is still growing, and the final decode sees all of it at once
-     * with more context. Runs on the redecode cycle rather than per capture chunk -
-     * decoding every 100 ms chunk separately measured 14x the inference load, over 250% of
-     * one core, and a chunk that short carries under two dot-lengths of context anyway.
-     */
-    private suspend fun decodePending(audio: FloatArray) = withContext(Dispatchers.Default) {
-        val activeSession = session ?: return@withContext
-        val activeEnvironment = environment ?: return@withContext
-        if (audio.size < CwDeepSpectrogram.FFT_LENGTH) return@withContext
-        val spectrogram = CwDeepSpectrogram.compute(audio)
-        pendingText = runInference(activeSession, activeEnvironment, spectrogram)
-        _historyText.value = committedText + pendingText
     }
 
     /** Run the ONNX model over a pre-computed spectrogram and return the decoded text. */
@@ -611,7 +634,6 @@ class CwDeepDecoder(
         _decodedText.value = ""
         _historyText.value = ""
         committedText = ""
-        pendingText = ""
         archiveSize = 0
         _estimatedPitch.value = null
         _detectedToneHz.value = null
