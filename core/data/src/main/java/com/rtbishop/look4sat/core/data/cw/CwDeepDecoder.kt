@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.nio.FloatBuffer
@@ -167,6 +168,23 @@ class CwDeepDecoder(
 
     /** Held while inference runs so slow devices skip work instead of queuing it. */
     private val inferenceLock = Mutex()
+
+    /**
+     * Serialises the archive path, which mutates state the capture coroutine also touches.
+     *
+     * [flush] runs on a different coroutine from [processBuffer] - on pause, and from the app
+     * scope as the screen leaves - and both append to [committedText], which is a read, an
+     * inference lasting hundreds of milliseconds, and only then a write. Interleaved, the
+     * later write wins and a whole batch of text is lost, precisely at the moment the
+     * operator stops listening and starts reading. They also both touch [archiveBuffer] and
+     * [archiveSize]: a reset of the index under a snapshot that already covered those slots
+     * makes the same audio decode twice.
+     *
+     * Not [inferenceLock]: that one is a tryLock, dropping work when contended, which is
+     * right for the live window (another decode is 1.5 s away) and wrong here (dropping an
+     * archive batch discards the audio for good).
+     */
+    private val archiveLock = Mutex()
 
     /** Decides what shift to apply from successive tone estimates. */
     private val shiftDecider = CwShiftDecider(SHIFT_HYSTERESIS_HZ)
@@ -520,18 +538,18 @@ class CwDeepDecoder(
      * Order matters: the pending batch left the window before anything still in it, so it
      * has to be archived first or the record comes out with its text transposed.
      */
-    override suspend fun flush() {
+    override suspend fun flush() = archiveLock.withLock {
         if (archiveSize > 0) {
             val pending = archiveBuffer.copyOf(archiveSize)
             archiveSize = 0
-            runCatching { archiveDecode(pending) }
+            runCatching { archiveDecodeLocked(pending) }
                 .onFailure { if (it is CancellationException) throw it }
         }
         // Draining the window empties it, so a second flush cannot double-archive the tail.
         val window = buffer.snapshot()
         if (window.isNotEmpty()) {
             buffer.reset()
-            runCatching { archiveDecode(window) }
+            runCatching { archiveDecodeLocked(window) }
                 .onFailure { if (it is CancellationException) throw it }
         }
         // The live line described audio that is now in the record; leaving it would show the
@@ -544,7 +562,12 @@ class CwDeepDecoder(
      * append it to [historyText]. Unlike the live window this never replaces —
      * the archived audio is final, so its text is permanent.
      */
-    private suspend fun archiveDecode(audio: FloatArray) = withContext(Dispatchers.Default) {
+    private suspend fun archiveDecode(audio: FloatArray) = archiveLock.withLock {
+        archiveDecodeLocked(audio)
+    }
+
+    /** [archiveDecode] without the lock, for callers already holding [archiveLock]. */
+    private suspend fun archiveDecodeLocked(audio: FloatArray) = withContext(Dispatchers.Default) {
         val activeSession = session ?: return@withContext
         val activeEnvironment = environment ?: return@withContext
         if (audio.size < CwDeepSpectrogram.FFT_LENGTH) return@withContext
@@ -628,6 +651,12 @@ class CwDeepDecoder(
         _signalStrength.value = if (decodable) prominence else 0f
     }
 
+    /**
+     * Clear everything. Not serialised against [archiveLock]: an archive decode already in
+     * flight can land its batch after this returns, leaving a few characters behind. The
+     * operator asked to clear and can ask again; making this suspend to close that window
+     * would push it onto every caller, including a synchronous button handler.
+     */
     override fun reset() {
         antiAlias?.reset()
         buffer.reset()
