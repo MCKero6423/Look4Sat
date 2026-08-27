@@ -58,6 +58,14 @@ data class AprsReport(
 /** Report scheduler (periodic + manual trigger); connection management lives in the foreground service */
 class AprsReporter(
     private val configProvider: () -> AprsConfig,
+    /**
+     * The app's own version, reported to APRS-IS in the login line.
+     *
+     * Passed in because core:data has no BuildConfig. It used to be a literal here and drifted
+     * exactly as predicted: it still read 4.6.0 two releases later, so every station on the
+     * network was told the wrong version. A caller in the app module can read the real one.
+     */
+    private val appVersion: String,
     private val positionProvider: () -> Pair<Double, Double>? = { null },
     private val onState: (AprsState) -> Unit = {},
     private val onReport: (AprsReport) -> Unit = {}
@@ -136,11 +144,8 @@ class AprsReporter(
                 // transmitting under a passcode the app invented for an unchecked licence.
                 passcode = AprsPasscode.loginValue(cfg.callsign, cfg.passcode),
                 // Two fields, because APRS-IS wants `vers <name> <version>` as separate tokens.
-                // The version is hardcoded and drifts - it read 4.5.4 while the app was 4.6.0.
-                // core:data has no BuildConfig, so fixing that properly means passing it in from
-                // the app module; noting rather than doing it here to keep this change small.
                 softwareName = "Look4Sat",
-                version = "4.6.0"
+                version = appVersion
             ).also { client = it }
             if (!c.isConnected) c.connect()
             onState(AprsState.Connected)

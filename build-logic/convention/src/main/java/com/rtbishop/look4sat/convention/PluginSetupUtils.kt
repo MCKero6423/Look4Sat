@@ -62,6 +62,12 @@ internal fun Project.setupAndroidApp() {
             versionCode = libs.versions.appVersionCode.get().toInt()
             versionName = libs.versions.appVersionName.get()
         }
+        // The APRS login line reports the app version to every station on the network. It used
+        // to be a literal in core:data and drifted twice, so the app module now reads
+        // BuildConfig.VERSION_NAME - which AGP 8 only generates when asked.
+        buildFeatures {
+            buildConfig = true
+        }
         buildTypes {
             debug {
                 applicationIdSuffix = ".debug"

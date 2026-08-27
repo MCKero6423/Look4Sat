@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.IBinder
+import com.rtbishop.look4sat.BuildConfig
 import com.rtbishop.look4sat.MainApplication
 import com.rtbishop.look4sat.core.presentation.R
 import com.rtbishop.look4sat.core.data.aprs.AprsConfig
@@ -109,6 +110,8 @@ class AprsForegroundService : Service() {
         startForegroundWithNotification(cfg)
         val rep = AprsReporter(
             configProvider = { AprsStore.loadConfig(this) },
+            // The real version, so the login line cannot drift from the build again.
+            appVersion = BuildConfig.VERSION_NAME,
             positionProvider = { stationPosition() },
             onState = { lastState = it },
             onReport = { report ->
