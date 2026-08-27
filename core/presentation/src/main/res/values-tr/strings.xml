@@ -99,35 +99,30 @@
         \n\nDoğru tahminler alabilmek için veritabanını en az haftada bir güncelleyin.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * DÜZELTME: CW metni artık kod çözme beklerken yazıyı siliyormuş gibi görünmüyor
-        * YENİ: CW şelalesi tüm ses bandını gösterir, çözücünün ulaşamadığı ton da görünür
-        * YENİ: CW metni yeni içeriği takip eder, geri kaydırdığınızda takibi bırakır
-        * YENİ: ekran okuyucular artık CW şelalesini ve AMSAT gün hücrelerini okuyor
-        * YENİ: CW şelalesi, tonunuz çözücü aralığının dışında olsa bile gerçek yerini işaretler
-        * YENİ: şelalenin altındaki satır tonu adlandırır ve aralığa taşınıp taşınmadığını söyler
-        * YENİ: çözücünün duyamadığı bir ton için CW sinyal göstergesi artık yüksek okumuyor
-        * YENİ: AMSAT gün stilini Ayarlar\'dan seçin - on iki şerit veya rapor sayılı tek renk
-        * YENİ: AMSAT durumu günde 12 iki saatlik şerit gösterir — gün içi kesintiler görünür
-        * YENİ: AMSAT durumu UTC takvim günlerini kullanır, resmi sayfayla eşleşir
-        * YENİ: iki gri, bir yuvanın rapor edilmediğini mi yoksa hiç alınmadığını mı ayırt eder
-        * YENİ: veri kapsamı işareti, daha sessiz uyduların küresel çekimden dışlandığını gösterir
-        * YENİ: CW çözücü artık DeepCW sinir ağını kullanıyor — zayıf sinyal Morse çözümü çok daha iyi
-        * YENİ: en yüksek doğruluk için tam fp32 DeepCW modeli dahil
-        * YENİ: CW çözüm geçmişi kalıcı olarak saklanır (metin artık kaybolmaz)
-        * CW şelale: yeni inferno renk şeması ve yumuşak geçişler
-        * Daha Fazla menüsü: sağda ince panel, karartma yok
-        * CW sayfası: işlevsiz geri düğmesi ve yanıltıcı durum satırı kaldırıldı
-        * 64-bit (arm64) desteği geri geldi
-        * Düzeltme: duraklat/devam artık hatalı "çözümleme başarısız" mesajı göstermiyor
-        * Düzeltme: sayfaları ana menüye taşımak artık Ayarlar\'ı kalıcı olarak gizlemiyor
-        * Düzeltme: AMSAT/WavelogLog artık ana menüye taşınabiliyor
-        * Düzeltme: UTC gece yarısından sonraki ilk 86 saniye içinde uydu epoch ayrıştırma hatası
-        * Düzeltme: radar sayfası mevcut geçiş sona erdiğinde otomatik olarak sonraki geçişe geçiyor
-        * Düzeltme: radar Doppler hesaplaması artık canlı kayma kaydırıcı değerini kullanıyor
-        * Düzeltme: geçiş ilerleme hesaplaması sıfıra bölme durumuna karşı korumalı
-        * Düzeltme: eşzamanlı calculatePasses çağrıları artık yinelenen hesaplamaları tetiklemiyor
-        * Düzeltme: WaveLog yinelenen QSO gönderimleri ve ızgara kare güncellemesi yarış durumları
-        </string>
+        * FIX: APRS reported every beacon as sent even when nothing left the phone
+        * FIX: APRS could not start at all on Android 10 and later
+        * FIX: the APRS login line was malformed and real servers refused it
+        * FIX: a refused APRS login is now reported instead of being read as success
+        * FIX: APRS no longer invents a transmit passcode - request one from the link in settings
+        * FIX: a mistyped passcode is no longer described as receive-only mode
+        * FIX: APRS refuses to beacon without a position instead of sending 0N 0E
+        * NEW: pick your APRS map symbol from a list; the default is a house, not a car
+        * NEW: APRS beacons survive a locked screen
+        * FIX: WaveLog uploads read the reply from the server - a rejected contact stayed reported as sent
+        * FIX: a rejected contact now stays in the queue instead of being dropped
+        * FIX: the satellite name sent to WaveLog is resolved from the catalogue number
+        * FIX: the upload count no longer includes contacts sent days ago
+        * NEW: the contact time can be set, for logging a pass after it ends
+        * NEW: the counterpart grid can be typed, and is checked before it is logged
+        * FIX: the mode no longer keeps the value from the previous transponder
+        * FIX: a callsign that cannot be logged says why instead of vanishing
+        * FIX: a custom TLE URL now replaces the built-in sources instead of adding to them
+        * FIX: the custom source switch no longer turns itself off
+        * FIX: a dead custom URL no longer counts as a successful update
+        * FIX: QRZ tells an expired cookie apart from a station with no grid on file
+        * FIX: contacts can be deleted with a screen reader
+        * FIX: the log table grid and the sent column are readable in sunlight and at night
+    </string>
 
     <!-- Radar screen -->
     <string name="radar_back">Geri</string>

@@ -95,35 +95,30 @@
         \n\nPerbarui database setidaknya seminggu sekali untuk prediksi yang akurat.</string>
     <string name="pass_whatsnew_title" translatable="false">Apa yang baru di Look4Sat</string>
     <string name="pass_whatsnew_message" translatable="false">
-        * PERBAIKAN: teks CW tidak lagi terlihat menghapus tulisan saat audio menunggu didekode
-        * BARU: air terjun CW menampilkan seluruh pita audio, nada di luar jangkauan dekoder tetap terlihat
-        * BARU: teks CW mengikuti isi baru, dan berhenti mengikuti saat Anda menggulir ke atas
-        * BARU: pembaca layar kini menjelaskan air terjun CW dan sel hari AMSAT
-        * BARU: air terjun CW menandai posisi nada sebenarnya, bahkan saat di luar rentang dekoder
-        * BARU: satu baris di bawah air terjun menyebut nada dan apakah nada dipindahkan ke rentang
-        * BARU: meter sinyal CW tidak lagi tinggi untuk nada yang tak terdengar dekoder
-        * BARU: pilih gaya hari AMSAT di Pengaturan - dua belas garis, atau satu warna dengan jumlah laporan
-        * BARU: Status AMSAT menampilkan 12 garis dua jam per hari — pemadaman dalam hari kini terlihat
-        * BARU: Status AMSAT menggunakan hari kalender UTC, cocok dengan halaman resmi
-        * BARU: dua abu-abu membedakan apakah slot tidak dilaporkan atau tidak pernah diambil
-        * BARU: penanda cakupan data menunjukkan saat satelit yang lebih sepi terdesak keluar
-        * BARU: Decoder CW kini memakai jaringan saraf DeepCW — jauh lebih baik menafsir Morse sinyal lemah
-        * BARU: menyertakan model fp32 penuh untuk akurasi tertinggi
-        * BARU: Riwayat CW tersimpan permanen (teks tidak lagi hilang)
-        * Waterfall CW: skema warna inferno baru dengan gradasi halus
-        * Menu Lainnya: panel ramping di kanan, tanpa lapisan gelap
-        * Halaman CW: tombol kembali yang tidak berfungsi dan baris status yang menyesatkan dihapus
-        * Dukungan 64-bit (arm64) dipulihkan
-        * Perbaikan: jeda/lanjut tidak lagi menampilkan galat "gagal menafsir" yang keliru
-        * Perbaikan: memindahkan halaman ke menu utama tidak lagi menyembunyikan Pengaturan secara permanen
-        * Perbaikan: AMSAT/WavelogLog kini dapat dipindahkan ke menu utama
-        * Perbaikan: penguraian epoch satelit untuk waktu dalam 86 detik pertama tengah malam UTC
-        * Perbaikan: halaman radar kini otomatis beralih ke pass berikutnya setelah pass saat ini berakhir
-        * Perbaikan: perhitungan Doppler radar kini menggunakan nilai slider offset langsung
-        * Perbaikan: perhitungan kemajuan pass dijaga terhadap pembagian dengan nol
-        * Perbaikan: panggilan calculatePasses bersamaan tidak lagi memicu perhitungan duplikat
-        * Perbaikan: pengiriman QSO duplikat WaveLog dan kondisi balapan pembaruan grid square
-        </string>
+        * FIX: APRS reported every beacon as sent even when nothing left the phone
+        * FIX: APRS could not start at all on Android 10 and later
+        * FIX: the APRS login line was malformed and real servers refused it
+        * FIX: a refused APRS login is now reported instead of being read as success
+        * FIX: APRS no longer invents a transmit passcode - request one from the link in settings
+        * FIX: a mistyped passcode is no longer described as receive-only mode
+        * FIX: APRS refuses to beacon without a position instead of sending 0N 0E
+        * NEW: pick your APRS map symbol from a list; the default is a house, not a car
+        * NEW: APRS beacons survive a locked screen
+        * FIX: WaveLog uploads read the reply from the server - a rejected contact stayed reported as sent
+        * FIX: a rejected contact now stays in the queue instead of being dropped
+        * FIX: the satellite name sent to WaveLog is resolved from the catalogue number
+        * FIX: the upload count no longer includes contacts sent days ago
+        * NEW: the contact time can be set, for logging a pass after it ends
+        * NEW: the counterpart grid can be typed, and is checked before it is logged
+        * FIX: the mode no longer keeps the value from the previous transponder
+        * FIX: a callsign that cannot be logged says why instead of vanishing
+        * FIX: a custom TLE URL now replaces the built-in sources instead of adding to them
+        * FIX: the custom source switch no longer turns itself off
+        * FIX: a dead custom URL no longer counts as a successful update
+        * FIX: QRZ tells an expired cookie apart from a station with no grid on file
+        * FIX: contacts can be deleted with a screen reader
+        * FIX: the log table grid and the sent column are readable in sunlight and at night
+    </string>
     <string name="radar_back">Kembali</string>
     <string name="radar_notify">Beri tahu</string>
     <string name="radar_az_text">Azimuth</string>

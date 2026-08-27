@@ -120,35 +120,30 @@
         \n\nPlease update the database at least weekly to get accurate predictions.</string>
     <string name="pass_whatsnew_title" translatable="false">What\'s new in Look4Sat</string>
         <string name="pass_whatsnew_message" translatable="false">
-        * FIX: the CW transcript no longer appears to delete text while audio waits to be decoded
-        * NEW: the CW waterfall shows the whole audio band, so a tone the decoder cannot reach is still visible
-        * NEW: the CW transcript follows new text, and stops following as soon as you scroll back
-        * NEW: screen readers now describe the CW waterfall and the AMSAT day cells
-        * NEW: the CW waterfall marks where your tone really is, even when it sits outside the decoder\'s range
-        * NEW: a line under the CW waterfall names the tone and says whether it is being moved into range
-        * NEW: the CW signal meter no longer reads high for a tone the decoder cannot actually hear
-        * NEW: choose the AMSAT day style in Settings - twelve stripes, or one colour with a report count
-        * NEW: AMSAT status shows 12 two-hour stripes per day — outages inside a day are now visible
-        * NEW: AMSAT status uses UTC calendar days, matching the official page
-        * NEW: two greys tell you whether a slot had no report or was never fetched
-        * NEW: a data-coverage marker shows when quieter satellites are crowded out of the global pull
-        * NEW: CW decoder now uses the DeepCW neural network — far better weak-signal Morse decoding
-        * NEW: ships the full fp32 DeepCW model for maximum decode accuracy
-        * NEW: CW decode history is kept permanently (text no longer disappears)
-        * CW waterfall: new inferno colour scheme with smooth gradients
-        * More menu: slim right-hand panel, no dimming overlay
-        * CW page: removed the dead back button and the misleading status line
-        * Restored 64-bit (arm64) support
-        * Fixed: pause/resume no longer shows a spurious "decode failed" error
-        * Fixed: moving pages to main menu no longer hides Settings permanently
-        * Fixed: AMSAT/WavelogLog can now be moved to main menu
-        * Fixed: satellite epoch parsing for times within first 86 seconds of UTC midnight
-        * Fixed: radar page now auto-switches to next pass after current pass ends
-        * Fixed: radar Doppler calculation now uses live offset slider value
-        * Fixed: pass progress calculation guards against division by zero
-        * Fixed: concurrent calculatePasses calls no longer trigger duplicate calculations
-        * Fixed: WaveLog duplicate QSO submissions and grid square update race conditions
-        </string>
+        * FIX: APRS reported every beacon as sent even when nothing left the phone
+        * FIX: APRS could not start at all on Android 10 and later
+        * FIX: the APRS login line was malformed and real servers refused it
+        * FIX: a refused APRS login is now reported instead of being read as success
+        * FIX: APRS no longer invents a transmit passcode - request one from the link in settings
+        * FIX: a mistyped passcode is no longer described as receive-only mode
+        * FIX: APRS refuses to beacon without a position instead of sending 0N 0E
+        * NEW: pick your APRS map symbol from a list; the default is a house, not a car
+        * NEW: APRS beacons survive a locked screen
+        * FIX: WaveLog uploads read the reply from the server - a rejected contact stayed reported as sent
+        * FIX: a rejected contact now stays in the queue instead of being dropped
+        * FIX: the satellite name sent to WaveLog is resolved from the catalogue number
+        * FIX: the upload count no longer includes contacts sent days ago
+        * NEW: the contact time can be set, for logging a pass after it ends
+        * NEW: the counterpart grid can be typed, and is checked before it is logged
+        * FIX: the mode no longer keeps the value from the previous transponder
+        * FIX: a callsign that cannot be logged says why instead of vanishing
+        * FIX: a custom TLE URL now replaces the built-in sources instead of adding to them
+        * FIX: the custom source switch no longer turns itself off
+        * FIX: a dead custom URL no longer counts as a successful update
+        * FIX: QRZ tells an expired cookie apart from a station with no grid on file
+        * FIX: contacts can be deleted with a screen reader
+        * FIX: the log table grid and the sent column are readable in sunlight and at night
+    </string>
 
     <!-- Radar screen -->
     <string name="radar_back">Back</string>
