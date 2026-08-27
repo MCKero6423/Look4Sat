@@ -3,6 +3,7 @@
     <string name="cw_pause">Çözmeyi duraklat</string>
     <string name="cw_resume">Çözmeyi sürdür</string>
     <string name="cw_clear">Çözülen metni temizle</string>
+    <string name="cw_scroll_newest">En yeni metne git</string>
     <string name="cw_mic_permission">CW çözümü için mikrofon izni gerekli</string>
     <string name="cw_grant_permission">İzin ver</string>
     <string name="cw_open_settings">Uygulama ayarlarını aç</string>

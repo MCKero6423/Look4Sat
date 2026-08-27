@@ -52,7 +52,7 @@ data class AprsReport(
      * test a setup without putting anything on the network - was reported as a wrong passcode
      * and sent the operator to fix something they had set on purpose.
      */
-    val receiveOnly: Boolean = false
+
 )
 
 /** Report scheduler (periodic + manual trigger); connection management lives in the foreground service */
@@ -127,13 +127,6 @@ class AprsReporter(
             }
             val packetLine = (beacon as AprsBeacon.Result.Line).text
 
-            // Receive-only is a deliberate choice and has to be told apart from a typo, because
-            // both log in with -1 and the server answers "unverified" to each. Classifying rather
-            // than asking canTransmit: that collapses ReceiveOnly and Mismatch into one boolean,
-            // so a mistyped passcode would be told it is in receive-only mode - the same
-            // mis-diagnosis as before, pointing the other way.
-            val wantsReceiveOnly =
-                AprsPasscode.classify(cfg.callsign, cfg.passcode) is AprsPasscode.Entry.ReceiveOnly
             val c = client ?: AprsIsClient(
                 host = cfg.server,
                 port = cfg.port,
@@ -166,14 +159,13 @@ class AprsReporter(
             // report, say that instead.
             val reported = when {
                 ok -> detail
-                refused && wantsReceiveOnly -> "receive-only, not forwarded"
                 refused -> "login not verified"
                 else -> detail
             }
             onReport(
                 AprsReport(
                     System.currentTimeMillis(), packetLine, ok, reported,
-                    verified = !refused, receiveOnly = wantsReceiveOnly
+                    verified = !refused
                 )
             )
             if (ok) onState(AprsState.Connected) else onState(AprsState.Error)

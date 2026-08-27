@@ -51,8 +51,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
+import androidx.compose.ui.draw.rotate
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,7 +77,6 @@ import kotlin.math.roundToInt
  * Not zero: an animated scroll settles a pixel or two short of the maximum, and an exact
  * comparison would drop out of follow-mode the moment it did.
  */
-private const val AUTOSCROLL_SLACK_PX = 4
 
 /**
  * Full-page CW decoder backed by DeepCW.
@@ -103,6 +104,10 @@ fun CwDecodeScreen() {
     }
     var permanentlyDenied by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    // Hoisted so the toolbar button can reach it: the record below does not follow
+    // the decode, so jumping to the newest text has to be an explicit action.
+    val transcriptScroll = rememberScrollState()
 
     val decodedText by decoder.decodedText.collectAsState()
     val historyText by decoder.historyText.collectAsState()
@@ -157,6 +162,17 @@ fun CwDecodeScreen() {
                     .weight(1f)
                     .padding(start = 12.dp)
             )
+            // Jump to the newest text. The record below deliberately does not follow the decode,
+            // so this is how you get back to the bottom after reading earlier traffic.
+            IconButton(onClick = { scope.launch { transcriptScroll.animateScrollTo(transcriptScroll.maxValue) } }) {
+                Icon(
+                    // The shared arrow points right; rotated to point down. Adding a second
+                    // drawable for the same shape is how icon sets start to drift.
+                    painter = painterResource(CoreR.drawable.ic_arrow),
+                    contentDescription = stringResource(R.string.cw_scroll_newest),
+                    modifier = Modifier.rotate(90f)
+                )
+            }
             IconButton(onClick = { isListening = !isListening }) {
                 Icon(
                     painter = painterResource(
@@ -232,34 +248,18 @@ fun CwDecodeScreen() {
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
             val transcript = (historyText + decodedText).ifEmpty { "…" }
-            val scroll = rememberScrollState()
-            // Follow the newest text, but stop as soon as the operator scrolls away, so
-            // reading back over earlier traffic is not undone by the next decode.
+            // This pane does not follow the decode. The single line above it is where new
+            // characters appear; this is the record, and a record that scrolls itself is worse
+            // than paper - you cannot read back over what just arrived because it keeps moving.
             //
-            // A boolean rather than comparing position against maxValue: maxValue is
-            // written during layout, after the composition that would read it, so such a
-            // comparison tests the previous frame's height and drifts short of the true
-            // bottom until it latches out of follow-mode altogether.
-            var following by remember { mutableStateOf(true) }
-            LaunchedEffect(scroll) {
-                snapshotFlow { scroll.isScrollInProgress to scroll.value }
-                    .collect { (scrolling, value) ->
-                        if (scrolling) following = value >= scroll.maxValue - AUTOSCROLL_SLACK_PX
-                    }
-            }
-            LaunchedEffect(transcript, following) {
-                if (!following) return@LaunchedEffect
-                // Twice: the first pass lands at the height known when it started, the
-                // second covers growth that arrived while it was animating.
-                repeat(2) {
-                    if (scroll.value < scroll.maxValue) scroll.animateScrollTo(scroll.maxValue)
-                }
-            }
+            // It used to auto-scroll to the bottom on every decode, dropping out of follow mode
+            // only once the operator had already fought it by scrolling away. Now it stays where
+            // it was put, and the button below jumps to the newest text on request.
             Text(
                 text = transcript,
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scroll)
+                    .verticalScroll(transcriptScroll)
                     .padding(8.dp),
                 fontSize = 16.sp,
                 fontFamily = FontFamily.Monospace,

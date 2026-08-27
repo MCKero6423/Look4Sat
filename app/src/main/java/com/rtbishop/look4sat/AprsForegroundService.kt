@@ -123,13 +123,13 @@ class AprsForegroundService : Service() {
                 // An unverified login needs its own message: the write succeeded, so a bare
                 // failure notice would send the operator looking at their network when the
                 // problem is the passcode - and APRS-IS is dropping every packet meanwhile.
+                // No receive-only notice. APRS-IS lets an unverified station connect and then
+                // discards its packets, but this app only reports its own position - there is no
+                // receiving side to it - so telling the operator they are "in receive-only mode"
+                // named a state that does not exist here. Without a passcode the packet does not
+                // arrive, and that is what the failure notice says.
                 val msg = when {
                     report.ok -> getString(R.string.aprs_toast_ok)
-                    // Receive-only first: it logs in with -1 exactly as a wrong passcode does and
-                    // the server answers "unverified" to both, so without this branch the one safe
-                    // way to test a setup reported itself as a configuration error.
-                    !report.verified && report.receiveOnly ->
-                        getString(R.string.aprs_toast_receive_only)
                     !report.verified -> getString(R.string.aprs_toast_unverified)
                     else -> getString(R.string.aprs_toast_fail, report.detail)
                 }

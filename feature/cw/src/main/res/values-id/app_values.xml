@@ -3,6 +3,7 @@
     <string name="cw_pause">Jeda pendekodean</string>
     <string name="cw_resume">Lanjutkan pendekodean</string>
     <string name="cw_clear">Hapus teks hasil dekode</string>
+    <string name="cw_scroll_newest">Lompat ke teks terbaru</string>
     <string name="cw_mic_permission">Izin mikrofon diperlukan untuk pendekodean CW</string>
     <string name="cw_grant_permission">Berikan izin</string>
     <string name="cw_open_settings">Buka pengaturan aplikasi</string>

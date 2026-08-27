@@ -3,6 +3,7 @@
     <string name="cw_pause">Pause decoding</string>
     <string name="cw_resume">Resume decoding</string>
     <string name="cw_clear">Clear decoded text</string>
+    <string name="cw_scroll_newest">Jump to the newest text</string>
     <string name="cw_mic_permission">Microphone permission is required for CW decoding</string>
     <string name="cw_grant_permission">Grant permission</string>
     <string name="cw_open_settings">Open app settings</string>
