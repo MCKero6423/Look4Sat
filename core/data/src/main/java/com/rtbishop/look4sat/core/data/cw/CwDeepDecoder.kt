@@ -24,6 +24,7 @@ import android.content.Context
 import android.util.Log
 import com.rtbishop.look4sat.core.domain.cw.CwCtcDecoder
 import com.rtbishop.look4sat.core.domain.cw.CwDeepBuffer
+import com.rtbishop.look4sat.core.domain.cw.CwAntiAlias
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import com.rtbishop.look4sat.core.domain.cw.CwDetectionPool
 import com.rtbishop.look4sat.core.domain.cw.CwShiftDecider
@@ -173,6 +174,17 @@ class CwDeepDecoder(
     private val streamingShifter = CwToneShifter.Streaming()
 
     /**
+     * Anti-alias filter for the decimation to [CwDeepSpectrogram.SAMPLE_RATE].
+     *
+     * Built on the first chunk because the capture rate is not known until then. Without
+     * it everything above 1600 Hz folds into the window: a 3000 Hz tone reappeared at
+     * 200 Hz at 119 times the spectral mean, and the whole 1600-22050 Hz band of hiss
+     * folded down on top of the signal.
+     */
+    private var antiAlias: CwAntiAlias.Streaming? = null
+    private var antiAliasRate = 0
+
+    /**
      * Previous value of the setting, so a toggle can invalidate buffered audio.
      * Null until the first chunk: a decoder created while the setting is already on
      * must not treat that as a change and wipe an empty buffer.
@@ -255,8 +267,18 @@ class CwDeepDecoder(
         if (samples.isEmpty()) return
         if (!ensureLoaded()) return
 
+        // Filter before decimating. resampleLinear interpolates without removing anything
+        // above the new Nyquist, so this has to happen first or the fold is already baked in.
+        if (antiAlias == null || antiAliasRate != sampleRate) {
+            antiAlias = CwAntiAlias.Streaming(sampleRate, CwDeepSpectrogram.SAMPLE_RATE)
+            antiAliasRate = sampleRate
+        }
+        val bandLimited = antiAlias?.process(samples) ?: samples
+        // The filter holds back its group delay, so the first call returns nothing.
+        if (bandLimited.isEmpty()) return
+
         val resampled = CwDeepSpectrogram.resampleLinear(
-            samples, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
+            bandLimited, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
         )
         val prepared = applyToneShift(resampled)
         val shouldRedecode = buffer.append(prepared)
@@ -584,6 +606,7 @@ class CwDeepDecoder(
     }
 
     override fun reset() {
+        antiAlias?.reset()
         buffer.reset()
         _decodedText.value = ""
         _historyText.value = ""

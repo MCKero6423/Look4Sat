@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.res.stringResource
+import com.rtbishop.look4sat.core.domain.cw.CwAntiAlias
 import com.rtbishop.look4sat.core.domain.cw.CwDeepSpectrogram
 import com.rtbishop.look4sat.core.domain.cw.CwToneShifter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +59,10 @@ class CwWaterfallState(private val historyRows: Int = 96) {
     // Compose draw thread, so every touch of these two collections is guarded.
     // ArrayDeque is not thread-safe: concurrent removeFirst()/toList() throws.
     private val lock = Any()
+    
+    /** Anti-alias filter for the decimation, built once the capture rate is known. */
+    private var antiAlias: CwAntiAlias.Streaming? = null
+    private var antiAliasRate = 0
     private val rows = ArrayDeque<FloatArray>(historyRows)
     private val pending = ArrayList<Float>(CwDeepSpectrogram.SAMPLE_RATE)
     // Incremented by clear(). A pushSamples call records the generation before
@@ -80,8 +85,21 @@ class CwWaterfallState(private val historyRows: Int = 96) {
 
     fun pushSamples(chunk: FloatArray, sampleRate: Int) {
         if (chunk.isEmpty()) return
+        // Band-limit before decimating, for the same reason the decoder does: without it
+        // everything above 1600 Hz folds into the display. That is not a cosmetic problem -
+        // the entire 1600-22050 Hz band of hiss lands on top of the signal and smears across
+        // the whole waterfall, and a strong out-of-band tone appears as a convincing ghost at
+        // a frequency nothing is transmitting on.
+        if (antiAlias == null || antiAliasRate != sampleRate) {
+            antiAlias = CwAntiAlias.Streaming(sampleRate, CwDeepSpectrogram.SAMPLE_RATE)
+            antiAliasRate = sampleRate
+        }
+        val bandLimited = antiAlias?.process(chunk) ?: chunk
+        // The filter holds back its group delay, so the first call yields nothing.
+        if (bandLimited.isEmpty()) return
+
         val resampled = CwDeepSpectrogram.resampleLinear(
-            chunk, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
+            bandLimited, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
         )
         val audio: FloatArray
         val generationAtStart: Long
@@ -120,6 +138,7 @@ class CwWaterfallState(private val historyRows: Int = 96) {
     }
 
     fun clear() {
+        antiAlias?.reset()
         synchronized(lock) {
             generation++
             rows.clear()
