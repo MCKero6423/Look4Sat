@@ -17,5 +17,5 @@
     <string name="cw_copy">Copy the record</string>
     <string name="cw_copied">Record copied</string>
     <string name="cw_record_label">Record</string>
-    <string name="cw_record_empty">Decoded text collects here. Copy it before leaving this screen: the record is not stored.</string>
+    <string name="cw_record_empty">Text lands here once a batch of audio has been decoded. The line above updates sooner. Copy before leaving: the record is not stored.</string>
 </resources>

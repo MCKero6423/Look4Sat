@@ -14,4 +14,8 @@
     <string name="cw_waterfall_shifted">ton %1$d hertz, kod çözme aralığına taşındı</string>
     <string name="cw_waterfall_outside">ton %1$d hertz, kod çözme aralığının dışında</string>
     <string name="cw_waterfall_inside">ton %1$d hertz</string>
+    <string name="cw_copy">Kaydı kopyala</string>
+    <string name="cw_copied">Kayıt kopyalandı</string>
+    <string name="cw_record_label">Kayıt</string>
+    <string name="cw_record_empty">Bir ses grubu çözüldükten sonra metin buraya düşer. Üstteki satır daha erken güncellenir. Çıkmadan önce kopyalayın: kayıt saklanmaz.</string>
 </resources>

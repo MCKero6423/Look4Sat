@@ -74,13 +74,6 @@ import com.rtbishop.look4sat.core.presentation.R as CoreR
 import kotlin.math.roundToInt
 
 /**
- * Scroll slack, in pixels, within which the transcript counts as being at the bottom.
- *
- * Not zero: an animated scroll settles a pixel or two short of the maximum, and an exact
- * comparison would drop out of follow-mode the moment it did.
- */
-
-/**
  * Full-page CW decoder backed by DeepCW.
  *
  * Layout follows the DeepCW reference app: waterfall on top, the live line
@@ -182,18 +175,24 @@ fun CwDecodeScreen() {
                     .weight(1f)
                     .padding(start = 12.dp)
             )
-            // Copy the record out. The decoder is built fresh every time this screen is opened,
-            // so leaving the screen loses the transcript - and until now there was no way at all
-            // to get the text off it. An operator who has just copied a callsign by ear should not
-            // have to transcribe it a second time by hand.
+            // Copy everything decoded so far. The decoder is built fresh every time this screen
+            // is opened, so leaving loses the transcript, and until now there was no way at all
+            // to get the text off it: an operator who had just copied a call sign by ear had to
+            // transcribe it a second time by hand.
+            //
+            // Includes the live window, not just the record. The record only holds archived text,
+            // which needs the window to fill and then a batch to accumulate, so for the opening
+            // half-minute it is empty - and gating the button on it left the one control that
+            // rescues the text greyed out over exactly the short exchange most likely to be lost.
+            val copyable = (historyText + decodedText).trim()
             IconButton(
                 onClick = {
-                    if (historyText.isNotEmpty()) {
-                        clipboard.setText(AnnotatedString(historyText))
+                    if (copyable.isNotEmpty()) {
+                        clipboard.setText(AnnotatedString(copyable))
                         showToast(copiedMessage)
                     }
                 },
-                enabled = historyText.isNotEmpty()
+                enabled = copyable.isNotEmpty()
             ) {
                 Icon(
                     painter = painterResource(CoreR.drawable.ic_save),

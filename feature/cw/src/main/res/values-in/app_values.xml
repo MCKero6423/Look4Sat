@@ -14,4 +14,8 @@
     <string name="cw_waterfall_shifted">nada %1$d hertz, dipindahkan ke rentang dekode</string>
     <string name="cw_waterfall_outside">nada %1$d hertz, di luar rentang dekode</string>
     <string name="cw_waterfall_inside">nada %1$d hertz</string>
+    <string name="cw_copy">Salin catatan</string>
+    <string name="cw_copied">Catatan disalin</string>
+    <string name="cw_record_label">Catatan</string>
+    <string name="cw_record_empty">Teks muncul di sini setelah satu batch audio didekode. Baris di atas lebih cepat diperbarui. Salin sebelum keluar: catatan tidak disimpan.</string>
 </resources>

@@ -17,5 +17,5 @@
     <string name="cw_copy">复制记录</string>
     <string name="cw_copied">记录已复制</string>
     <string name="cw_record_label">记录</string>
-    <string name="cw_record_empty">解码文字会汇集到这里。离开本页前请复制：记录不会被存下来。</string>
+    <string name="cw_record_empty">一批音频解码完成后文字会落到这里，上面那行更新更早。离开本页前请复制：记录不会被存下来。</string>
 </resources>

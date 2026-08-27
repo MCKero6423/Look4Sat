@@ -166,6 +166,23 @@ class CwDeepDecoder(
     private val archiveBuffer = FloatArray(CwDeepBuffer.DEFAULT_MAX_SECONDS.toInt() * CwDeepSpectrogram.SAMPLE_RATE)
     private var archiveSize = 0
 
+    /**
+     * Window contents retired by a change of shift, waiting to be archived.
+     *
+     * The live window is the only route into the archive - audio gets there by being pushed
+     * out - so clearing the window used to mean its audio was never decoded at all. When the
+     * shift changed more often than the window took to fill, that was every sample: modelled
+     * at 18 WPM with a drift every 20 s, five minutes of listening archived nothing whatever.
+     * Synchronised on itself: written from the capture path and drained from both there and
+     * [flush], which run on different coroutines. Capped, because a signal drifting on every
+     * detection scan would otherwise queue windows faster than they can be decoded and grow
+     * without bound; past the cap the oldest goes, since newer audio is what is being read.
+     */
+    private val retiredAudio = ArrayDeque<FloatArray>()
+
+    /** Windows held awaiting archival before the oldest is dropped. */
+    private val retiredAudioLimit = 4
+
     /** Held while inference runs so slow devices skip work instead of queuing it. */
     private val inferenceLock = Mutex()
 
@@ -312,6 +329,21 @@ class CwDeepDecoder(
             bandLimited, sampleRate, CwDeepSpectrogram.SAMPLE_RATE
         )
         val prepared = applyToneShift(resampled)
+
+        // Anything applyToneShift just retired from the window is older than what follows, so
+        // it is archived before the new audio is buffered - otherwise the record comes out
+        // with its text transposed. Archived whole rather than accumulated: it is already a
+        // full window's worth, and holding it back would only expose it to the next retirement.
+        val retired = drainRetiredAudio()
+        for (batch in retired) {
+            try {
+                archiveDecode(batch)
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                Log.e(TAG, "retired audio decode failed", t)
+            }
+        }
+
         val shouldRedecode = buffer.append(prepared)
 
         // Archive audio that scrolled out of the live window. It is decoded once
@@ -438,9 +470,49 @@ class CwDeepDecoder(
      * cannot be un-shifted, so they are dropped rather than decoded against the new
      * shift. Text already committed to [historyText] stays: it was correct when decoded.
      */
+    /**
+     * Drop audio that was shifted by a setting no longer in force - but keep what can be kept.
+     *
+     * The live window has to go: it holds samples moved by two different amounts, and one
+     * spectrogram over both smears the tone. The pending archive batch does not. Those samples
+     * already left the window, they were shifted consistently, and they are complete, so
+     * discarding them threw away decodable audio for no reason. They are left in place here to
+     * be archived by the normal path, which keeps this function non-suspending: its two
+     * callers sit on the synchronous capture path, and making them suspend to run an inference
+     * here would put a decode inside the tone-detection scan.
+     *
+     * It mattered because this runs on every change of shift, which tracks the detected tone,
+     * which drifts across a pass. Modelled at 18 WPM, a drift every 20 s left the record
+     * permanently empty however long the operator listened: the window was wiped before any
+     * batch could complete, so nothing was ever committed. With the record still concatenating
+     * the live decode at the time, each wipe visibly cut the transcript short as well - text
+     * going backwards, then never accumulating at all.
+     */
+    /** Take every retired window, oldest first, leaving the queue empty. */
+    private fun drainRetiredAudio(): List<FloatArray> = synchronized(retiredAudio) {
+        if (retiredAudio.isEmpty()) {
+            emptyList()
+        } else {
+            retiredAudio.toList().also { retiredAudio.clear() }
+        }
+    }
+
     private fun dropBufferedAudio() {
+        // Retired, not discarded. The samples cannot stay in the window - mixing two shifts
+        // in one spectrogram smears the tone - but they are internally consistent and
+        // complete, so they decode fine on their own. Handed to the archive path rather than
+        // decoded here, because both callers sit on the synchronous capture path.
+        val retiring = buffer.snapshot()
+        if (retiring.isNotEmpty()) {
+            synchronized(retiredAudio) {
+                while (retiredAudio.size >= retiredAudioLimit) {
+                    Log.w(TAG, "retired audio queue full, dropping the oldest window")
+                    retiredAudio.removeFirst()
+                }
+                retiredAudio.addLast(retiring)
+            }
+        }
         buffer.reset()
-        archiveSize = 0
         // Committed text stays: it was correct for audio that really was archived.
         _historyText.value = committedText
     }
@@ -539,6 +611,12 @@ class CwDeepDecoder(
      * has to be archived first or the record comes out with its text transposed.
      */
     override suspend fun flush() = archiveLock.withLock {
+        // Oldest first, all the way down: retired window contents, then the batch accumulating
+        // towards the threshold, then what is still live.
+        for (batch in drainRetiredAudio()) {
+            runCatching { archiveDecodeLocked(batch) }
+                .onFailure { if (it is CancellationException) throw it }
+        }
         if (archiveSize > 0) {
             val pending = archiveBuffer.copyOf(archiveSize)
             archiveSize = 0
@@ -660,6 +738,7 @@ class CwDeepDecoder(
     override fun reset() {
         antiAlias?.reset()
         buffer.reset()
+        synchronized(retiredAudio) { retiredAudio.clear() }
         _decodedText.value = ""
         _historyText.value = ""
         committedText = ""
