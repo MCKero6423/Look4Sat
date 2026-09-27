@@ -1,0 +1,58 @@
+# First step of the Kotlin Multiplatform port: core:domain becomes shareable code that compiles
+# and runs on iOS as well as Android. This workflow is the evidence for that claim - the same
+# orbital math (SGP4/SDP4), models and repository contracts are compiled by the Kotlin/Native
+# compiler for iOS and their unit tests run on an iOS simulator. It deliberately does not touch
+# the Android build rules: the second job only proves the existing app still builds.
+name: ios-kmp
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/ios-kmp
+      - ios-kmp
+
+jobs:
+  ios:
+    name: iOS shared module
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile shared module for iOS
+        run: ./gradlew :core:domain:compileKotlinIosSimulatorArm64 --console=plain
+      - name: Unit tests on the iOS simulator
+        run: ./gradlew :core:domain:iosSimulatorArm64Test --console=plain
+      - name: Upload iOS test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-domain-test-report
+          path: core/domain/build/reports/tests/
+
+  android:
+    name: Android regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: JVM unit tests (domain and data)
+        run: ./gradlew :core:domain:jvmTest :core:data:testDebugUnitTest --console=plain
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --console=plain
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: |
+            core/domain/build/reports/tests/
+            core/data/build/reports/tests/

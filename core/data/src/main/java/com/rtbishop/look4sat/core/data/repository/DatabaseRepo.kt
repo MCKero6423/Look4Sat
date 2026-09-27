@@ -29,7 +29,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
-import java.io.InputStream
+import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 
 class DatabaseRepo(
@@ -55,8 +55,8 @@ class DatabaseRepo(
 
     override suspend fun updateTLEFromFile(uri: String): Int = withContext(dispatcher) {
         var importedCount = 0
-        remoteSource.getFileStream(uri)?.let { stream ->
-            val entries = parseSatelliteStream(uri, unwrapIfZipped(uri, stream))
+        remoteSource.getFileBytes(uri)?.let { data ->
+            val entries = parseSatelliteData(uri, unwrapIfZipped(uri, data))
             localSource.insertEntries(entries)
             settingsRepo.setSatelliteTypeIds(customSourceType, entries.map { it.catnum })
             importedCount = entries.size
@@ -67,8 +67,8 @@ class DatabaseRepo(
 
     override suspend fun updateTransceiversFromFile(uri: String): Int = withContext(dispatcher) {
         var importedCount = 0
-        remoteSource.getFileStream(uri)?.let { stream ->
-            val transceivers = dataParser.parseJSONStream(unwrapIfZipped(uri, stream))
+        remoteSource.getFileBytes(uri)?.let { data ->
+            val transceivers = dataParser.parseJSON(unwrapIfZipped(uri, data).decodeToString())
             localSource.insertRadios(transceivers)
             importedCount = transceivers.size
         }
@@ -105,8 +105,8 @@ class DatabaseRepo(
             Sources.transceiversDataUrls.filterValues { it.isNotBlank() }
         }
         // launch all network requests concurrently
-        val tleJobs = tleUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
-        val radioJobs = radioUrls.values.map { url -> async { url to remoteSource.getNetworkStream(url) } }
+        val tleJobs = tleUrls.values.map { url -> async { url to remoteSource.getNetworkBytes(url) } }
+        val radioJobs = radioUrls.values.map { url -> async { url to remoteSource.getNetworkBytes(url) } }
         val tleResults = tleJobs.awaitAll()
         val radioResults = radioJobs.awaitAll()
         // Orbital elements are counted on their own. A combined count let a successful transceivers
@@ -120,14 +120,14 @@ class DatabaseRepo(
             throw java.io.IOException("No orbital data source could be downloaded")
         }
         // parse fetched data concurrently and associate with types
-        val importedEntries = tleResults.flatMap { (url, stream) ->
+        val importedEntries = tleResults.flatMap { (url, data) ->
             val type = tleUrls.entries.find { it.value == url }?.key ?: customSourceType
-            stream?.let { parseSatelliteStream(url, unwrapIfZipped(url, it)) }.orEmpty().also { entries ->
+            data?.let { parseSatelliteData(url, unwrapIfZipped(url, it)) }.orEmpty().also { entries ->
                 settingsRepo.setSatelliteTypeIds(type, entries.map { it.catnum })
             }
         }
-        val importedRadios = radioResults.flatMap { (url, stream) ->
-            stream?.let { dataParser.parseJSONStream(unwrapIfZipped(url, it)) }.orEmpty()
+        val importedRadios = radioResults.flatMap { (url, data) ->
+            data?.let { dataParser.parseJSON(unwrapIfZipped(url, it).decodeToString()) }.orEmpty()
         }
         // insert parsed data into the database
         localSource.insertEntries(importedEntries)
@@ -141,11 +141,11 @@ class DatabaseRepo(
         setUpdateSuccessful(0L)
     }
 
-    private suspend fun parseSatelliteStream(url: String, stream: InputStream): List<OrbitalData> {
-        val bufferedStream = stream.buffered()
+    private suspend fun parseSatelliteData(url: String, data: ByteArray): List<OrbitalData> {
+        val text = data.decodeToString()
         return when {
-            hasCsvHint(url) || looksLikeCsv(bufferedStream) -> dataParser.parseCSVStream(bufferedStream)
-            else -> dataParser.parseTLEStream(bufferedStream)
+            hasCsvHint(url) || looksLikeCsv(text) -> dataParser.parseCSV(text)
+            else -> dataParser.parseTLE(text)
         }
     }
 
@@ -155,14 +155,9 @@ class DatabaseRepo(
             url.endsWith(".csv.zip", ignoreCase = true)
     }
 
-    private fun looksLikeCsv(stream: InputStream): Boolean {
-        if (!stream.markSupported()) return false
-        stream.mark(4096)
-        val preview = ByteArray(4096)
-        val length = stream.read(preview)
-        stream.reset()
-        if (length <= 0) return false
-        val line = preview.decodeToString(0, length).lineSequence().firstOrNull()?.trim().orEmpty()
+    private fun looksLikeCsv(text: String): Boolean {
+        val line = text.lineSequence().firstOrNull()?.trim().orEmpty()
+        if (line.isEmpty()) return false
         return line.contains("OBJECT_NAME", ignoreCase = true) ||
             line.contains("NORAD_CAT_ID", ignoreCase = true) ||
             line.count { it == ',' } >= 4
@@ -174,6 +169,10 @@ class DatabaseRepo(
         )
     }
 
-    private fun unwrapIfZipped(url: String, stream: InputStream): InputStream =
-        if (url.endsWith(".zip", ignoreCase = true)) ZipInputStream(stream).apply { nextEntry } else stream
+    private fun unwrapIfZipped(url: String, data: ByteArray): ByteArray =
+        if (url.endsWith(".zip", ignoreCase = true)) {
+            ZipInputStream(ByteArrayInputStream(data)).apply { nextEntry }.readBytes()
+        } else {
+            data
+        }
 }

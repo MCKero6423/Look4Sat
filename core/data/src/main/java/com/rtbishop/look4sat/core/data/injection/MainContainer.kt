@@ -36,6 +36,7 @@ import com.rtbishop.look4sat.core.data.repository.SelectionRepo
 import com.rtbishop.look4sat.core.data.repository.SensorsRepo
 import com.rtbishop.look4sat.core.data.repository.SettingsRepo
 import com.rtbishop.look4sat.core.data.source.LocalSource
+import com.rtbishop.look4sat.core.data.source.OkHttpHttpClient
 import com.rtbishop.look4sat.core.data.source.RemoteSource
 import com.rtbishop.look4sat.core.data.usecase.AddToCalendar
 import com.rtbishop.look4sat.core.data.usecase.AudioCapture
@@ -73,11 +74,21 @@ import com.rtbishop.look4sat.core.data.qrz.QrzGridLookup
 import com.rtbishop.look4sat.core.domain.qrz.IQrzGridLookup
 import okhttp3.OkHttpClient
 import com.rtbishop.look4sat.core.data.wavelog.LotwSatellitesRepo
+import com.rtbishop.look4sat.core.domain.wavelog.WaveLogApi
 
 class MainContainer(private val context: Context) : IMainContainer {
 
     private val localSource = provideLocalSource()
     private val remoteSource by lazy { provideRemoteSource() }
+
+    /**
+     * WaveLogApi is a plain object in core:domain, and shared code has no socket API of its own on
+     * iOS, so the container hands it the platform client. Its requests used to be made by an
+     * HttpURLConnection built inside WaveLogApi, which only ever existed on the JVM.
+     */
+    init {
+        WaveLogApi.installHttpClient(OkHttpHttpClient(OkHttpClient.Builder().build()))
+    }
     private val mainHandler = CoroutineExceptionHandler { _, error -> println("MainHandler: $error") }
     override val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + mainHandler)
     override val settingsRepo = provideSettingsRepo()

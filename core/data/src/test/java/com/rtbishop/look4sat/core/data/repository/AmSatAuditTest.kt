@@ -5,7 +5,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.InputStream
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Locale
@@ -18,8 +17,8 @@ import java.util.TimeZone
 class AmSatAuditTest {
 
     private object UnusedSource : IRemoteSource {
-        override suspend fun getFileStream(uri: String): InputStream? = null
-        override suspend fun getNetworkStream(url: String): InputStream? = null
+        override suspend fun getFileBytes(uri: String): ByteArray? = null
+        override suspend fun getNetworkBytes(url: String): ByteArray? = null
         override suspend fun getAmSatCatalog(): String? = null
         override suspend fun getAmSatReports(hours: Int, limit: Int): String? = null
         override suspend fun getAmSatSummary(hours: Int): String? = null

@@ -1,0 +1,181 @@
+/*
+ * Look4Sat. Amateur radio satellite tracker and pass predictor.
+ * Copyright (C) 2019-2026 Arty Bishop and contributors.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.rtbishop.look4sat.core.domain
+
+import com.rtbishop.look4sat.core.domain.utility.positionToQth
+import com.rtbishop.look4sat.core.domain.utility.qthNeighbors
+import com.rtbishop.look4sat.core.domain.utility.qthToPosition
+import com.rtbishop.look4sat.core.domain.utility.qthToSquare
+import kotlin.test.Test
+import kotlin.test.assertTrue
+
+class QthConverterTest {
+
+    @Test
+    fun `Given valid QTH returns correct POS`() {
+        var result = qthToPosition("io91VL39FX")
+        assertTrue(result?.latitude == 51.499913 && result.longitude == -0.22309)
+        result = qthToPosition("gf15vc")
+        assertTrue(result?.latitude == -34.895833 && result.longitude == -56.208333)
+        // 8-char locators: finer 30" x 15" cell center
+        result = qthToPosition("io91vl47")
+        assertTrue(result?.latitude == 51.489583 && result.longitude == -0.2125)
+        result = qthToPosition("jn58td25")
+        assertTrue(result?.latitude == 48.147917 && result.longitude == 11.604167)
+    }
+
+    @Test
+    fun `Given invalid QTH returns null`() {
+        assertTrue(qthToPosition("ZZ00zz") == null)
+        assertTrue(qthToPosition("JN58") == null)
+        assertTrue(qthToPosition("io9") == null)
+        assertTrue(qthToPosition("IO91VL7") == null)
+        assertTrue(qthToPosition("IO91VL4X") == null)
+    }
+
+    @Test
+    fun `Given valid POS returns correct QTH`() {
+        // default precision is 8 chars
+        assertTrue(positionToQth(51.4878, -0.2146) == "IO91vl47")
+        assertTrue(positionToQth(48.1466, 11.6083) == "JN58td25")
+        // 6-char precision still available for backwards compatibility
+        assertTrue(positionToQth(51.4878, -0.2146, 6) == "IO91vl")
+        assertTrue(positionToQth(48.1466, 11.6083, 6) == "JN58td")
+        // 10-char precision
+        assertTrue(positionToQth(51.4878, -0.2146, 10) == "IO91vl47fb")
+        assertTrue(positionToQth(48.1466, 11.6083, 10) == "JN58td25xe")
+    }
+
+    @Test
+    fun `Given invalid POS returns null`() {
+        assertTrue(positionToQth(91.0542, -170.1142) == null)
+        assertTrue(positionToQth(89.0542, -240.1142) == null)
+    }
+
+    @Test
+    fun `Given boundary POS stays in valid grid`() {
+        // antipodal / edge cases must not overflow the A-R / 0-9 / a-x alphabet
+        assertTrue(positionToQth(-90.0, -180.0, 8) == "AA00aa00")
+        // Exact positive bounds belong to the final cell, not a modulo-wrapped
+        // R-field/0-square combination that decodes 10°/20° away.
+        assertTrue(positionToQth(90.0, 180.0, 8) == "RR99xx99")
+        assertTrue(positionToQth(0.0, 0.0, 8) == "JJ00aa00")
+        // roundtrip stability: 8-char roundtrip is stable across a sample of positions
+        val positions = listOf(
+            Pair(51.4878, -0.2146), Pair(48.1466, 11.6083), Pair(-33.8688, 151.2093),
+            Pair(39.9042, 116.4074), Pair(35.6895, 139.6917), Pair(41.714, -72.727)
+        )
+        positions.forEach { (lat, lon) ->
+            val qth = positionToQth(lat, lon, 8)
+            val pos = qthToPosition(qth!!)
+            val qth2 = positionToQth(pos!!.latitude, pos.longitude, 8)
+            assertTrue(qth == qth2, "Roundtrip failed for ($lat, $lon): $qth -> $qth2")
+        }
+    }
+
+    @Test
+    fun `Encoded locator always decodes back within one cell`() {
+        // An 8-char cell is 30" lon x 15" lat, so a correct encode/decode pair
+        // can never differ by more than that. Field clamping used to break this
+        // near +90 / +180 and produced errors up to 10 deg lat / 20 deg lon.
+        var worstLat = 0.0
+        var worstLon = 0.0
+        var worst = ""
+        var lat = -90.0
+        while (lat <= 90.0) {
+            var lon = -180.0
+            while (lon <= 180.0) {
+                val qth = positionToQth(lat, lon, 8)
+                    ?: error("valid position rejected: ($lat, $lon)")
+                val pos = qthToPosition(qth) ?: error("own output rejected: $qth")
+                val dLat = kotlin.math.abs(pos.latitude - lat)
+                val dLon = kotlin.math.abs(pos.longitude - lon)
+                if (dLat > worstLat || dLon > worstLon) {
+                    worstLat = maxOf(worstLat, dLat)
+                    worstLon = maxOf(worstLon, dLon)
+                    worst = "($lat, $lon) -> $qth -> (${pos.latitude}, ${pos.longitude})"
+                }
+                lon += 0.5
+            }
+            lat += 0.5
+        }
+        assertTrue(
+            worstLat <= 0.01 && worstLon <= 0.01,
+            "roundtrip drifted by (${worstLat}, ${worstLon}) deg, worst: $worst"
+        )
+    }
+
+    @Test
+    fun `Given out of range longitude returns null`() {
+        // Maidenhead only covers -180..180; 181..360 used to be accepted and
+        // encoded into a plausible-looking locator 20-200 deg away.
+        assertTrue(positionToQth(0.0, 181.0) == null)
+        assertTrue(positionToQth(0.0, 270.0) == null)
+        assertTrue(positionToQth(0.0, 360.0) == null)
+    }
+
+    @Test
+    fun `Given locator with out of range field returns null`() {
+        // Fields run A-R; S-X in the first pair decoded past the poles.
+        assertTrue(qthToPosition("SS00aa") == null)
+        assertTrue(qthToPosition("XX99xx") == null)
+        assertTrue(qthToPosition("AS00aa") == null)
+        assertTrue(qthToPosition("AX99xx") == null)
+    }
+
+    @Test
+    fun `Given square returns correct 3x3 neighbors`() {
+        // Reference grid from the QTH Locator screenshot: OL42
+        val neighbors = qthNeighbors("OL42")
+        assertTrue(
+            neighbors == listOf(
+                "OL33", "OL43", "OL53",
+                "OL32", "OL42", "OL52",
+                "OL31", "OL41", "OL51"
+            ),
+            "OL42 grid mismatch: $neighbors"
+        )
+        // Center cell must be the input itself
+        assertTrue(neighbors[4] == "OL42")
+        // 9 cells, all distinct
+        assertTrue(neighbors.size == 9 && neighbors.toSet().size == 9)
+    }
+
+    @Test
+    fun `Given boundary square wraps fields correctly`() {
+        // South-west corner: AA00 neighbors wrap to RR99 / RA90 etc.
+        val sw = qthNeighbors("AA00")
+        assertTrue(sw.size == 9 && sw.toSet().size == 9)
+        assertTrue(sw[0] == "RA91" && sw[4] == "AA00" && sw[6] == "RR99" && sw[8] == "AR19")
+        // North-east corner: RR99 wraps to AA00
+        val ne = qthNeighbors("RR99")
+        assertTrue(ne.size == 9 && ne.toSet().size == 9)
+        assertTrue(ne[0] == "RA80" && ne[4] == "RR99" && ne[8] == "AR08")
+        // Field boundary: IO91's east neighbors cross into J field
+        val london = qthNeighbors("IO91")
+        assertTrue(london[2] == "JO02" && london[5] == "JO01")
+    }
+
+    @Test
+    fun `Given full locator returns square part`() {
+        assertTrue(qthToSquare("OL42ih45") == "OL42")
+        assertTrue(qthToSquare("io91VL39FX") == "IO91")
+        assertTrue(qthToSquare("JN58") == "JN58")
+        assertTrue(qthToSquare("garbage!!") == "----")
+    }
+}

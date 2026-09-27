@@ -25,7 +25,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.InputStream
 
 class RemoteSource(
     private val dispatcher: CoroutineDispatcher,
@@ -33,10 +32,10 @@ class RemoteSource(
     private val httpClient: OkHttpClient
 ) : IRemoteSource {
 
-    override suspend fun getFileStream(uri: String): InputStream? = withContext(dispatcher) {
+    override suspend fun getFileBytes(uri: String): ByteArray? = withContext(dispatcher) {
         try {
             val fileUri = uri.toUri()
-            contentResolver.openInputStream(fileUri)?.buffered()
+            contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
@@ -45,17 +44,14 @@ class RemoteSource(
         }
     }
 
-    override suspend fun getNetworkStream(url: String): InputStream? = withContext(dispatcher) {
+    override suspend fun getNetworkBytes(url: String): ByteArray? = withContext(dispatcher) {
         try {
             val networkRequest = Request.Builder().url(url).build()
-            val response = httpClient.newCall(networkRequest).execute()
-            if (!response.isSuccessful) {
-                response.close()
-                return@withContext null
+            // The whole body is read here, which also returns the connection to OkHttp's pool
+            httpClient.newCall(networkRequest).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                response.body.bytes()
             }
-            // Return the body stream directly as the caller is responsible for closing it
-            // That returns the connection to OkHttp's pool
-            response.body.byteStream().buffered()
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {

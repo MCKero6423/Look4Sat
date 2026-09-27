@@ -25,7 +25,7 @@ no tracking, no network required after initial data download.
 |----------------------|---------------------------------------------------------------------|
 | `app`                | Entry point. Aggregates all modules                                 |
 | `core:data`          | Android library. Room DB, OkHttp networking, repo implementations   |
-| `core:domain`        | Pure Kotlin (JVM). Orbital math (SGP4/SDP4), models, repo contracts |
+| `core:domain`        | Multiplatform: JVM + iOS. Orbital math (SGP4/SDP4), models, contracts |
 | `core:presentation`  | Android library. Compose theme, shared UI components, NavKeys       |
 | `feature:map`        | OSMDroid map with ground tracks                                     |
 | `feature:passes`     | Pass predictions and upcoming events                                |
@@ -50,7 +50,7 @@ no tracking, no network required after initial data download.
 ./gradlew test
 ```
 
-- **Min SDK**: 24 | **Target SDK**: 36 | **JDK**: 17
+- **Min SDK**: 24 | **Target SDK**: 36 | **JDK**: 21 (`jdkVersion` in the version catalog)
 - **Gradle**: Version catalog in `gradle/libs.versions.toml` + convention plugins in `build-logic/`
 
 ## Tech Stack
@@ -71,7 +71,7 @@ Look4Sat supports both TLE and OMM (Orbit Mean-Elements Message) CSV formats:
 - **TLE format**: Legacy 3-line element format limited by 5-digit NORAD IDs
 - **OMM/CSV format**: Successor format with ISO 8601 timestamps and larger NORAD ID support
 - New 5-digit NORAD IDs are exhausted; TLE is officially deprecated and OMM/CSV is the clear default
-- `DataParser.kt` supports both via `parseTLEStream()` and `parseCSVStream()`
+- `DataParser.kt` supports both via `parseTLE()` and `parseCSV()`, each taking the file text
 - Downloads auto-detect format; both produce identical `OrbitalData` objects
 - Existing code already supports transparent source transition without feature changes
 - Refresh orbital data weekly for accurate pass prediction (orbital decay)
@@ -103,11 +103,31 @@ Look4Sat supports both TLE and OMM (Orbit Mean-Elements Message) CSV formats:
 
 ## Roadmap
 
-- **KMP migration**: `core:domain` is to become a fully shareable KMM module. Keep it pure Kotlin/JVM.
+- **KMP migration**: `core:domain` is now a Kotlin Multiplatform module (jvm + iosArm64/iosSimulatorArm64),
+  so the orbital math, models and repository contracts are compiled once and shared with the iOS app; Android
+  modules consume its jvm target. `commonMain` must stay free of JVM-only APIs (no `java.*`, `org.json`,
+  `String.format`, `Locale`, `InputStream`) - `formatString` in `utility/CommonFormat.kt` covers printf.
+- **iOS app**: next step - an iOS shell that consumes the `Look4SatCore` framework plus the `expect`/`actual`
+  platform pieces (map, location, sensors, notifications).
 
 ## Gotchas
 
 - Orbital math lives in `core:domain/predict/` — dense vector math (SGP4/SDP4). Tread carefully.
+- `core:domain` is compiled for iOS too: anything added to its `commonMain` must exist in Kotlin/Native.
+  `.github/workflows/ios-kmp.yml` compiles it for iOS and runs the shared tests on an iOS simulator.
+- Kotlin/JVM-only declarations still *resolve* in `commonMain` and only fail when the iOS target compiles:
+  `@Synchronized` and `@Volatile` (the `kotlin.jvm` ones) are errors in common code since Kotlin 2.1, as are
+  `toUpperCase`/`toLowerCase`/`capitalize` and `BigDecimal`. Use `kotlin.concurrent.Volatile`, and
+  `utility/SynchronizedOn.kt` (a platform actual) when a monitor is needed. `check-multiplatform.sh` in the
+  working copy's parent directory flags the rest.
+- Source sets: `commonTest` runs on both jvm and iOS, so no JUnit4, no `javaClass.classLoader` and no bare
+  `assert()` there - a build without `-ea` skips those silently, and `-ea` is a JVM flag. Use `kotlin.test`.
+  JVM-only tests (classpath resources, `Locale.setDefault`) belong in `jvmTest`; platform code in
+  `jvmMain`/`iosMain`.
+- `formatString` has to match `java.lang.String.format` exactly, and that rounds the *shortest decimal
+  representation* of a double half-up: `"%.3f"` of 0.5005 is `"0.501"`, even though the stored double is
+  0.50049999999999994493. `CommonFormatOracleTest` (jvmTest) compares against real `String.format` over
+  sampled doubles; `CommonFormatRoundingTest` (commonTest) pins literals so iOS checks the same digits.
 - SSTV decoding in `feature:radar` is experimental; image quality depends on signal strength during satellite pass.
 - `build-logic/convention/` contains shared Gradle configuration — edit there, not in individual modules.
 - AMSAT status colours are ARGB literals in `core:data` (`AmSatRepository.statusColorOf`) and duplicated in

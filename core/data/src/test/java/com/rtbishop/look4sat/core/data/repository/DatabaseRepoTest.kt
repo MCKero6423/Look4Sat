@@ -41,7 +41,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.InputStream
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DatabaseRepoTest {
@@ -54,7 +53,7 @@ class DatabaseRepoTest {
         val uri = "content://look4sat/import/satellites"
         val localSource = FakeLocalSource()
         val remoteSource = FakeRemoteSource().apply {
-            fileStreams[uri] = { validCsvStream() }
+            fileData[uri] = { validCsvBytes() }
         }
         val settingsRepo = FakeSettingsRepo()
         val repository = DatabaseRepo(dispatcher, dataParser, localSource, remoteSource, settingsRepo)
@@ -72,7 +71,7 @@ class DatabaseRepoTest {
         val uri = "content://look4sat/import/legacy"
         val localSource = FakeLocalSource()
         val remoteSource = FakeRemoteSource().apply {
-            fileStreams[uri] = { validTleStream() }
+            fileData[uri] = { validTleBytes() }
         }
         val settingsRepo = FakeSettingsRepo()
         val repository = DatabaseRepo(dispatcher, dataParser, localSource, remoteSource, settingsRepo)
@@ -88,7 +87,7 @@ class DatabaseRepoTest {
         val customCsvUrl = "https://example.com/custom-omm.csv"
         val localSource = FakeLocalSource()
         val remoteSource = FakeRemoteSource().apply {
-            networkStreams[customCsvUrl] = { validCsvStream() }
+            networkData[customCsvUrl] = { validCsvBytes() }
         }
         val settingsRepo = FakeSettingsRepo(
             dataSources = DataSourcesSettings(
@@ -134,7 +133,7 @@ class DatabaseRepoTest {
             // unanswered on purpose: org.json is compileOnly in core:domain, so DataParser cannot
             // parse a radio payload on the JVM anyway.
             Sources.satelliteDataUrls.values.filter { it.isNotBlank() }
-                .forEach { networkStreams[it] = { validCsvStream() } }
+                .forEach { networkData[it] = { validCsvBytes() } }
         }
         val settingsRepo = FakeSettingsRepo(
             dataSources = DataSourcesSettings(
@@ -172,7 +171,7 @@ class DatabaseRepoTest {
         val localSource = FakeLocalSource()
         val remoteSource = FakeRemoteSource().apply {
             Sources.transceiversDataUrls.values.filter { it.isNotBlank() }
-                .forEach { networkStreams[it] = { "[]".byteInputStream() } }
+                .forEach { networkData[it] = { "[]".encodeToByteArray() } }
         }
         val settingsRepo = FakeSettingsRepo(
             dataSources = DataSourcesSettings(
@@ -195,30 +194,30 @@ class DatabaseRepoTest {
         assertTrue("no entries may be inserted", localSource.insertedEntries.isEmpty())
     }
 
-    private fun validCsvStream(): InputStream = """
+    private fun validCsvBytes(): InputStream = """
         OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT
         ISS (ZARYA),1998-067A,2021-11-16T12:28:09.322176,15.48582035,.0004694,51.6447,309.4881,203.6966,299.8876,0,U,25544,999,31220,.31985E-4,.1288E-4,0
-    """.trimIndent().byteInputStream()
+    """.trimIndent().encodeToByteArray()
 
-    private fun validTleStream(): InputStream = """
+    private fun validTleBytes(): InputStream = """
         ISS (ZARYA)
         1 25544U 98067A   21320.51955234  .00001288  00000+0  31985-4 0  9990
         2 25544  51.6447 309.4881 0004694 203.6966 299.8876 15.48582035312205
-    """.trimIndent().byteInputStream()
+    """.trimIndent().encodeToByteArray()
 }
 
 private class FakeRemoteSource : IRemoteSource {
-    val fileStreams: MutableMap<String, () -> InputStream> = mutableMapOf()
-    val networkStreams: MutableMap<String, () -> InputStream> = mutableMapOf()
+    val fileData: MutableMap<String, () -> ByteArray> = mutableMapOf()
+    val networkData: MutableMap<String, () -> ByteArray> = mutableMapOf()
 
     /** Every URL asked for, so a test can assert WHICH sources were fetched, not just the result. */
     val requestedUrls = mutableListOf<String>()
 
-    override suspend fun getFileStream(uri: String): InputStream? = fileStreams[uri]?.invoke()
+    override suspend fun getFileBytes(uri: String): ByteArray? = fileData[uri]?.invoke()
 
-    override suspend fun getNetworkStream(url: String): InputStream? {
+    override suspend fun getNetworkBytes(url: String): ByteArray? {
         requestedUrls += url
-        return networkStreams[url]?.invoke()
+        return networkData[url]?.invoke()
     }
 
     override suspend fun getAmSatCatalog(): String? = null
