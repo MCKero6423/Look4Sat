@@ -312,7 +312,7 @@ object WaveLogApi {
     /** v1 ADIF string (freq in MHz, length = UTF-8 byte count, sat_name normalized) */
     internal fun toAdif(qso: WavelogQso, gridsquare: String, satName: String): String {
         fun field(name: String, value: String): String {
-            val bytes = value.toByteArray(Charsets.UTF_8).size
+            val bytes = value.encodeToByteArray().size
             return "<$name:$bytes>$value"
         }
         val satMode = satModeFrom(qso.freqTxHz, qso.freqRxHz)

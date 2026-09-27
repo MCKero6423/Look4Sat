@@ -194,12 +194,12 @@ class DatabaseRepoTest {
         assertTrue("no entries may be inserted", localSource.insertedEntries.isEmpty())
     }
 
-    private fun validCsvBytes(): InputStream = """
+    private fun validCsvBytes(): ByteArray = """
         OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT
         ISS (ZARYA),1998-067A,2021-11-16T12:28:09.322176,15.48582035,.0004694,51.6447,309.4881,203.6966,299.8876,0,U,25544,999,31220,.31985E-4,.1288E-4,0
     """.trimIndent().encodeToByteArray()
 
-    private fun validTleBytes(): InputStream = """
+    private fun validTleBytes(): ByteArray = """
         ISS (ZARYA)
         1 25544U 98067A   21320.51955234  .00001288  00000+0  31985-4 0  9990
         2 25544  51.6447 309.4881 0004694 203.6966 299.8876 15.48582035312205

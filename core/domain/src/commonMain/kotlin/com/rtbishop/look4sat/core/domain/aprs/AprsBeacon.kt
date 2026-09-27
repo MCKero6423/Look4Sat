@@ -91,7 +91,7 @@ object AprsBeacon {
         )
         val header = "$source>$DESTINATION,$PATH:="
         val body = position.toUncompressedString()
-        val room = MAX_LINE_BYTES - CRLF_BYTES - header.toByteArray().size - body.toByteArray().size
+        val room = MAX_LINE_BYTES - CRLF_BYTES - header.encodeToByteArray().size - body.encodeToByteArray().size
         return Result.Line(header + body + sanitiseComment(comment, room))
     }
 
