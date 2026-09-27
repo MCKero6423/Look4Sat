@@ -121,7 +121,7 @@ class CwToneShifterTest {
      * nothing arrives at — and nothing else in the build would object.
      */
     @Test
-    fun `the shift target sits inside the model window, clear of its edges`() {
+    fun `the shift target sits inside the model window and clear of its edges`() {
         assertTrue(
             CwToneShifter.isInsideWindow(CwToneShifter.TARGET_HZ.toFloat()),
             "TARGET_HZ ${CwToneShifter.TARGET_HZ} is outside the model window " +

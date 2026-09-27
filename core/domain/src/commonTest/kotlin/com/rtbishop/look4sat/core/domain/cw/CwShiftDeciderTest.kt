@@ -132,7 +132,7 @@ class CwShiftDeciderTest {
     }
 
     @Test
-    fun `hysteresis is measured against the anchor, not the previous estimate`() {
+    fun `hysteresis is measured against the anchor rather than the previous estimate`() {
         // Walk in 25 Hz steps: each step is under the 40 Hz margin, so a comparison
         // against the previous estimate would never fire. Anchored, the shift updates
         // once the accumulated move clears the margin.

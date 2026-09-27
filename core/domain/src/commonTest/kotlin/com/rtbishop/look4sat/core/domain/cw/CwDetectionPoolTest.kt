@@ -156,7 +156,7 @@ class CwDetectionPoolTest {
         var phase = 0
         repeat(4) {
             pool.add(FloatArray(320) { i ->
-                kotlin.math.sin(2.0 * Math.PI * 1500.0 * (phase + i) / sampleRate).toFloat()
+                kotlin.math.sin(2.0 * kotlin.math.PI * 1500.0 * (phase + i) / sampleRate).toFloat()
             })
             phase += 320
         }

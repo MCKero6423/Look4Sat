@@ -109,7 +109,7 @@ class AprsBeaconTest {
     @Test
     fun `an over-long comment is trimmed to keep the line legal`() {
         val text = line(comment = "x".repeat(600))
-        assertTrue(text.toByteArray().size + 2 <= 512, "line was ${text.toByteArray().size} bytes")
+        assertTrue(text.encodeToByteArray().size + 2 <= 512, "line was ${text.encodeToByteArray().size} bytes")
     }
 
     /** The comment limit for this format is 43 characters. */

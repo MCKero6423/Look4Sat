@@ -84,7 +84,7 @@ class AprsLoginTest {
      * every send afterwards reported success against a server that had refused the login.
      */
     @Test
-    fun `an invalid login comment is a refusal, not chatter`() {
+    fun `an invalid login comment is a refusal rather than chatter`() {
         val outcome = AprsLogin.parse(
             "# Invalid login: software name and version are not separated by a space"
         )
