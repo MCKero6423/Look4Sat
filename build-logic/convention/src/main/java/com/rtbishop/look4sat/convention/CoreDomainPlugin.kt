@@ -46,20 +46,22 @@ internal class CoreDomainPlugin : Plugin<Project> {
                     isStatic = true
                 }
             }
-            sourceSets {
-                commonMain.dependencies {
-                    implementation(libs.kotlin.coroutines)
-                    implementation(libs.kotlin.serialization)
-                }
-                commonTest.dependencies {
-                    implementation(libs.kotlin.test)
-                    implementation(libs.test.coroutines)
-                }
-                // JVM-only tests live here: the AndroidManifest check reads the file system, and
-                // the formatter oracle tests compare against java.lang.String.format.
-                jvmTest.dependencies {
-                    implementation(libs.test.junit4)
-                }
+            // The bare name accessors (commonMain, jvmTest, ...) are script-only syntax;
+            // plugin source has to resolve through the container members, so configure each
+            // source set by name. getByName is safe here: jvm() above has just created the
+            // jvm source sets, the same pattern the local probe build script relies on.
+            sourceSets.getByName("commonMain").dependencies {
+                implementation(libs.kotlin.coroutines)
+                implementation(libs.kotlin.serialization)
+            }
+            sourceSets.getByName("commonTest").dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.test.coroutines)
+            }
+            // JVM-only tests live here: the AndroidManifest check reads the file system, and
+            // the formatter oracle tests compare against java.lang.String.format.
+            sourceSets.getByName("jvmTest").dependencies {
+                implementation(libs.test.junit4)
             }
         }
     }
